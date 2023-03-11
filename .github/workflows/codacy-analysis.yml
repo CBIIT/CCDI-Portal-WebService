@@ -12,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@main
       - name: Remove Example Properties File 
-        run: rm ./src/main/resources/application_example.properties 
+        run: rm src/main/resources/application_example.properties 
       - name: Copy and Rename Properties File 
         run: cp ./src/main/resources/application.properties.j2 /src/main/resources/application.properties
       - name: Create GraphQL Directory 
