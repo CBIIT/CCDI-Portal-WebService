@@ -21,15 +21,6 @@ jobs:
         run: mv ./target/Bento-0.0.1.war ./target/ROOT.war 
       - name: Confirm WAR Artifact 
         run: cd ./target && ls -la
-
-
-  codacy-security-scan:
-    name: Codacy Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@main
-
       - name: Run Codacy Analysis CLI
         uses: codacy/codacy-analysis-cli-action@master
         with:
