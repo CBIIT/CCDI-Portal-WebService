@@ -32,3 +32,4 @@ jobs:
           format: sarif 
           tool-timeout: 1hour
           allow-network: true 
+          skip-uncommitted-files-check: true
