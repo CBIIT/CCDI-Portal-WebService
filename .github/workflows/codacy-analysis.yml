@@ -1,8 +1,10 @@
 name: Codacy Security Scan
 
-on: [workflow_dispatch]
-  # pull_request:
-  #   branches: [ "dev**", "qa**" ]
+on:
+  pull_request:
+    branches: [ "dev**", "qa**" ]
+  push:
+    branches: [ "main" ]
 
 jobs:
   build-backend:
@@ -29,3 +31,4 @@ jobs:
           tool-timeout: 1hour
           allow-network: true 
           skip-uncommitted-files-check: true
+          format: sarif
