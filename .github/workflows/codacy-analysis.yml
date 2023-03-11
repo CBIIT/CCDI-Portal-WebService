@@ -13,10 +13,6 @@ jobs:
         uses: actions/checkout@main
       - name: Remove Example Properties File 
         run: rm src/main/resources/application_local.properties 
-      - name: Copy and Rename Properties File 
-        run: mv src/main/resources/application.properties.j2 src/main/resources/application.properties
-      - name: Create GraphQL Directory 
-        run: cd ./src/main/resources/ && mkdir graphql yaml 
       - name: Confirm Directory Creation 
         run: cd ./src/main && ls -la 
       - name: Build SprintBoot Application 
