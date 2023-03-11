@@ -1,5 +1,6 @@
 # CCDI-Portal-WebService
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/363197f2260e40359ba5fc24a6fe42a3)](https://app.codacy.com/gh/CBIIT/CCDI-Portal-WebService?utm_source=github.com&utm_medium=referral&utm_content=CBIIT/CCDI-Portal-WebService&utm_campaign=Badge_Grade_Settings)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/197ca1f70b6a47618332548b6da480c1)](https://www.codacy.com/gh/CBIIT/bento-backend?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CBIIT/bento-backend&amp;utm_campaign=Badge_Grade)
 
 # Bento Backend Framework Configuration Guide
