@@ -2,7 +2,7 @@ name: Codacy Security Scan
 
 on:
   pull_request:
-    branches: [ "dev**", "qa**" ]
+    branches: [ "dev**", "qa**", "main"]
   push:
     branches: [ "main" ]
 
