@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-backend:
+  SAST:
     name: Build Backend 
     runs-on: ubuntu-latest
     steps:
