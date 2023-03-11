@@ -28,7 +28,13 @@ jobs:
           max-allowed-issues: 2147483647
           verbose: true
           format: sarif 
+          output: results.sarif
           tool-timeout: 1hour
           allow-network: true 
           skip-uncommitted-files-check: true
-          format: sarif
+          gh-code-scanning-compat: true
+
+      - name: Upload SARIF results file
+        uses: github/codeql-action/upload-sarif@main
+        with:
+          sarif_file: results.sarif
