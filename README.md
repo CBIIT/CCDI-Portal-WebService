@@ -1,6 +1,6 @@
 # CCDI-Portal-WebService
 
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/197ca1f70b6a47618332548b6da480c1)](https://www.codacy.com/gh/CBIIT/bento-backend?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CBIIT/bento-backend&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/52e029f7b91749e3a305154192cce1e4)](https://www.codacy.com/gh/CBIIT/CCDI-Portal-WebService/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CBIIT/CCDI-Portal-WebService&amp;utm_campaign=Badge_Grade)
 
 # Bento Backend Framework Configuration Guide
 This is the user documentation for the Bento Backend.
