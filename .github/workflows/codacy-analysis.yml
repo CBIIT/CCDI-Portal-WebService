@@ -13,14 +13,10 @@ jobs:
         uses: actions/checkout@main
       - name: Remove Example Properties File 
         run: rm src/main/resources/application_local.properties 
-      - name: Confirm Directory Creation 
-        run: cd ./src/main && ls -la 
       - name: Build SprintBoot Application 
         run: mvn clean package -DskipTests=true 
       - name: Rename WAR Artifact 
         run: mv ./target/Bento-0.0.1.war ./target/ROOT.war 
-      - name: Confirm WAR Artifact 
-        run: cd ./target && ls -la
       - name: Run Codacy Analysis CLI
         uses: codacy/codacy-analysis-cli-action@master
         with:
