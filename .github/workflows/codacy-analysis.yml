@@ -33,7 +33,7 @@ jobs:
         uses: actions/upload-artifact@v3.1.2
         with:
           name: build-artifact
-          path: $GITHUB_WORKSPACE/target/
+          path: target/
   Codacy:
     name: SpotBugs SAST (via Codacy)
     needs: Build
@@ -56,4 +56,20 @@ jobs:
           allow-network: true 
           skip-uncommitted-files-check: true
           force-file-permissions: true
+  SBOM:
+    name: Generate SBOM (via CycloneDX)
+    needs: Build
+    runs-on: ubuntu-latest 
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@main
+      - name: Download Build Artifact
+        uses: actions/download-artifact@2.1.1 
+        with:
+          name: build-artifact
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0.13.3
+        with:
+          path: $GITHUB_WORKSPACE/target/
+
 
