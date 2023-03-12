@@ -67,9 +67,11 @@ jobs:
         uses: actions/download-artifact@v2.1.1 
         with:
           name: build-artifact
+      - name: Verify Download 
+        run: ls -la target/
       - name: Generate SBOM
         uses: anchore/sbom-action@v0.13.3
         with:
-          path: target/
+          path: target
 
 
