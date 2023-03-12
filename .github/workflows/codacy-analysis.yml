@@ -46,4 +46,5 @@ jobs:
           verbose: true
           allow-network: true 
           skip-uncommitted-files-check: true
+          force-file-permissions: true
 
