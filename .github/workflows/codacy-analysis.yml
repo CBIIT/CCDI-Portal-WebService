@@ -29,6 +29,13 @@ jobs:
         run: mvn clean package -DskipTests=true 
       - name: Rename WAR Artifact 
         run: mv ./target/Bento-0.0.1.war ./target/ROOT.war 
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: build-artifact
+          path: ./target/
+
       - name: Run Codacy Analysis CLI
         uses: codacy/codacy-analysis-cli-action@master
         with:
