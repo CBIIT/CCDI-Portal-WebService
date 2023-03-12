@@ -10,13 +10,13 @@ on:
 
 jobs:
   Build:
-    name: Build Backend 
+    name: Maven Package Backend 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@main
       - name: Remove Example Properties File 
-        run: rm src/main/resources/application_local.properties 
+        run: rm $GITHUB_WORKSPACE/src/main/resources/application_local.properties 
       - name: Rename Properties File 
         run: mv src/main/resources/application.properties.j2 src/main/resources/application.properties
       - name: Setup Java JDK
