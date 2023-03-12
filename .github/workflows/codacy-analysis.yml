@@ -9,11 +9,11 @@ on:
     - cron: '0 0 * * *'
 
 jobs:
-  SAST:
+  Build:
     name: Build Backend 
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@main
       - name: Remove Example Properties File 
         run: rm src/main/resources/application_local.properties 
@@ -29,13 +29,22 @@ jobs:
         run: mvn clean package -DskipTests=true 
       - name: Rename WAR Artifact 
         run: mv ./target/Bento-0.0.1.war ./target/ROOT.war 
-
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v3.1.2
         with:
           name: build-artifact
           path: ./target/
-
+  Codacy:
+    name: SpotBugs SAST (via Codacy)
+    needs: Build
+    runs-on: ubuntu-latest 
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@main
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v2.1.1 
+        with:
+          name: build-artifact
       - name: Run Codacy Analysis CLI
         uses: codacy/codacy-analysis-cli-action@master
         with:
