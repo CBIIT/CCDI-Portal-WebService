@@ -63,21 +63,7 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@main
-      - name: Create Target Directory
-        run: mkdir target sbom 
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v2.1.1 
-        with:
-          name: build-artifact
-          path: target
-      - name: Generate SBOM
-        uses: anchore/sbom-action@v0.13.3
-        with:
-          path: target
-          upload-artifact: false 
-          upload-release-asset: false 
-          output-file: sbom/$GITHUB_REPOSITORY.spdx.json
-      - name: Verify SBOM Output 
-        run: ls -la sbom
+      - name: Submit Maven Dependency Tree
+        uses: advanced-security/maven-dependency-submission-action@v3.0.0
 
 
