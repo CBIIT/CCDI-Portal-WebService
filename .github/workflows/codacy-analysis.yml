@@ -13,6 +13,12 @@ jobs:
     name: Build Backend 
     runs-on: ubuntu-latest
     steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3.10.0
+        with: 
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
       - name: Checkout code
         uses: actions/checkout@main
       - name: Remove Example Properties File 
