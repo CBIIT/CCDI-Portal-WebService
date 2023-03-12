@@ -9,8 +9,8 @@ on:
     - cron: '0 0 * * *'
 
 jobs:
-  Build:
-    name: Maven Package Backend 
+  Build-and-Scan:
+    name: Maven Package and SAST 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -34,17 +34,6 @@ jobs:
         with:
           name: build-artifact
           path: target/
-  Codacy:
-    name: SpotBugs SAST (via Codacy)
-    needs: Build
-    runs-on: ubuntu-latest 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@main
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v2.1.1 
-        with:
-          name: build-artifact
       - name: Run Codacy Analysis CLI
         uses: codacy/codacy-analysis-cli-action@master
         with:
@@ -56,23 +45,12 @@ jobs:
           allow-network: true 
           skip-uncommitted-files-check: true
           force-file-permissions: true
-  SBOM:
-    name: Generate SBOM (via CycloneDX)
-    needs: Build
-    runs-on: ubuntu-latest 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@main
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '11'
       - name: Submit Maven Dependency Tree
         uses: advanced-security/maven-dependency-submission-action@v3.0.0
         with:
           directory: ${{ github.workspace }}
           token: ${{ secrets.GITHUB_TOKEN }}
           ignore-maven-wrapper: true
-
+      
 
 
