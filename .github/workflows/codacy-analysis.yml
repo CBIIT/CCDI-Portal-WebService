@@ -64,7 +64,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@main
       - name: Download Build Artifact
-        uses: actions/download-artifact@2.1.1 
+        uses: actions/download-artifact@v2.1.1 
         with:
           name: build-artifact
       - name: Generate SBOM
