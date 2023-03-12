@@ -64,17 +64,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@main
       - name: Create Target Directory
-        run: mkdir target
+        run: mkdir target sbom 
       - name: Download Build Artifact
         uses: actions/download-artifact@v2.1.1 
         with:
           name: build-artifact
           path: target
-      - name: Verify Download 
-        run: ls -la
       - name: Generate SBOM
         uses: anchore/sbom-action@v0.13.3
         with:
           path: target
+          upload-artifact: false 
+          upload-release-asset: false 
+          artifact-name: $GITHUB_REPOSITORY
+          output-file: sbom
+      - name: Verify SBOM Output 
+        run: ls -la sbom
 
 
