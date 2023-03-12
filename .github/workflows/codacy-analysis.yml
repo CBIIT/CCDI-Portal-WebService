@@ -76,8 +76,7 @@ jobs:
           path: target
           upload-artifact: false 
           upload-release-asset: false 
-          artifact-name: $GITHUB_REPOSITORY
-          output-file: sbom
+          output-file: sbom/$GITHUB_REPOSITORY.spdx.json
       - name: Verify SBOM Output 
         run: ls -la sbom
 
