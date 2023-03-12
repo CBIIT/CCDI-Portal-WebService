@@ -18,7 +18,7 @@ jobs:
       - name: Remove Example Properties File 
         run: rm $GITHUB_WORKSPACE/src/main/resources/application_local.properties 
       - name: Rename Properties File 
-        run: mv src/main/resources/application.properties.j2 src/main/resources/application.properties
+        run: mv $GITHUB_WORKSPACE/src/main/resources/application.properties.j2 $GITHUB_WORKSPACE/src/main/resources/application.properties
       - name: Setup Java JDK
         uses: actions/setup-java@v3.10.0
         with: 
@@ -28,12 +28,12 @@ jobs:
       - name: Build SprintBoot Application 
         run: mvn clean package -DskipTests=true 
       - name: Rename WAR Artifact 
-        run: mv ./target/Bento-0.0.1.war ./target/ROOT.war 
+        run: mv $GITHUB_WORKSPACE/target/Bento-0.0.1.war $GITHUB_WORKSPACE/target/ROOT.war 
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v3.1.2
         with:
           name: build-artifact
-          path: ./target/
+          path: $GITHUB_WORKSPACE/target/
   Codacy:
     name: SpotBugs SAST (via Codacy)
     needs: Build
