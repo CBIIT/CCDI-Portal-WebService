@@ -2,20 +2,20 @@ package gov.nih.nci.bento_ri.model;
 
 import gov.nih.nci.bento.constants.Const;
 import gov.nih.nci.bento.model.AbstractPrivateESDataFetcher;
-import gov.nih.nci.bento.model.search.MultipleRequests;
-import gov.nih.nci.bento.model.search.filter.DefaultFilter;
-import gov.nih.nci.bento.model.search.filter.FilterParam;
 import gov.nih.nci.bento.model.search.mapper.TypeMapperImpl;
 import gov.nih.nci.bento.model.search.mapper.TypeMapperService;
-import gov.nih.nci.bento.model.search.query.QueryParam;
 import gov.nih.nci.bento.model.search.yaml.YamlQueryFactory;
 import gov.nih.nci.bento.service.ESService;
+import gov.nih.nci.bento_ri.service.InventoryESService;
 import graphql.schema.idl.RuntimeWiring;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.search.SearchRequest;
 import org.opensearch.client.Request;
 import org.springframework.stereotype.Component;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.util.*;
@@ -26,10 +26,41 @@ import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private static final Logger logger = LogManager.getLogger(PrivateESDataFetcher.class);
     private final YamlQueryFactory yamlQueryFactory;
-    private final TypeMapperService typeMapper = new TypeMapperImpl();
+    private InventoryESService inventoryESService;
 
-    public PrivateESDataFetcher(ESService esService) {
+    // parameters used in queries
+    final String PAGE_SIZE = "first";
+    final String OFFSET = "offset";
+    final String ORDER_BY = "order_by";
+    final String SORT_DIRECTION = "sort_direction";
+
+    final String PARTICIPANTS_END_POINT = "/participants/_search";
+    final String DIAGNOSIS_END_POINT = "/diagnosis/_search";
+    final String STUDIES_END_POINT = "/studies/_search";
+    final String SAMPLES_END_POINT = "/samples/_search";
+    final String FILES_END_POINT = "/files/_search";
+
+    final String PARTICIPANTS_COUNT_END_POINT = "/participants/_count";
+    final String DIAGNOSIS_COUNT_END_POINT = "/diagnosis/_count";
+    final String STUDIES_COUNT_END_POINT = "/studies/_count";
+    final String SAMPLES_COUNT_END_POINT = "/samples/_count";
+    final String FILES_COUNT_END_POINT = "/files/_count";
+
+    final Set<String> RANGE_PARAMS = Set.of("age_at_diagnosis", "participant_age_at_collection");
+
+    final Set<String> BOOLEAN_PARAMS = Set.of("assay_method");
+
+    final Set<String> ARRAY_PARAMS = Set.of("file_type");
+
+    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title");
+    final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
+    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
+    final Set<String> STUDY_REGULAR_PARAMS = Set.of("phs_accession", "study_acronym", "study_short_title");
+    final Set<String> FILE_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "file_type", "library_selection", "library_source", "library_strategy");
+
+    public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
+        inventoryESService = esService;
         yamlQueryFactory = new YamlQueryFactory(esService);
     }
 
@@ -38,219 +69,154 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return RuntimeWiring.newRuntimeWiring()
                 .type(newTypeWiring("QueryType")
                         .dataFetchers(yamlQueryFactory.createYamlQueries(Const.ES_ACCESS_TYPE.PRIVATE))
-                        .dataFetcher("numberOfPrograms", env -> getNodeCount(PROGRAMS_COUNT_END_POINT))
-                        .dataFetcher("numberOfStudies", env -> getNodeCount(STUDIES_COUNT_END_POINT))
-                        .dataFetcher("numberOfSubjects", env -> getNodeCount(SUBJECTS_COUNT_END_POINT))
-                        .dataFetcher("numberOfSamples", env -> getNodeCount(SAMPLES_COUNT_END_POINT))
-                        .dataFetcher("numberOfLabProcedures", env -> getNodeCount(LAB_PROCEDURE_COUNT_END_POINT))
-                        .dataFetcher("numberOfFiles", env -> getNodeCount(FILES_COUNT_END_POINT))
                         .dataFetcher("idsLists", env -> idsLists())
-                        .dataFetcher("programInfo", env -> programInfo())
-                        .dataFetcher("programDetail", env -> {
+                        .dataFetcher("searchParticipants", env -> {
                             Map<String, Object> args = env.getArguments();
-                            return programDetail(args);
+                            return searchParticipants(args);
                         })
-                        .dataFetcher("subjectDetail", env -> {
+                        .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
-                            return subjectDetail(args);
+                            return participantOverview(args);
                         })
-                        .dataFetcher("armDetail", env -> {
-                            Map<String, Object> args = env.getArguments();
-                            return armDetail(args);
-                        })
-                        .dataFetcher("samplesForSubjectId", env ->
-                                samplesForSubjectId(createQueryParam(env)))
+                        // .dataFetcher("diagnoseOverView", env -> {
+                        //     Map<String, Object> args = env.getArguments();
+                        //     return diagnosisOverView(args);
+                        // })
+                        // .dataFetcher("studyOverView", env -> {
+                        //     Map<String, Object> args = env.getArguments();
+                        //     return studyOverView(args);
+                        // })
+                        // .dataFetcher("sampleOverView", env -> {
+                        //     Map<String, Object> args = env.getArguments();
+                        //     return sampleOverView(args);
+                        // })
+                        // .dataFetcher("fileOverView", env -> {
+                        //     Map<String, Object> args = env.getArguments();
+                        //     return fileOverView(args);
+                        // })
                 )
                 .build();
     }
 
-    private Map<String, Object> programDetail(Map<String, Object> params) throws IOException {
-        // Get filter parameter as a String
-        final String PROGRAM_ID = (String) params.get("program_id");
-        // Declare properties mappings
-        final String[][] PROGRAMS_PROPERTIES = new String[][]{
-                new String[]{"program_acronym", "program_code_kw"},
-                new String[]{"program_id", "program_id_kw"},
-                new String[]{"program_name", "program_name_kw"},
-                new String[]{"program_full_description", "program_full_description"},
-                new String[]{"institution_name", "institution_name"},
-                new String[]{"program_external_url", "program_external_url"},
-                new String[]{"num_subjects", "num_subjects"},
-                new String[]{"num_files", "num_files"},
-                new String[]{"num_samples", "num_samples"},
-                new String[]{"num_lab_procedures", "num_lab_procedures"}
-        };
-        final String[][] STUDIES_PROPERTIES = new String[][]{
-                new String[]{"study_acronym", "study_code"},
-                new String[]{"study_name", "study_name"},
-                new String[]{"study_full_description", "study_full_description"},
-                new String[]{"study_type", "study_type"},
-                new String[]{"study_info", "study_info"},
-                new String[]{"num_subjects", "num_subjects"}
-        };
-        // Get program information use it to initialize the result
-        List<Map<String, Object>> programsResultList = esService.collectPage(Map.of("program_id_kw", PROGRAM_ID),
-                PROGRAMS_END_POINT, PROGRAMS_PROPERTIES);
-        if (programsResultList.isEmpty()){
-            return null;
-        }
-        Map<String, Object> programsResult = programsResultList.get(0);
-        // Add study information array to the result as the property "studies"
-        List<Map<String, Object>> studiesResult = esService.collectPage(Map.of("program_id_kw", PROGRAM_ID),
-                STUDIES_END_POINT, STUDIES_PROPERTIES);
-        programsResult.put("studies", studiesResult);
-        // Add diagnoses aggregations to the result as the property "diagnoses"
-        Map<String, Object> diagnosesParams = Map.of("program_id", PROGRAM_ID);
-        List<Map<String, Object>> diagnosesGroupCounts = esService.getFilteredGroupCount(diagnosesParams,
-                SUBJECTS_END_POINT, "diagnoses");
-        programsResult.put("diagnoses", diagnosesGroupCounts);
-        // Add list of unique diagnoses from aggregations to the result as the property "disease_subtypes"
-        HashSet<String> diseaseSubtypes = new HashSet<>();
-        diagnosesGroupCounts.forEach((Map<String, Object> groupCount) -> {
-            diseaseSubtypes.add((String) groupCount.get("group"));
-        });
-        programsResult.put("disease_subtypes", diseaseSubtypes);
-        // Return result
-        return programsResult;
+    private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, String agg_nested_field) throws IOException {
+        return subjectCountByRange(category, params, endpoint, Map.of(), agg_nested_field);
     }
 
-    private Map<String, Object> subjectDetail(Map<String, Object> params) throws IOException {
-        final String SUBJECT_ID = (String) params.get("subject_id");
-        final String[][] SUBJECT_PROPERTIES = new String[][]{
-                new String[]{"subject_id", "subject_ids"},
-                new String[]{"program_acronym", "programs"},
-                new String[]{"program_id", "program_id"},
-                new String[]{"study_acronym", "study_acronym"},
-                new String[]{"study_name", "study_name"},
-                new String[]{"gender", "gender"},
-                new String[]{"race", "race"},
-                new String[]{"ethnicity", "ethnicity"},
-                new String[]{"age_at_index", "age_at_index"},
-                new String[]{"menopause_status", "meno_status"},
-                new String[]{"vital_status", "vital_status"},
-                new String[]{"cause_of_death", "cause_of_death"},
-                new String[]{"disease_type", "disease_type"},
-                new String[]{"disease_subtype", "diagnoses"},
-                new String[]{"tumor_grade", "tumor_grades"},
-                new String[]{"tumor_largest_dimension_diameter", "tumor_largest_dimension_diameter"},
-                new String[]{"er_status", "er_status"},
-                new String[]{"pr_status", "pr_status"},
-                new String[]{"nuclear_grade", "nuclear_grade"},
-                new String[]{"recurrence_score", "recurrence_score"},
-                new String[]{"primary_surgical_procedure", "primary_surgical_procedure"},
-                new String[]{"chemotherapy_regimen_group", "chemotherapy_regimen_group"},
-                new String[]{"chemotherapy_regimen", "chemotherapy_regimen"},
-                new String[]{"endocrine_therapy_type", "endocrine_therapy_type"},
-                new String[]{"dfs_event_indicator", "dfs_event_indicator"},
-                new String[]{"recurrence_free_indicator", "recurrence_free_indicator"},
-                new String[]{"distant_recurrence_indicator", "distant_recurrence_indicator"},
-                new String[]{"dfs_event_type", "dfs_event_type"},
-                new String[]{"first_recurrence_type", "first_recurrence_type"},
-                new String[]{"days_to_progression", "days_to_progression"},
-                new String[]{"days_to_recurrence", "days_to_recurrence"},
-                new String[]{"test_name", "test_name"},
-                new String[]{"num_samples", "num_samples"},
-                new String[]{"num_lab_procedures", "num_lab_procedures"}
-        };
-        final String[][] FILES_PROPERTIES = new String[][]{
-                new String[]{"subject_id", "subject_ids"},
-                new String[]{"file_name", "file_names"},
-                new String[]{"file_type", "file_type"},
-                new String[]{"association", "association"},
-                new String[]{"file_description", "file_description"},
-                new String[]{"file_format", "file_format"},
-                new String[]{"file_size", "file_size"},
-                new String[]{"file_id", "file_ids"},
-                new String[]{"md5sum", "md5sum"}
-        };
-        final String[][] SAMPLES_PROPERTIES = new String[][]{
-                new String[]{"sample_id", "sample_ids"},
-                new String[]{"sample_anatomic_site", "sample_anatomic_site"},
-                new String[]{"composition", "composition"},
-                new String[]{"method_of_sample_procurement", "sample_procurement_method"},
-                new String[]{"tissue_type", "tissue_type"},
-                new String[]{"sample_type", "sample_type"}
-        };
-        Map<String, Object> filterParam = Map.of("subject_ids", SUBJECT_ID);
-        // Get subject details and initialize result
-        List<Map<String, Object>> subjectsResultList = esService.collectPage(filterParam, SUBJECTS_END_POINT,
-                SUBJECT_PROPERTIES);
-        if (subjectsResultList.isEmpty()){
-            return null;
-        }
-        Map<String, Object> subjectsResult = subjectsResultList.get(0);
-        // Add subject files array to the result
-        List<Map<String, Object>> filesResultList = esService.collectPage(filterParam, FILES_END_POINT,
-                FILES_PROPERTIES);
-        subjectsResult.put("files", filesResultList);
-        // Add subject samples array to the result
-        List<Map<String, Object>> samplesResultList = esService.collectPage(filterParam, SAMPLES_END_POINT,
-                SAMPLES_PROPERTIES);
-        subjectsResult.put("samples", samplesResultList);
-        return subjectsResult;
+    private List<Map<String, Object>> subjectCountByRange(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String agg_nested_field) throws IOException {
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+        return getGroupCountByRange(category, query, endpoint, agg_nested_field);
     }
 
+    private List<Map<String, Object>> filterSubjectCountBy(String category, Map<String, Object> params, String endpoint, String agg_nested_field) throws IOException {
+        return filterSubjectCountBy(category, params, endpoint, Map.of(), agg_nested_field);
+    }
 
-    private Map<String, Object> armDetail(Map<String, Object> params) throws IOException {
-        final String STUDY_ACRONYM = (String) params.get("study_acronym");
-        final String[][] STUDY_PROPERTIES = new String[][]{
-                new String[]{"study_acronym", "study_code"},
-                new String[]{"study_name", "study_name"},
-                new String[]{"study_type", "study_type"},
-                new String[]{"study_full_description", "study_full_description"},
-                new String[]{"study_info", "study_info"},
-                new String[]{"num_subjects", "num_subjects"},
-                new String[]{"num_files", "num_files"},
-                new String[]{"num_samples", "num_samples"},
-                new String[]{"num_lab_procedures", "num_laboratory_procedures"},
-        };
-        final String[][] FILES_PROPERTIES = new String[][]{
-                new String[]{"file_name", "file_names"},
-                new String[]{"file_type", "file_type"},
-                new String[]{"association", "association"},
-                new String[]{"file_description", "file_description"},
-                new String[]{"file_format", "file_format"},
-                new String[]{"file_size", "file_size"},
-                new String[]{"file_id", "file_ids"},
-                new String[]{"md5sum", "md5sum"}
-        };
-        //Get arm (study) details and initialize result
-        List<Map<String, Object>> studyResultList = esService.collectPage(Map.of("study_code_kw", STUDY_ACRONYM),
-                STUDIES_END_POINT, STUDY_PROPERTIES);
-        if (studyResultList.isEmpty()){
-            return null;
+    private List<Map<String, Object>> filterSubjectCountBy(String category, Map<String, Object> params, String endpoint, Map<String, Object> additionalParams, String agg_nested_field) throws IOException {
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, category), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+        return getGroupCount(category, query, endpoint, agg_nested_field);
+    }
+
+    private JsonArray getNodeCount(String category, Map<String, Object> query, String endpoint) throws IOException {
+        query = inventoryESService.addNodeCountAggregations(query, category);
+        Request request = new Request("GET", endpoint);
+        request.setJsonEntity(gson.toJson(query));
+        JsonObject jsonObject = inventoryESService.send(request);
+        Map<String, JsonArray> aggs = inventoryESService.collectNodeCountAggs(jsonObject, category);
+        JsonArray buckets = aggs.get(category);
+
+        return buckets;
+    }
+
+    private List<Map<String, Object>> getGroupCountByRange(String category, Map<String, Object> query, String endpoint, String agg_nested_field) throws IOException {
+        query = inventoryESService.addRangeCountAggregations(query, category, agg_nested_field);
+        Request request = new Request("GET", endpoint);
+        request.setJsonEntity(gson.toJson(query));
+        JsonObject jsonObject = inventoryESService.send(request);
+        Map<String, JsonArray> aggs = inventoryESService.collectRangCountAggs(jsonObject, category, agg_nested_field);
+        JsonArray buckets = aggs.get(category);
+
+        return getGroupCountHelper(buckets, agg_nested_field);
+    }
+
+    private List<Map<String, Object>> getGroupCount(String category, Map<String, Object> query, String endpoint, String agg_nested_field) throws IOException {
+        if (RANGE_PARAMS.contains(category)) {
+            query = inventoryESService.addRangeAggregations(query, category, agg_nested_field);
+            Request request = new Request("GET", endpoint);
+            request.setJsonEntity(gson.toJson(query));
+            JsonObject jsonObject = inventoryESService.send(request);
+            Map<String, JsonObject> aggs = inventoryESService.collectRangAggs(jsonObject, category, agg_nested_field);
+            JsonObject ranges = aggs.get(category);
+
+            return getRangeGroupCountHelper(ranges);
+        } else if (BOOLEAN_PARAMS.contains(category)) {
+            query = inventoryESService.addBooleanAggregations(query, category, agg_nested_field);
+            Request request = new Request("GET", endpoint);
+            request.setJsonEntity(gson.toJson(query));
+            JsonObject jsonObject = inventoryESService.send(request);
+            Map<String, JsonObject> aggs = inventoryESService.collectBooleanAggs(jsonObject, category, agg_nested_field);
+            JsonObject ranges = aggs.get(category);
+
+            return getBooleanGroupCountHelper(ranges);
+        } else if (ARRAY_PARAMS.contains(category)) {
+            query = inventoryESService.addArrayAggregations(query, category, agg_nested_field);
+            Request request = new Request("GET", endpoint);
+            request.setJsonEntity(gson.toJson(query));
+            JsonObject jsonObject = inventoryESService.send(request);
+            Map<String, JsonArray> aggs = inventoryESService.collectArrayAggs(jsonObject, category, agg_nested_field);
+            JsonArray buckets = aggs.get(category);
+
+            return getGroupCountHelper(buckets, agg_nested_field);
+        } else {
+            String[] AGG_NAMES = new String[] {category};
+            query = inventoryESService.addAggregations(query, AGG_NAMES, agg_nested_field);
+            Request request = new Request("GET", endpoint);
+            request.setJsonEntity(gson.toJson(query));
+            JsonObject jsonObject = inventoryESService.send(request);
+            Map<String, JsonArray> aggs = inventoryESService.collectTermAggs(jsonObject, AGG_NAMES, agg_nested_field);
+            JsonArray buckets = aggs.get(category);
+
+            return getGroupCountHelper(buckets, agg_nested_field);
         }
-        Map<String, Object> studyResult = studyResultList.get(0);
-        //Add arm diagnoses group counts to result
-        List<Map<String, Object>> diagnosesGroupCounts = esService.getFilteredGroupCount(Map.of("study_acronym", STUDY_ACRONYM),
-                SUBJECTS_END_POINT, "diagnoses");
-        studyResult.put("diagnoses", diagnosesGroupCounts);
-        //Add arm files array to result
-        List<Map<String, Object>> filesResultList = esService.collectPage(
-                Map.of("study_acronym", STUDY_ACRONYM, "association", "study"), FILES_END_POINT,
-                FILES_PROPERTIES);
-        studyResult.put("files", filesResultList);
-        return studyResult;
+        
+    }
+
+    private List<Map<String, Object>> getRangeGroupCountHelper(JsonObject ranges) throws IOException {
+        List<Map<String, Object>> data = new ArrayList<>();
+        data.add(Map.of("lowerBound", ranges.get("min").getAsInt(),
+                    "subjects", ranges.get("count").getAsInt(),
+                    "upperBound", ranges.get("max").getAsInt()
+            ));
+        return data;
+    }
+
+    private List<Map<String, Object>> getBooleanGroupCountHelper(JsonObject filters) throws IOException {
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (Map.Entry<String, JsonElement> group: filters.entrySet()) {
+            int count = group.getValue().getAsJsonObject().get("parent").getAsJsonObject().get("doc_count").getAsInt();
+            if (count > 0) {
+                data.add(Map.of("group", group.getKey(),
+                    "subjects", count
+                ));
+            }
+        }
+        return data;
+    }
+
+    private List<Map<String, Object>> getGroupCountHelper(JsonArray buckets, String agg_nested_field) throws IOException {
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (JsonElement group: buckets) {
+            data.add(Map.of("group", group.getAsJsonObject().get("key").getAsString(),
+                    "subjects", agg_nested_field == null ? group.getAsJsonObject().get("doc_count").getAsInt() : group.getAsJsonObject().get("parent").getAsJsonObject().get("doc_count").getAsInt()
+            ));
+
+        }
+        return data;
     }
 
     private Map<String, String[]> idsLists() throws IOException {
-        /*
-        Index properties map definition template:
-        Map.of(
-            <ES Index Endpoint>, new String[][]{
-                    new String[]{<Return Label>, <ES Index property name>}
-            },
-        */
         Map<String, String[][]> indexProperties = Map.of(
-            SUBJECT_IDS_END_POINT, new String[][]{
-                    new String[]{"subjectIds", "subject_id"}
-            },
-            SAMPLES_END_POINT, new String[][]{
-                    new String[]{"sampleIds", "sample_ids"}
-            },
-            FILES_END_POINT, new String[][]{
-                    new String[]{"fileIds", "file_ids"},
-                    new String[]{"fileNames", "file_names"}
+            PARTICIPANTS_END_POINT, new String[][]{
+                    new String[]{"participantIds", "participant_id"}
             }
         );
         //Generic Query
@@ -278,66 +244,270 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return results;
     }
 
-    private List<Map<String, Object>> programInfo() throws IOException {
-        /*
-            Properties definition template:
-            String[][] properties = new String[][]{
-                new String[]{ <Return Label>, <ES Index property name>}
-            };
-        */
-        String[][] properties = new String[][]{
-            new String[]{"program_acronym", "program_code_kw"},
-            new String[]{"program_id", "program_id_kw"},
-            new String[]{"program_name", "program_name_kw"},
-            new String[]{"start_date", "start_date"},
-            new String[]{"end_date", "end_date"},
-            new String[]{"pubmed_id", "pubmed_id"},
-            new String[]{"num_studies", "num_studies"},
-            new String[]{"num_subjects", "num_subjects"}
+    private Map<String, Object> searchParticipants(Map<String, Object> params) throws IOException {
+        final String AGG_NESTED = "agg_nested";
+        final String AGG_NAME = "agg_name";
+        final String AGG_ENDPOINT = "agg_endpoint";
+        final String WIDGET_QUERY = "widgetQueryName";
+        final String FILTER_COUNT_QUERY = "filterCountQueryName";
+        // Query related values
+        final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NAME, "study_acronym",
+                WIDGET_QUERY, "participantCountByStudy",
+                FILTER_COUNT_QUERY, "filterParticipantCountByAcronym",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "diagnosis_icd_o",
+                WIDGET_QUERY, "participantCountByDiagnosis",
+                FILTER_COUNT_QUERY, "filterParticipantCountByICDO",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "age_at_diagnosis",
+                WIDGET_QUERY, "participantCountByDiagnosisAge",
+                FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAge",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NAME, "gender",
+                WIDGET_QUERY,"participantCountByGender",
+                FILTER_COUNT_QUERY, "filterParticipantCountByGender",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NAME, "race",
+                WIDGET_QUERY, "participantCountByRace",
+                FILTER_COUNT_QUERY, "filterParticipantCountByRace",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NAME, "ethnicity",
+                WIDGET_QUERY,"participantCountByEthnicity",
+                FILTER_COUNT_QUERY, "filterParticipantCountByEthnicity",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NAME, "phs_accession",
+                FILTER_COUNT_QUERY, "filterParticipantCountByPHSAccession",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "diagnosis_anatomic_site",
+                FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAnatomicSite",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "disease_phase",
+                FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "vital_status",
+                FILTER_COUNT_QUERY, "filterParticipantCountByVitalStatus",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "sample_anatomic_site",
+                FILTER_COUNT_QUERY, "filterParticipantCountBySampleAnatomicSite",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "participant_age_at_collection",
+                FILTER_COUNT_QUERY, "filterParticipantCountBySampleAge",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "sample_tumor_status",
+                FILTER_COUNT_QUERY, "filterParticipantCountByTumorStatus",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "tumor_classification",
+                FILTER_COUNT_QUERY, "filterParticipantCountByTumorClassification",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "assay_method",
+                FILTER_COUNT_QUERY, "filterParticipantCountByAssayMethod",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "file_type",
+                FILTER_COUNT_QUERY, "filterParticipantCountByFileType",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NAME, "study_short_title",
+                FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "grant_id",
+                FILTER_COUNT_QUERY, "filterParticipantCountByGrantID",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "institution",
+                FILTER_COUNT_QUERY, "filterParticipantCountByInstitution",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "library_selection",
+                FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySelection",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "library_source",
+                FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySource",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        PARTICIPANT_TERM_AGGS.add(Map.of(
+                AGG_NESTED, "nested_filters",
+                AGG_NAME, "library_strategy",
+                FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
+                AGG_ENDPOINT, PARTICIPANTS_END_POINT
+        ));
+        
+        Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+        // System.out.println(gson.toJson(query_participants));
+        int numberOfStudies = getNodeCount("study_id", query_participants, PARTICIPANTS_END_POINT).size();
+
+        Request participantsCountRequest = new Request("GET", PARTICIPANTS_COUNT_END_POINT);
+        // System.out.println(gson.toJson(query_participants));
+        participantsCountRequest.setJsonEntity(gson.toJson(query_participants));
+        JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
+        int numberOfParticipants = participantsCountResult.get("count").getAsInt();
+
+        Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), SAMPLE_REGULAR_PARAMS, "nested_filters", "samples");
+        Request samplesCountRequest = new Request("GET", SAMPLES_COUNT_END_POINT);
+        // System.out.println(gson.toJson(query_samples));
+        samplesCountRequest.setJsonEntity(gson.toJson(query_samples));
+        JsonObject samplesCountResult = inventoryESService.send(samplesCountRequest);
+        int numberOfSamples = samplesCountResult.get("count").getAsInt();
+
+        Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), FILE_REGULAR_PARAMS, "nested_filters", "files");
+        Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
+        // System.out.println(gson.toJson(query_files));
+        filesCountRequest.setJsonEntity(gson.toJson(query_files));
+        JsonObject filesCountResult = inventoryESService.send(filesCountRequest);
+        int numberOfFiles = filesCountResult.get("count").getAsInt();
+
+        Map<String, Object> data = new HashMap<>();
+
+        data.put("numberOfStudies", numberOfStudies);
+        data.put("numberOfParticipants", numberOfParticipants);
+        data.put("numberOfSamples", numberOfSamples);
+        data.put("numberOfFiles", numberOfFiles);
+
+        // widgets data and facet filter counts for projects
+        for (var agg: PARTICIPANT_TERM_AGGS) {
+            String agg_nested_field = agg.get(AGG_NESTED);
+            String field = agg.get(AGG_NAME);
+            String widgetQueryName = agg.get(WIDGET_QUERY);
+            String filterCountQueryName = agg.get(FILTER_COUNT_QUERY);
+            String endpoint = agg.get(AGG_ENDPOINT);
+            List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, agg_nested_field);
+            if(RANGE_PARAMS.contains(field)) {
+                data.put(filterCountQueryName, filterCount.get(0));
+            } else {
+                data.put(filterCountQueryName, filterCount);
+            }
+            
+            if (widgetQueryName != null) {
+                if (RANGE_PARAMS.contains(field)) {
+                    List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, agg_nested_field);
+                    data.put(widgetQueryName, subjectCount);
+                } else {
+                    data.put(widgetQueryName, filterCount);
+                }
+                
+            }
+        }
+
+        return data;
+    }
+
+    private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
+        final String[][] PROPERTIES = new String[][]{
+            new String[]{"participant_id", "participant_id"},
+            new String[]{"phs_accession", "phs_accession"},
+            new String[]{"race", "race"},
+            new String[]{"gender", "gender"},
+            new String[]{"ethnicity", "ethnicity"},
+            new String[]{"age_at_diagnosis", "age_at_diagnosis"},
         };
-        //Generic Query
-        Map<String, Object> query = esService.buildListQuery();
-        Request request = new Request("GET", PROGRAMS_END_POINT);
-        return esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE, 0);
+
+        String defaultSort = "participant_id"; // Default sort order
+
+        // the indexes in ES are named after what is passed as filter params, the sorting params have different names for the same index properties
+        // we need to translate 'fiscal_year'(sort param) to 'fiscal_years.raw'(index property) for sorting
+        // we need to translate 'lead_doc'(sort param) to 'docs.sort'(index property) for sorting
+        // we need to translate 'program'(sort param) to 'programs.sort'(index property) for sorting
+        // we can leave 'award_amount'(sort param) alone for now, until we change how we handle the 'award_amount/award_amounts' index
+        // Additionally we change 'project_title' to 'project_title.sort' and 'project_id' to 'project_id.sort' and 
+        //   'activity_code' to 'activity_code.sort' to preserve
+        //   the pattern of having a 'normalizer: lowercase' sort field for textual columns that doesn't affect (make lowercase)
+        //   the query results for any other queries against those properties
+        //   For example, if the top-level 'programs' property had 'normalizer: lowercase' then queries against 'programs' would
+        //   return lowercase results, which caused problems for the Filter feature queries, hence a separate 'sort' subfield
+        //   with the 'normalizer: lowercase' encapsulated
+        Map<String, String> mapping = Map.ofEntries(
+                Map.entry("participant_id", "participant_id"),
+                Map.entry("phs_accession", "phs_accession"),
+                Map.entry("race", "race"),
+                Map.entry("gender", "gender"),
+                Map.entry("ethnicity", "ethnicity")
+        );
+
+        return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
     }
 
+    // if the nestedProperty is set, this will filter based upon the params against the nested property for the endpoint's index.
+    // otherwise, this will filter based upon the params against the top level properties for the index
+    private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, String[][] properties, String defaultSort, Map<String, String> mapping, Set<String> regular_fields, String nestedProperty, String overviewType) throws IOException {
 
-    private List<Map<String, Object>> samplesForSubjectId(QueryParam queryParam) throws IOException {
-        logger.info("Private SamplesForSubjectId API requested");
-        Set<String> returnTypes = queryParam.getReturnTypes();
-        returnTypes.add(BENTO_FIELDS.SAMPLE_NESTED_FILE_INFO);
-
-        List<MultipleRequests> requests = List.of(
-                MultipleRequests.builder()
-                        .name("samplesForSubjectId")
-                        .request(new SearchRequest()
-                                .indices(BENTO_INDEX.SAMPLES)
-                                .source(new DefaultFilter(
-                                        FilterParam.builder()
-                                                .args(queryParam.getArgs())
-                                                .selectedField("subject_id")
-                                                .caseInsensitive(true)
-                                                .build())
-                                        .getSourceFilter()
-                                ))
-                        .typeMapper(typeMapper.getList(returnTypes)).build());
-
-        Map<String, List<Map<String, Object>>> response = esService.elasticMultiSend(requests);
-        List<Map<String, Object>> result = response.get("samplesForSubjectId");
-        // Store customized sub-fields 'files'
-        result.forEach(r-> {
-            Object files = r.get(BENTO_FIELDS.SAMPLE_NESTED_FILE_INFO);
-            r.put(BENTO_FIELDS.FILES, files);
-        });
-        return result;
+        Request request = new Request("GET", endpoint);
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+        String order_by = (String)params.get(ORDER_BY);
+        String direction = ((String)params.get(SORT_DIRECTION)).toLowerCase();
+        query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
+        int pageSize = (int) params.get(PAGE_SIZE);
+        int offset = (int) params.get(OFFSET);
+        List<Map<String, Object>> page = inventoryESService.collectPage(request, query, properties, pageSize, offset);
+        return page;
     }
 
-    private final static class BENTO_INDEX {
-        private static final String SAMPLES = "samples";
-    }
+    private Map<String, String> mapSortOrder(String order_by, String direction, String defaultSort, Map<String, String> mapping) {
+        String sortDirection = direction;
+        if (!sortDirection.equalsIgnoreCase("asc") && !sortDirection.equalsIgnoreCase("desc")) {
+            sortDirection = "asc";
+        }
 
-    private final static class BENTO_FIELDS {
-        private static final String SAMPLE_NESTED_FILE_INFO = "file_info";
-        private static final String FILES = "files";
+        String sortOrder = defaultSort; // Default sort order
+        if (mapping.containsKey(order_by)) {
+            sortOrder = mapping.get(order_by);
+        } else {
+            logger.info("Order: \"" + order_by + "\" not recognized, use default order");
+        }
+        return Map.of(sortOrder, sortDirection);
     }
 }
