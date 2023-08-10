@@ -78,22 +78,27 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return participantOverview(args);
                         })
-                        // .dataFetcher("diagnoseOverView", env -> {
+                        // .dataFetcher("diagnoseOverview", env -> {
                         //     Map<String, Object> args = env.getArguments();
-                        //     return diagnosisOverView(args);
+                        //     return diagnosisOverview(args);
                         // })
-                        // .dataFetcher("studyOverView", env -> {
+                        // .dataFetcher("studyOverview", env -> {
                         //     Map<String, Object> args = env.getArguments();
-                        //     return studyOverView(args);
+                        //     return studyOverview(args);
                         // })
-                        // .dataFetcher("sampleOverView", env -> {
-                        //     Map<String, Object> args = env.getArguments();
-                        //     return sampleOverView(args);
-                        // })
-                        // .dataFetcher("fileOverView", env -> {
-                        //     Map<String, Object> args = env.getArguments();
-                        //     return fileOverView(args);
-                        // })
+                        .dataFetcher("sampleOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return sampleOverview(args);
+                        })
+                        .dataFetcher("fileOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return fileOverview(args);
+                        })
+                        .dataFetcher("fileIDsFromList", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return fileIDsFromList(args);
+                        })
+                        
                 )
                 .build();
     }
@@ -396,6 +401,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         participantsCountRequest.setJsonEntity(gson.toJson(query_participants));
         JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
         int numberOfParticipants = participantsCountResult.get("count").getAsInt();
+        // todo...
+        int numberOfDiagnosis  = numberOfParticipants;
 
         Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), SAMPLE_REGULAR_PARAMS, "nested_filters", "samples");
         Request samplesCountRequest = new Request("GET", SAMPLES_COUNT_END_POINT);
@@ -414,6 +421,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, Object> data = new HashMap<>();
 
         data.put("numberOfStudies", numberOfStudies);
+        data.put("numberOfDiagnosis", numberOfDiagnosis);
         data.put("numberOfParticipants", numberOfParticipants);
         data.put("numberOfSamples", numberOfSamples);
         data.put("numberOfFiles", numberOfFiles);
@@ -481,6 +489,66 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
     }
 
+    private List<Map<String, Object>> sampleOverview(Map<String, Object> params) throws IOException {
+        final String[][] PROPERTIES = new String[][]{
+            new String[]{"sample_id", "sample_id"},
+            new String[]{"participant_id", "participant_id"},
+            new String[]{"study_id", "study_id"},
+            new String[]{"anatomic_site", "sample_anatomic_site"},
+            new String[]{"participant_age_at_collection", "participant_age_at_collection"},
+            new String[]{"diagnosis_icd_o", "sample_diagnosis_icd_o"},
+            new String[]{"sample_tumor_status", "sample_tumor_status"},
+            new String[]{"tumor_classification", "tumor_classification"},
+        };
+
+        String defaultSort = "sample_id"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+                Map.entry("sample_id", "sample_id"),
+                Map.entry("participant_id", "participant_id"),
+                Map.entry("study_id", "study_id"),
+                Map.entry("anatomic_site", "sample_anatomic_site"),
+                Map.entry("participant_age_at_collection", "participant_age_at_collection"),
+                Map.entry("diagnosis_icd_o", "sample_diagnosis_icd_o"),
+                Map.entry("sample_tumor_status", "sample_tumor_status"),
+                Map.entry("tumor_classification", "tumor_classification")
+        );
+
+        return overview(SAMPLES_END_POINT, params, PROPERTIES, defaultSort, mapping, SAMPLE_REGULAR_PARAMS, "nested_filters", "samples");
+    }
+
+    private List<Map<String, Object>> fileOverview(Map<String, Object> params) throws IOException {
+        final String[][] PROPERTIES = new String[][]{
+            new String[]{"file_id", "file_id"},
+            new String[]{"file_name", "file_name"},
+            new String[]{"file_category", "file_category"},
+            new String[]{"file_description", "file_description"},
+            new String[]{"file_type", "file_type"},
+            new String[]{"file_size", "file_size"},
+            new String[]{"study_id", "study_id"},
+            new String[]{"participant_id", "participant_id"},
+            new String[]{"sample_id", "sample_id"},
+            new String[]{"md5sum", "md5sum"},
+        };
+
+        String defaultSort = "file_id"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+                Map.entry("file_id", "file_id"),
+                Map.entry("file_name", "file_name"),
+                Map.entry("file_category", "file_category"),
+                Map.entry("file_description", "file_description"),
+                Map.entry("file_type", "file_type"),
+                Map.entry("file_size", "file_size"),
+                Map.entry("study_id", "study_id"),
+                Map.entry("participant_id", "participant_id"),
+                Map.entry("sample_id", "sample_id"),
+                Map.entry("md5sum", "md5sum")
+        );
+
+        return overview(FILES_END_POINT, params, PROPERTIES, defaultSort, mapping, FILE_REGULAR_PARAMS, "nested_filters", "files");
+    }
+
     // if the nestedProperty is set, this will filter based upon the params against the nested property for the endpoint's index.
     // otherwise, this will filter based upon the params against the top level properties for the index
     private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, String[][] properties, String defaultSort, Map<String, String> mapping, Set<String> regular_fields, String nestedProperty, String overviewType) throws IOException {
@@ -509,5 +577,54 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             logger.info("Order: \"" + order_by + "\" not recognized, use default order");
         }
         return Map.of(sortOrder, sortDirection);
+    }
+
+    private List<String> fileIDsFromList(Map<String, Object> params) throws IOException {
+        List<String> participantIDsSet = (List<String>) params.get("participant_ids");
+        List<String> studyIDsSet = (List<String>) params.get("study_ids");
+        List<String> sampleIDsSet = (List<String>) params.get("sample_ids");
+        List<String> fileIDsSet = (List<String>) params.get("file_ids");
+        
+        if (participantIDsSet.size() > 0 && !(participantIDsSet.size() == 1 && participantIDsSet.get(0).equals(""))) {
+            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(participantIDsSet, "participant_id");
+            Request request = new Request("GET", PARTICIPANTS_END_POINT);
+            // System.out.println(gson.toJson(query));
+            request.setJsonEntity(gson.toJson(query));
+            JsonObject jsonObject = inventoryESService.send(request);
+            List<String> result = inventoryESService.collectFileIDs(jsonObject, "participant_id");
+            return result;
+        }
+
+        if (studyIDsSet.size() > 0 && !(studyIDsSet.size() == 1 && studyIDsSet.get(0).equals(""))) {
+            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(studyIDsSet, "study_id");
+            Request request = new Request("GET", STUDIES_END_POINT);
+            System.out.println(gson.toJson(query));
+            request.setJsonEntity(gson.toJson(query));
+            JsonObject jsonObject = inventoryESService.send(request);
+            List<String> result = inventoryESService.collectFileIDs(jsonObject, "study_id");
+            return result;
+        }
+
+        if (sampleIDsSet.size() > 0 && !(sampleIDsSet.size() == 1 && sampleIDsSet.get(0).equals(""))) {
+            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(sampleIDsSet, "sample_id");
+            Request request = new Request("GET", SAMPLES_END_POINT);
+            System.out.println(gson.toJson(query));
+            request.setJsonEntity(gson.toJson(query));
+            JsonObject jsonObject = inventoryESService.send(request);
+            List<String> result = inventoryESService.collectFileIDs(jsonObject, "sample_id");
+            return result;
+        }
+
+        if (fileIDsSet.size() > 0 && !(fileIDsSet.size() == 1 && fileIDsSet.get(0).equals(""))) {
+            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(fileIDsSet, "file_id");
+            Request request = new Request("GET", PARTICIPANTS_END_POINT);
+            System.out.println(gson.toJson(query));
+            request.setJsonEntity(gson.toJson(query));
+            JsonObject jsonObject = inventoryESService.send(request);
+            List<String> result = inventoryESService.collectFileIDs(jsonObject, "participant_id");
+            return result;
+        }
+
+        return new ArrayList<>();
     }
 }

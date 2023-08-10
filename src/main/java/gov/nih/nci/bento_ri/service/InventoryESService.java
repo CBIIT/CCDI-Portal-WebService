@@ -237,6 +237,18 @@ public class InventoryESService extends ESService {
         return result;
     }
 
+    public Map<String, Object> buildGetFileIDsQuery(List<String> ids, String id_field) throws IOException {
+        Map<String, Object> result = new HashMap<>();
+        if (id_field.equals("file_id")) {
+            result.put("_source", Set.of(id_field));
+            result.put("query", Map.of("terms", Map.of(id_field, ids)));
+        } else {
+            result.put("_source", Set.of(id_field, "cmf_uuid", "cmfST_uuid", "maf_uuid", "pf_uuid", "rf_uuid", "scsf_uuid", "sf_uuid"));
+            result.put("query", Map.of("terms", Map.of(id_field, ids)));
+        }
+        return result;
+    }
+
     public Map<String, Object> addAggregations(Map<String, Object> query, String[] termAggNames, String agg_nested_field) {
         return addAggregations(query, termAggNames, new String(), new String[]{}, agg_nested_field);
     }
@@ -527,6 +539,44 @@ public class InventoryESService extends ESService {
         JsonObject aggs = jsonObject.getAsJsonObject("aggregations");
         data.put(rangeAggName, aggs.getAsJsonObject(agg_nested_field).getAsJsonObject(rangeAggName).getAsJsonArray("buckets"));
         
+        return data;
+    }
+
+    public List<String> collectFileIDs(JsonObject jsonObject, String id_field) {
+        List<String> data = new ArrayList<>();
+        JsonArray searchHits = jsonObject.getAsJsonObject("hits").getAsJsonArray("hits");
+        //data.put(searchHits, aggs.getAsJsonObject(agg_nested_field).getAsJsonObject(rangeAggName).getAsJsonArray("buckets"));
+        for (var hit: searchHits) {
+            JsonObject obj = hit.getAsJsonObject().get("_source").getAsJsonObject();
+            JsonArray arr = obj.get("cmf_uuid").getAsJsonArray();
+            for (int i = 0; i < arr.size(); i++) {
+                data.add(arr.get(i).getAsString());
+            }
+            arr = obj.get("cmfST_uuid").getAsJsonArray();
+            for (int i = 0; i < arr.size(); i++) {
+                data.add(arr.get(i).getAsString());
+            }
+            arr = obj.get("maf_uuid").getAsJsonArray();
+            for (int i = 0; i < arr.size(); i++) {
+                data.add(arr.get(i).getAsString());
+            }
+            arr = obj.get("pf_uuid").getAsJsonArray();
+            for (int i = 0; i < arr.size(); i++) {
+                data.add(arr.get(i).getAsString());
+            }
+            arr = obj.get("rf_uuid").getAsJsonArray();
+            for (int i = 0; i < arr.size(); i++) {
+                data.add(arr.get(i).getAsString());
+            }
+            arr = obj.get("scsf_uuid").getAsJsonArray();
+            for (int i = 0; i < arr.size(); i++) {
+                data.add(arr.get(i).getAsString());
+            }
+            arr = obj.get("sf_uuid").getAsJsonArray();
+            for (int i = 0; i < arr.size(); i++) {
+                data.add(arr.get(i).getAsString());
+            }
+        }
         return data;
     }
 
