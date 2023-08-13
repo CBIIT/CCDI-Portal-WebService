@@ -73,6 +73,7 @@ type ParticipantOverViewResult {
 }
 
 type DiagnosisOverViewResult {
+    diagnosis_id: String
     participant_id: String
     phs_accession: String
     diagnosis_icd_o: String
@@ -157,6 +158,7 @@ type QueryType {
 
     fileIDsFromList (
         participant_ids: [String] = [],
+        diagnosis_ids: [String] = [],
         study_ids: [String] = [],
         sample_ids: [String] = [],
         file_ids: [String] = []

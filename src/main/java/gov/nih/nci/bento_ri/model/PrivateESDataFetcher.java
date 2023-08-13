@@ -78,10 +78,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return participantOverview(args);
                         })
-                        // .dataFetcher("diagnoseOverview", env -> {
-                        //     Map<String, Object> args = env.getArguments();
-                        //     return diagnosisOverview(args);
-                        // })
+                        .dataFetcher("diagnosisOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return diagnosisOverview(args);
+                        })
                         // .dataFetcher("studyOverview", env -> {
                         //     Map<String, Object> args = env.getArguments();
                         //     return studyOverview(args);
@@ -98,7 +98,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return fileIDsFromList(args);
                         })
-                        
                 )
                 .build();
     }
@@ -466,18 +465,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
         String defaultSort = "participant_id"; // Default sort order
 
-        // the indexes in ES are named after what is passed as filter params, the sorting params have different names for the same index properties
-        // we need to translate 'fiscal_year'(sort param) to 'fiscal_years.raw'(index property) for sorting
-        // we need to translate 'lead_doc'(sort param) to 'docs.sort'(index property) for sorting
-        // we need to translate 'program'(sort param) to 'programs.sort'(index property) for sorting
-        // we can leave 'award_amount'(sort param) alone for now, until we change how we handle the 'award_amount/award_amounts' index
-        // Additionally we change 'project_title' to 'project_title.sort' and 'project_id' to 'project_id.sort' and 
-        //   'activity_code' to 'activity_code.sort' to preserve
-        //   the pattern of having a 'normalizer: lowercase' sort field for textual columns that doesn't affect (make lowercase)
-        //   the query results for any other queries against those properties
-        //   For example, if the top-level 'programs' property had 'normalizer: lowercase' then queries against 'programs' would
-        //   return lowercase results, which caused problems for the Filter feature queries, hence a separate 'sort' subfield
-        //   with the 'normalizer: lowercase' encapsulated
         Map<String, String> mapping = Map.ofEntries(
                 Map.entry("participant_id", "participant_id"),
                 Map.entry("phs_accession", "phs_accession"),
@@ -487,6 +474,34 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+    }
+
+    private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
+        final String[][] PROPERTIES = new String[][]{
+            new String[]{"diagnosis_id", "diagnosis_id"},
+            new String[]{"participant_id", "participant_id"},
+            new String[]{"phs_accession", "phs_accession"},
+            new String[]{"diagnosis_icd_o", "diagnosis_icd_o"},
+            new String[]{"diagnosis_anatomic_site", "diagnosis_anatomic_site"},
+            new String[]{"disease_phase", "disease_phase"},
+            new String[]{"age_at_diagnosis", "age_at_diagnosis"},
+            new String[]{"vital_status", "last_vital_status"}
+        };
+
+        String defaultSort = "diagnosis_id"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+                Map.entry("diagnosis_id", "diagnosis_id"),
+                Map.entry("participant_id", "participant_id"),
+                Map.entry("phs_accession", "phs_accession"),
+                Map.entry("diagnosis_icd_o", "diagnosis_icd_o"),
+                Map.entry("diagnosis_anatomic_site", "diagnosis_anatomic_site"),
+                Map.entry("disease_phase", "disease_phase"),
+                Map.entry("age_at_diagnosis", "age_at_diagnosis"),
+                Map.entry("vital_status", "last_vital_status")
+        );
+
+        return overview(DIAGNOSIS_END_POINT, params, PROPERTIES, defaultSort, mapping, DIAGNOSIS_REGULAR_PARAMS, "nested_filters", "diagnosis");
     }
 
     private List<Map<String, Object>> sampleOverview(Map<String, Object> params) throws IOException {
@@ -581,6 +596,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<String> fileIDsFromList(Map<String, Object> params) throws IOException {
         List<String> participantIDsSet = (List<String>) params.get("participant_ids");
+        List<String> diagnosisIDsSet = (List<String>) params.get("diagnosis_ids");
         List<String> studyIDsSet = (List<String>) params.get("study_ids");
         List<String> sampleIDsSet = (List<String>) params.get("sample_ids");
         List<String> fileIDsSet = (List<String>) params.get("file_ids");
@@ -592,6 +608,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             List<String> result = inventoryESService.collectFileIDs(jsonObject, "participant_id");
+            return result;
+        }
+
+        if (diagnosisIDsSet.size() > 0 && !(diagnosisIDsSet.size() == 1 && diagnosisIDsSet.get(0).equals(""))) {
+            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(diagnosisIDsSet, "diagnosis_id");
+            Request request = new Request("GET", DIAGNOSIS_END_POINT);
+            // System.out.println(gson.toJson(query));
+            request.setJsonEntity(gson.toJson(query));
+            JsonObject jsonObject = inventoryESService.send(request);
+            List<String> result = inventoryESService.collectFileIDs(jsonObject, "diagnosis_id");
             return result;
         }
 

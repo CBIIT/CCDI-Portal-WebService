@@ -550,31 +550,52 @@ public class InventoryESService extends ESService {
             JsonObject obj = hit.getAsJsonObject().get("_source").getAsJsonObject();
             JsonArray arr = obj.get("cmf_uuid").getAsJsonArray();
             for (int i = 0; i < arr.size(); i++) {
-                data.add(arr.get(i).getAsString());
+                String tmp = arr.get(i).getAsString();
+                if (!data.contains(tmp)){
+                    data.add(tmp);
+                }
             }
             arr = obj.get("cmfST_uuid").getAsJsonArray();
             for (int i = 0; i < arr.size(); i++) {
-                data.add(arr.get(i).getAsString());
+                String tmp = arr.get(i).getAsString();
+                if (!data.contains(tmp)){
+                    data.add(tmp);
+                }
             }
             arr = obj.get("maf_uuid").getAsJsonArray();
             for (int i = 0; i < arr.size(); i++) {
-                data.add(arr.get(i).getAsString());
+                String tmp = arr.get(i).getAsString();
+                if (!data.contains(tmp)){
+                    data.add(tmp);
+                }
             }
             arr = obj.get("pf_uuid").getAsJsonArray();
             for (int i = 0; i < arr.size(); i++) {
-                data.add(arr.get(i).getAsString());
+                String tmp = arr.get(i).getAsString();
+                if (!data.contains(tmp)){
+                    data.add(tmp);
+                }
             }
             arr = obj.get("rf_uuid").getAsJsonArray();
             for (int i = 0; i < arr.size(); i++) {
-                data.add(arr.get(i).getAsString());
+                String tmp = arr.get(i).getAsString();
+                if (!data.contains(tmp)){
+                    data.add(tmp);
+                }
             }
             arr = obj.get("scsf_uuid").getAsJsonArray();
             for (int i = 0; i < arr.size(); i++) {
-                data.add(arr.get(i).getAsString());
+                String tmp = arr.get(i).getAsString();
+                if (!data.contains(tmp)){
+                    data.add(tmp);
+                }
             }
             arr = obj.get("sf_uuid").getAsJsonArray();
             for (int i = 0; i < arr.size(); i++) {
-                data.add(arr.get(i).getAsString());
+                String tmp = arr.get(i).getAsString();
+                if (!data.contains(tmp)){
+                    data.add(tmp);
+                }
             }
         }
         return data;
