@@ -129,7 +129,7 @@ type FileOverViewResult {
 type FileDetail {
     file_id: String
     file_name: String
-    study_name: String
+    study_short_title: String
     phs_accession: String
     participant_id: String
     sample_id: String
