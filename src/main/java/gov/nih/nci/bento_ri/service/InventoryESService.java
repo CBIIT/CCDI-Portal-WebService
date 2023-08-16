@@ -26,7 +26,7 @@ public class InventoryESService extends ESService {
     public static final String SCROLL_ENDPOINT = "/_search/scroll";
     public static final String JSON_OBJECT = "jsonObject";
     public static final String AGGS = "aggs";
-    public static final int MAX_ES_SIZE = 10000;
+    public static final int MAX_ES_SIZE = 500000;
 
     static final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
 
@@ -156,40 +156,12 @@ public class InventoryESService extends ESService {
                         ));
                     }
                 }
-            } else if (key.equals("assay_method")) {
-                // special case to handle facet filter: assay type
-                //"should" : [
-                //     { "term" : { "tags" : "env1" } },
-                //     { "term" : { "tags" : "deployed" } }
-                //   ],
-                //   "minimum_should_match" : 1,
-                List<String> valueSet = (List<String>) params.get(key);
-                if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
-                    if (indexType == "files") {
-                        filter.add(Map.of(
-                                "terms", Map.of("file_category", valueSet)
-                            ));
-                    } else {
-                        for(String assayType: valueSet) {
-                            if (assayType.equals("Clinical measure")) {
-                                assay_method_filter.add(Map.of("term", Map.of(nestedProperty + ".clinical_measure_file", true)));
-                            } else if (assayType.equals("Sequencing")) {
-                                assay_method_filter.add(Map.of("term", Map.of(nestedProperty + ".sequencing_file", true)));
-                            } else if (assayType.equals("Methylation array")) {
-                                assay_method_filter.add(Map.of("term", Map.of(nestedProperty + ".methylation_array_file", true)));
-                            } else if (assayType.equals("Pathology imaging")) {
-                                assay_method_filter.add(Map.of("term", Map.of(nestedProperty + ".pathology_file", true)));
-                            } else if (assayType.equals("Radiology imaging")) {
-                                assay_method_filter.add(Map.of("term", Map.of(nestedProperty + ".radiology_file", true)));
-                            } else {
-                                assay_method_filter.add(Map.of("term", Map.of(nestedProperty + ".single_cell_sequencing_file", true)));
-                            }
-                        }
-                    }
-                }
             } else {
                 // Term parameters (default)
                 List<String> valueSet = (List<String>) params.get(key);
+                if (indexType == "files" && key.equals("assay_method")) {
+                    key = "file_category";
+                }
                 // list with only one empty string [""] means return all records
                 if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
                     if (!regular_fields.contains(key)) {  // nested queries are on nested property keys
@@ -243,7 +215,7 @@ public class InventoryESService extends ESService {
             result.put("_source", Set.of(id_field));
             result.put("query", Map.of("terms", Map.of(id_field, ids)));
         } else {
-            result.put("_source", Set.of(id_field, "cmf_uuid", "cmfST_uuid", "maf_uuid", "pf_uuid", "rf_uuid", "scsf_uuid", "sf_uuid"));
+            result.put("_source", Set.of(id_field, "files"));
             result.put("query", Map.of("terms", Map.of(id_field, ids)));
         }
         return result;
@@ -548,54 +520,9 @@ public class InventoryESService extends ESService {
         //data.put(searchHits, aggs.getAsJsonObject(agg_nested_field).getAsJsonObject(rangeAggName).getAsJsonArray("buckets"));
         for (var hit: searchHits) {
             JsonObject obj = hit.getAsJsonObject().get("_source").getAsJsonObject();
-            JsonArray arr = obj.get("cmf_uuid").getAsJsonArray();
+            JsonArray arr = obj.get("files").getAsJsonArray();
             for (int i = 0; i < arr.size(); i++) {
-                String tmp = arr.get(i).getAsString();
-                if (!data.contains(tmp)){
-                    data.add(tmp);
-                }
-            }
-            arr = obj.get("cmfST_uuid").getAsJsonArray();
-            for (int i = 0; i < arr.size(); i++) {
-                String tmp = arr.get(i).getAsString();
-                if (!data.contains(tmp)){
-                    data.add(tmp);
-                }
-            }
-            arr = obj.get("maf_uuid").getAsJsonArray();
-            for (int i = 0; i < arr.size(); i++) {
-                String tmp = arr.get(i).getAsString();
-                if (!data.contains(tmp)){
-                    data.add(tmp);
-                }
-            }
-            arr = obj.get("pf_uuid").getAsJsonArray();
-            for (int i = 0; i < arr.size(); i++) {
-                String tmp = arr.get(i).getAsString();
-                if (!data.contains(tmp)){
-                    data.add(tmp);
-                }
-            }
-            arr = obj.get("rf_uuid").getAsJsonArray();
-            for (int i = 0; i < arr.size(); i++) {
-                String tmp = arr.get(i).getAsString();
-                if (!data.contains(tmp)){
-                    data.add(tmp);
-                }
-            }
-            arr = obj.get("scsf_uuid").getAsJsonArray();
-            for (int i = 0; i < arr.size(); i++) {
-                String tmp = arr.get(i).getAsString();
-                if (!data.contains(tmp)){
-                    data.add(tmp);
-                }
-            }
-            arr = obj.get("sf_uuid").getAsJsonArray();
-            for (int i = 0; i < arr.size(); i++) {
-                String tmp = arr.get(i).getAsString();
-                if (!data.contains(tmp)){
-                    data.add(tmp);
-                }
+                data.add(arr.get(i).getAsString());
             }
         }
         return data;
@@ -633,7 +560,7 @@ public class InventoryESService extends ESService {
         // data within limit can use just from/size
         query.put("size", pageSize);
         query.put("from", offset);
-        System.out.println(gson.toJson(query));
+        // System.out.println(gson.toJson(query));
         request.setJsonEntity(gson.toJson(query));
 
         JsonObject jsonObject = send(request);

@@ -70,6 +70,7 @@ type ParticipantOverViewResult {
     race: String
     gender: String
     ethnicity: String
+    files: [String]
 }
 
 type DiagnosisOverViewResult {
@@ -81,21 +82,23 @@ type DiagnosisOverViewResult {
     disease_phase: String
     age_at_diagnosis: Int
     vital_status: String
+    files: [String]
 }
 
 type StudyOverViewResult {
     study_id: String
-    grant_id: String
+    grant_id: [String]
     phs_accession: String
     study_short_title: String
-    personnel_name: String
-    number_of_participants: String
-    diagnosis: String
-    number_of_samples: String
-    anatomic_site: String
-    number_of_files: String
-    file_type: String
-    pubmed_id: String
+    personnel_name: [String]
+    num_of_participants: String
+    diagnosis: [String]
+    num_of_samples: String
+    anatomic_site: [String]
+    num_of_files: String
+    file_type: [String]
+    pubmed_id: [String]
+    files: [String]
 }
 
 type SampleOverViewResult {
@@ -107,6 +110,7 @@ type SampleOverViewResult {
     diagnosis_icd_o: String
     sample_tumor_status: String
     tumor_classification: String
+    files: [String]
 }
 
 type FileOverViewResult {

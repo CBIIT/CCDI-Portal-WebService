@@ -55,8 +55,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title");
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
-    final Set<String> STUDY_REGULAR_PARAMS = Set.of("phs_accession", "study_acronym", "study_short_title");
-    final Set<String> FILE_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "file_type", "library_selection", "library_source", "library_strategy");
+    final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "phs_accession", "study_acronym", "study_short_title");
+    final Set<String> FILE_REGULAR_PARAMS = Set.of("file_category", "participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "file_type", "library_selection", "library_source", "library_strategy");
 
     public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
@@ -82,10 +82,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return diagnosisOverview(args);
                         })
-                        // .dataFetcher("studyOverview", env -> {
-                        //     Map<String, Object> args = env.getArguments();
-                        //     return studyOverview(args);
-                        // })
+                        .dataFetcher("studyOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return studyOverview(args);
+                        })
                         .dataFetcher("sampleOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return sampleOverview(args);
@@ -146,30 +146,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (RANGE_PARAMS.contains(category)) {
             query = inventoryESService.addRangeAggregations(query, category, agg_nested_field);
             Request request = new Request("GET", endpoint);
+            // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             Map<String, JsonObject> aggs = inventoryESService.collectRangAggs(jsonObject, category, agg_nested_field);
             JsonObject ranges = aggs.get(category);
 
             return getRangeGroupCountHelper(ranges);
-        } else if (BOOLEAN_PARAMS.contains(category)) {
-            query = inventoryESService.addBooleanAggregations(query, category, agg_nested_field);
-            Request request = new Request("GET", endpoint);
-            request.setJsonEntity(gson.toJson(query));
-            JsonObject jsonObject = inventoryESService.send(request);
-            Map<String, JsonObject> aggs = inventoryESService.collectBooleanAggs(jsonObject, category, agg_nested_field);
-            JsonObject ranges = aggs.get(category);
-
-            return getBooleanGroupCountHelper(ranges);
-        } else if (ARRAY_PARAMS.contains(category)) {
-            query = inventoryESService.addArrayAggregations(query, category, agg_nested_field);
-            Request request = new Request("GET", endpoint);
-            request.setJsonEntity(gson.toJson(query));
-            JsonObject jsonObject = inventoryESService.send(request);
-            Map<String, JsonArray> aggs = inventoryESService.collectArrayAggs(jsonObject, category, agg_nested_field);
-            JsonArray buckets = aggs.get(category);
-
-            return getGroupCountHelper(buckets, agg_nested_field);
         } else {
             String[] AGG_NAMES = new String[] {category};
             query = inventoryESService.addAggregations(query, AGG_NAMES, agg_nested_field);
@@ -400,9 +383,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         participantsCountRequest.setJsonEntity(gson.toJson(query_participants));
         JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
         int numberOfParticipants = participantsCountResult.get("count").getAsInt();
-        // todo...
-        int numberOfDiagnosis  = numberOfParticipants;
 
+        Map<String, Object> query_diagnosis = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), DIAGNOSIS_REGULAR_PARAMS, "nested_filters", "diagnosis");
+        Request diagnosisCountRequest = new Request("GET", DIAGNOSIS_COUNT_END_POINT);
+        // System.out.println(gson.toJson(query_samples));
+        diagnosisCountRequest.setJsonEntity(gson.toJson(query_diagnosis));
+        JsonObject diagnosisCountResult = inventoryESService.send(diagnosisCountRequest);
+        int numberOfDiagnosis = diagnosisCountResult.get("count").getAsInt();
+        
         Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), SAMPLE_REGULAR_PARAMS, "nested_filters", "samples");
         Request samplesCountRequest = new Request("GET", SAMPLES_COUNT_END_POINT);
         // System.out.println(gson.toJson(query_samples));
@@ -461,6 +449,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"gender", "gender"},
             new String[]{"ethnicity", "ethnicity"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis"},
+            new String[]{"files", "files"}
         };
 
         String defaultSort = "participant_id"; // Default sort order
@@ -482,10 +471,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"participant_id", "participant_id"},
             new String[]{"phs_accession", "phs_accession"},
             new String[]{"diagnosis_icd_o", "diagnosis_icd_o"},
-            new String[]{"diagnosis_anatomic_site", "diagnosis_anatomic_site"},
+            new String[]{"anatomic_site", "diagnosis_anatomic_site"},
             new String[]{"disease_phase", "disease_phase"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis"},
-            new String[]{"vital_status", "last_vital_status"}
+            new String[]{"vital_status", "last_vital_status"},
+            new String[]{"files", "files"}
         };
 
         String defaultSort = "diagnosis_id"; // Default sort order
@@ -504,6 +494,63 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return overview(DIAGNOSIS_END_POINT, params, PROPERTIES, defaultSort, mapping, DIAGNOSIS_REGULAR_PARAMS, "nested_filters", "diagnosis");
     }
 
+    private List<Map<String, Object>> studyOverview(Map<String, Object> params) throws IOException {
+        final String[][] PROPERTIES = new String[][]{
+            new String[]{"study_id", "study_id"},
+            new String[]{"grant_id", "grant_id"},
+            new String[]{"phs_accession", "phs_accession"},
+            new String[]{"study_short_title", "study_short_title"},
+            new String[]{"personnel_name", "PIs"},
+            new String[]{"num_of_participants", "num_of_participants"},
+            new String[]{"diagnosis", "diagnosis_cancer"},
+            new String[]{"num_of_samples", "num_of_samples"},
+            new String[]{"anatomic_site", "diagnosis_anatomic_site"},
+            new String[]{"num_of_files", "num_of_files"},
+            new String[]{"file_type", "file_types"},
+            new String[]{"pubmed_id", "pubmed_ids"},
+            new String[]{"files", "files"}
+        };
+
+        String defaultSort = "study_id"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+                Map.entry("study_id", "study_id"),
+                Map.entry("phs_accession", "phs_accession"),
+                Map.entry("study_short_title", "study_short_title"),
+                Map.entry("num_of_participants", "num_of_participants"),
+                Map.entry("num_of_samples", "num_of_samples"),
+                Map.entry("num_of_files", "num_of_files")
+        );
+
+        Request request = new Request("GET", PARTICIPANTS_END_POINT);
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+        String[] AGG_NAMES = new String[] {"study_id"};
+        query = inventoryESService.addAggregations(query, AGG_NAMES);
+        // System.out.println(gson.toJson(query));
+        request.setJsonEntity(gson.toJson(query));
+        JsonObject jsonObject = inventoryESService.send(request);
+        Map<String, JsonArray> aggs = inventoryESService.collectTermAggs(jsonObject, AGG_NAMES);
+        JsonArray buckets = aggs.get("study_id");
+        List<String> data = new ArrayList<>();
+        for (var bucket: buckets) {
+            data.add(bucket.getAsJsonObject().get("key").getAsString());
+        }
+
+        String order_by = (String)params.get(ORDER_BY);
+        String direction = ((String)params.get(SORT_DIRECTION));
+        int pageSize = (int) params.get(PAGE_SIZE);
+        int offset = (int) params.get(OFFSET);
+        
+        Map<String, Object> study_params = new HashMap<>();
+        study_params.put("study_id", data);
+        study_params.put(ORDER_BY, order_by);
+        study_params.put(SORT_DIRECTION, direction);
+        study_params.put(PAGE_SIZE, pageSize);
+        study_params.put(OFFSET, offset);
+        
+        return overview(STUDIES_END_POINT, study_params, PROPERTIES, defaultSort, mapping, STUDY_REGULAR_PARAMS, "nested_filters", "studies");
+    }
+
     private List<Map<String, Object>> sampleOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             new String[]{"sample_id", "sample_id"},
@@ -514,6 +561,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"diagnosis_icd_o", "sample_diagnosis_icd_o"},
             new String[]{"sample_tumor_status", "sample_tumor_status"},
             new String[]{"tumor_classification", "tumor_classification"},
+            new String[]{"files", "files"}
         };
 
         String defaultSort = "sample_id"; // Default sort order
@@ -569,7 +617,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, String[][] properties, String defaultSort, Map<String, String> mapping, Set<String> regular_fields, String nestedProperty, String overviewType) throws IOException {
 
         Request request = new Request("GET", endpoint);
-        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+        Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), regular_fields, nestedProperty, overviewType);
         String order_by = (String)params.get(ORDER_BY);
         String direction = ((String)params.get(SORT_DIRECTION)).toLowerCase();
         query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
@@ -624,7 +672,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (studyIDsSet.size() > 0 && !(studyIDsSet.size() == 1 && studyIDsSet.get(0).equals(""))) {
             Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(studyIDsSet, "study_id");
             Request request = new Request("GET", STUDIES_END_POINT);
-            System.out.println(gson.toJson(query));
+            // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             List<String> result = inventoryESService.collectFileIDs(jsonObject, "study_id");
@@ -634,7 +682,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (sampleIDsSet.size() > 0 && !(sampleIDsSet.size() == 1 && sampleIDsSet.get(0).equals(""))) {
             Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(sampleIDsSet, "sample_id");
             Request request = new Request("GET", SAMPLES_END_POINT);
-            System.out.println(gson.toJson(query));
+            // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             List<String> result = inventoryESService.collectFileIDs(jsonObject, "sample_id");
@@ -642,13 +690,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
 
         if (fileIDsSet.size() > 0 && !(fileIDsSet.size() == 1 && fileIDsSet.get(0).equals(""))) {
-            Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(fileIDsSet, "file_id");
-            Request request = new Request("GET", PARTICIPANTS_END_POINT);
-            System.out.println(gson.toJson(query));
-            request.setJsonEntity(gson.toJson(query));
-            JsonObject jsonObject = inventoryESService.send(request);
-            List<String> result = inventoryESService.collectFileIDs(jsonObject, "participant_id");
-            return result;
+            //return with the same file ids
+            return fileIDsSet;
+            // Map<String, Object> query = inventoryESService.buildGetFileIDsQuery(fileIDsSet, "file_id");
+            // Request request = new Request("GET", FILES_END_POINT);
+            // System.out.println(gson.toJson(query));
+            // request.setJsonEntity(gson.toJson(query));
+            // JsonObject jsonObject = inventoryESService.send(request);
+            // List<String> result = inventoryESService.collectFileIDs(jsonObject, "file_id");
+            // return result;
         }
 
         return new ArrayList<>();
