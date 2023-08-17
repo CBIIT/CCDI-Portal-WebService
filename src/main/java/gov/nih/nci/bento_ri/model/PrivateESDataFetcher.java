@@ -146,7 +146,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (RANGE_PARAMS.contains(category)) {
             query = inventoryESService.addRangeAggregations(query, category, agg_nested_field);
             Request request = new Request("GET", endpoint);
-            System.out.println(gson.toJson(query));
+            // System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             Map<String, JsonObject> aggs = inventoryESService.collectRangAggs(jsonObject, category, agg_nested_field);
