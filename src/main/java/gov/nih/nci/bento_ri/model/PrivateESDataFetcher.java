@@ -56,7 +56,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "phs_accession", "study_acronym", "study_short_title");
-    final Set<String> FILE_REGULAR_PARAMS = Set.of("file_category", "participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "file_type", "library_selection", "library_source", "library_strategy");
+    final Set<String> FILE_REGULAR_PARAMS = Set.of("file_category", "participant_id", "phs_accession", "study_acronym", "study_short_title", "file_type", "library_selection", "library_source", "library_strategy");
 
     public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
@@ -146,7 +146,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         if (RANGE_PARAMS.contains(category)) {
             query = inventoryESService.addRangeAggregations(query, category, agg_nested_field);
             Request request = new Request("GET", endpoint);
-            // System.out.println(gson.toJson(query));
+            System.out.println(gson.toJson(query));
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             Map<String, JsonObject> aggs = inventoryESService.collectRangAggs(jsonObject, category, agg_nested_field);
@@ -169,10 +169,17 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> getRangeGroupCountHelper(JsonObject ranges) throws IOException {
         List<Map<String, Object>> data = new ArrayList<>();
-        data.add(Map.of("lowerBound", ranges.get("min").getAsInt(),
+        if (ranges.get("count").getAsInt() == 0) {
+            data.add(Map.of("lowerBound", 0,
+                    "subjects", 0,
+                    "upperBound", 0
+            ));
+        } else {
+            data.add(Map.of("lowerBound", ranges.get("min").getAsInt(),
                     "subjects", ranges.get("count").getAsInt(),
                     "upperBound", ranges.get("max").getAsInt()
             ));
+        }
         return data;
     }
 
@@ -588,9 +595,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"file_description", "file_description"},
             new String[]{"file_type", "file_type"},
             new String[]{"file_size", "file_size"},
-            new String[]{"study_id", "study_id"},
-            new String[]{"participant_id", "participant_id"},
-            new String[]{"sample_id", "sample_id"},
+            new String[]{"study_id", "link_study_id"},
+            new String[]{"participant_id", "link_participant_id"},
+            new String[]{"sample_id", "link_sample_id"},
             new String[]{"md5sum", "md5sum"},
         };
 
@@ -603,9 +610,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("file_description", "file_description"),
                 Map.entry("file_type", "file_type"),
                 Map.entry("file_size", "file_size"),
-                Map.entry("study_id", "study_id"),
-                Map.entry("participant_id", "participant_id"),
-                Map.entry("sample_id", "sample_id"),
+                Map.entry("study_id", "link_study_id"),
+                Map.entry("participant_id", "link_participant_id"),
+                Map.entry("sample_id", "link_sample_id"),
                 Map.entry("md5sum", "md5sum")
         );
 
