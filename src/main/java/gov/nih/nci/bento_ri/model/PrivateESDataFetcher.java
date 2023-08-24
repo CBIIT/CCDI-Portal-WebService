@@ -29,8 +29,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private static final Logger logger = LogManager.getLogger(PrivateESDataFetcher.class);
     private final YamlQueryFactory yamlQueryFactory;
     private InventoryESService inventoryESService;
-    @Autowired
-    Cache<String, Object> caffeineCache;
 
     // parameters used in queries
     final String PAGE_SIZE = "first";
@@ -223,11 +221,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, String[]> results = new HashMap<>();
         //Iterate through each index properties map and make a request to each endpoint then format the results as
         // String arrays
-        String cacheKey = "participantIDs";
-        Map<String, String[]> data = (Map<String, String[]>)caffeineCache.asMap().get(cacheKey);
-        if (data != null) {
-            return data;
-        } else {
             for (String endpoint: indexProperties.keySet()){
                 Request request = new Request("GET", endpoint);
                 String[][] properties = indexProperties.get(endpoint);
@@ -248,21 +241,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     results.put(key, indexResults.get(key).toArray(new String[indexResults.size()]));
                 }
             }
-            caffeineCache.put(cacheKey, results);
-        }
         
         return results;
     }
 
     private Map<String, Object> searchParticipants(Map<String, Object> params) throws IOException {
-        String cacheKey = generateCacheKey(params);
-        Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
-        if (data != null) {
-            System.out.println("hit cache!");
-            return data;
-        } else {
-            System.out.println("cache miss... getting data then.");
-            data = new HashMap<>();
+        Map<String, Object> data = new HashMap<>();
 
             final String AGG_NESTED = "agg_nested";
             final String AGG_NAME = "agg_name";
@@ -467,11 +451,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     
                 }
             }
-
-            caffeineCache.put(cacheKey, data);
-
+            
             return data;
-        }
         
     }
 
