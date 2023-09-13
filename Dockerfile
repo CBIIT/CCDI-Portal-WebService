@@ -1,6 +1,6 @@
 # Build stage
 FROM maven:3.6.3-openjdk-11 as build
-    
+
 WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
