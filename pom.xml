@@ -95,6 +95,10 @@
             <version>2.9.1</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>  
+			<groupId>com.github.ben-manes.caffeine</groupId>  
+			<artifactId>caffeine</artifactId>
+        </dependency>
         <!-- YAML -->
         <dependency>
             <groupId>org.yaml</groupId>
