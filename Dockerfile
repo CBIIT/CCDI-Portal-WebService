@@ -1,12 +1,14 @@
 # Build stage
-FROM maven:3.6.3-openjdk-11 as build
+#FROM maven:3.6.3-openjdk-11 as build
+FROM maven:3.8.5-openjdk-17 as build
 
 WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:9.0.79-jdk11 
+#FROM tomcat:9.0.79-jdk11 
+FROM tomcat:9.0.80-jdk17
 #FROM cbiitssrepo/bento-backend:release
 
 # install dependencies and clean up unused files
