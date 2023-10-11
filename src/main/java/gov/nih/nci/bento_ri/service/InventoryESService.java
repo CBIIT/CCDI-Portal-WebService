@@ -31,6 +31,7 @@ public class InventoryESService extends ESService {
     final Set<String> DIAGNOSIS_PARAMS = Set.of("diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> FILE_PARAMS = Set.of("assay_method", "file_type", "library_selection", "library_source", "library_strategy");
+    final Set<String> SAMPLE_FILE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "library_selection", "library_source", "library_strategy");
     
 
     static final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
@@ -131,6 +132,7 @@ public class InventoryESService extends ESService {
         List<Object> diagnosis_filters = new ArrayList<>();
         List<Object> sample_filters = new ArrayList<>();
         List<Object> file_filters = new ArrayList<>();
+        List<Object> sample_file_filters = new ArrayList<>();
         
         for (String key: params.keySet()) {
             String finalKey = key;
@@ -163,7 +165,7 @@ public class InventoryESService extends ESService {
                             "range", Map.of(nestedProperty+"."+key, range)
                         ));
                     } else if (!indexType.equals("samples") && key.equals("participant_age_at_collection")) {
-                        sample_filters.add(Map.of(
+                        sample_file_filters.add(Map.of(
                             "range", Map.of(nestedProperty+"."+key, range)
                         ));
                     } else {
@@ -197,11 +199,15 @@ public class InventoryESService extends ESService {
                         diagnosis_filters.add(Map.of(
                             "terms", Map.of("diagnosis_filters."+key, valueSet)
                         ));
-                    } else if (SAMPLE_PARAMS.contains(key) && !indexType.equals("samples")) {
+                    } else if (SAMPLE_FILE_PARAMS.contains(key) && !(indexType.equals("samples") || indexType.equals("files"))) {
+                        sample_file_filters.add(Map.of(
+                            "terms", Map.of("sample_file_filters."+key, valueSet)
+                        ));
+                    } else if (SAMPLE_PARAMS.contains(key) && indexType.equals("files")) {
                         sample_filters.add(Map.of(
                             "terms", Map.of("sample_filters."+key, valueSet)
                         ));
-                    } else if (FILE_PARAMS.contains(key) && !indexType.equals("files")) {
+                    } else if (FILE_PARAMS.contains(key) && indexType.equals("samples")) {
                         file_filters.add(Map.of(
                             "terms", Map.of("file_filters."+key, valueSet)
                         ));
@@ -217,9 +223,10 @@ public class InventoryESService extends ESService {
         int FilterLen = filter.size();
         int participantFilterLen = participant_filters.size();
         int diagnosisFilterLen = diagnosis_filters.size();
+        int sampleFileFilterLen = sample_file_filters.size();
         int sampleFilterLen = sample_filters.size();
         int fileFilterLen = file_filters.size();
-        if (FilterLen + participantFilterLen + diagnosisFilterLen + sampleFilterLen + fileFilterLen == 0) {
+        if (FilterLen + participantFilterLen + diagnosisFilterLen + sampleFileFilterLen + sampleFilterLen + fileFilterLen == 0) {
             result.put("query", Map.of("match_all", Map.of()));
         } else {
             if (participantFilterLen > 0) {
@@ -227,6 +234,9 @@ public class InventoryESService extends ESService {
             }
             if (diagnosisFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "diagnosis_filters", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
+            }
+            if (sampleFileFilterLen > 0) {
+                filter.add(Map.of("nested", Map.of("path", "sample_file_filters", "query", Map.of("bool", Map.of("filter", sample_file_filters)), "inner_hits", Map.of())));
             }
             if (sampleFilterLen > 0) {
                 filter.add(Map.of("nested", Map.of("path", "sample_filters", "query", Map.of("bool", Map.of("filter", sample_filters)), "inner_hits", Map.of())));
