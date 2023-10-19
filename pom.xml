@@ -17,13 +17,13 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.0.7</version>
+        <version>3.0.11</version>
     </parent>
 
 
     <properties>
         <java.version>17</java.version>
-        <spring.version>6.0.9</spring.version>
+        <spring.version>6.0.12</spring.version>
         <spring.restdocs.version>3.0.0</spring.restdocs.version>
     </properties>
 
@@ -98,12 +98,6 @@
         <dependency>  
 			<groupId>com.github.ben-manes.caffeine</groupId>  
 			<artifactId>caffeine</artifactId>
-        </dependency>
-        <!-- YAML -->
-        <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>1.33</version>
         </dependency>
         <!-- Unirest Java -->
         <dependency>
