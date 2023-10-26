@@ -162,12 +162,18 @@ public class InventoryESService extends ESService {
                     }
                     if (!indexType.equals("diagnosis") && key.equals("age_at_diagnosis")) {
                         diagnosis_filters.add(Map.of(
-                            "range", Map.of(nestedProperty+"."+key, range)
+                            "range", Map.of("diagnosis_filters."+key, range)
                         ));
                     } else if (!indexType.equals("samples") && key.equals("participant_age_at_collection")) {
-                        sample_file_filters.add(Map.of(
-                            "range", Map.of(nestedProperty+"."+key, range)
-                        ));
+                        if (indexType.equals("files")) {
+                            sample_filters.add(Map.of(
+                                "range", Map.of("sample_filters."+key, range)
+                            ));
+                        } else {
+                            sample_file_filters.add(Map.of(
+                                "range", Map.of("sample_file_filters."+key, range)
+                            ));
+                        }
                     } else {
                         filter.add(Map.of(
                             "range", Map.of(key, range)
