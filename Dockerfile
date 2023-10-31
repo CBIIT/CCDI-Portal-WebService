@@ -8,7 +8,7 @@ RUN mvn package -DskipTests
 # Production stage
 FROM tomcat:10.1.15-jdk17
 
-RUN apt-get update && apt-get upgrade
+RUN apt-get update && apt-get -y upgrade
 
 # install dependencies and clean up unused files
 RUN apt-get update && apt-get install unzip
