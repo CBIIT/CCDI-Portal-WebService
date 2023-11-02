@@ -1,0 +1,11 @@
+queries:
+  - name: filesInList
+    index:
+      - files
+    filter:
+      type: pagination
+      defaultSortField: file_name
+      ignoreIfEmpty:
+        - id
+    result:
+      type: object_array
