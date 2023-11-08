@@ -73,6 +73,7 @@ type ParticipantOverViewResult {
     id: String
     participant_id: String
     phs_accession: String
+    study_id: String
     race: String
     gender: String
     ethnicity: String
@@ -85,6 +86,7 @@ type DiagnosisOverViewResult {
     diagnosis_id: String
     participant_id: String
     phs_accession: String
+    study_id: String
     diagnosis_icd_o: String
     anatomic_site: String
     disease_phase: String
