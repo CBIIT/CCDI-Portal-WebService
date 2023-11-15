@@ -293,18 +293,17 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         List study_ids=new ArrayList();
         study_ids.add("phs002790");
         params.put("study_id",study_ids);
-            Map data = new HashMap<>();
 
-            Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
 
-            Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
-            // System.out.println(gson.toJson(newQuery_participants));
-            participantsCountRequest.setJsonEntity(gson.toJson(query_participants));
-            JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
-            int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
-            data.put("numberOfMCICount",numberOfParticipants);
-            return numberOfParticipants;
+        Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
 
+        Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
+
+        participantsCountRequest.setJsonEntity(gson.toJson(query_participants));
+        JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
+        int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
+
+        return numberOfParticipants;
 
     }
 
