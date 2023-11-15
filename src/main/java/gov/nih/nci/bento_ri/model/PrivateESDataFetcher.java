@@ -106,6 +106,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return fileIDsFromList(args);
                         })
+                        .dataFetcher("numberOfMCICount", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return getParticipantsCount();
+                        })
                 )
                 .build();
     }
@@ -283,6 +287,27 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return results;
     }
 
+    private Integer getParticipantsCount() throws IOException {
+
+        Map<String, Object> params = new HashMap<>();
+        List study_ids=new ArrayList();
+        study_ids.add("phs002790");
+        params.put("study_id",study_ids);
+            Map data = new HashMap<>();
+
+            Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
+
+            Request participantsCountRequest = new Request("GET", PARTICIPANTS_END_POINT);
+            // System.out.println(gson.toJson(newQuery_participants));
+            participantsCountRequest.setJsonEntity(gson.toJson(query_participants));
+            JsonObject participantsCountResult = inventoryESService.send(participantsCountRequest);
+            int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
+            data.put("numberOfMCICount",numberOfParticipants);
+            return numberOfParticipants;
+
+
+    }
+
     private Map<String, Object> searchParticipants(Map<String, Object> params) throws IOException {
         String cacheKey = generateCacheKey(params);
         Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
@@ -345,7 +370,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     FILTER_COUNT_QUERY, "filterParticipantCountByPHSAccession",
                     AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
-            
+
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_anatomic_site",
@@ -436,7 +461,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
                     AGG_ENDPOINT, FILES_END_POINT
             ));
-            
+
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
             // System.out.println(gson.toJson(query_participants));
             Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
@@ -458,7 +483,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             diagnosisCountRequest.setJsonEntity(gson.toJson(query_diagnosis));
             JsonObject diagnosisCountResult = inventoryESService.send(diagnosisCountRequest);
             int numberOfDiagnosis = diagnosisCountResult.get("count").getAsInt();
-            
+
             Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "samples");
             Map<String, Object> newQuery_samples = new HashMap<>(query_samples);
             newQuery_samples.put("size", 0);
@@ -475,7 +500,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files");
             int numberOfStudies = getNodeCount("study_id", query_files, FILES_END_POINT).size();
-            
+
             Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
             // System.out.println(gson.toJson(query_files));
             filesCountRequest.setJsonEntity(gson.toJson(query_files));
@@ -492,7 +517,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             data.put("samplesFileCount", samples_file_count);
             data.put("studiesFileCount", numberOfFiles);
             data.put("filesFileCount", numberOfFiles);
-            
+
             // widgets data and facet filter counts for projects
             for (var agg: PARTICIPANT_TERM_AGGS) {
                 String field = agg.get(AGG_NAME);
@@ -508,7 +533,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 } else {
                     data.put(filterCountQueryName, filterCount);
                 }
-                
+
                 if (widgetQueryName != null) {
                     if (RANGE_PARAMS.contains(field)) {
                         List<Map<String, Object>> subjectCount = subjectCountByRange(field, params, endpoint, cardinalityAggName, indexType);
@@ -521,7 +546,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             data.put(widgetQueryName, filterCount);
                         }
                     }
-                    
+
                 }
             }
 
@@ -529,7 +554,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             return data;
         }
-        
+
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
