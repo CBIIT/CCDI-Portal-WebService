@@ -607,7 +607,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("phs_accession", "phs_accession"),
                 Map.entry("study_id", "study_id"),
                 Map.entry("diagnosis_icd_o", "diagnosis_icd_o"),
-                Map.entry("diagnosis_anatomic_site", "diagnosis_anatomic_site"),
+                Map.entry("anatomic_site", "diagnosis_anatomic_site"),
                 Map.entry("disease_phase", "disease_phase"),
                 Map.entry("age_at_diagnosis", "age_at_diagnosis"),
                 Map.entry("vital_status", "last_vital_status")
