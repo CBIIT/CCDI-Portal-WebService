@@ -6,7 +6,7 @@ COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:10.1.15-jdk17
+FROM tomcat:10.1.17-jdk17
 
 RUN apt-get update && apt-get -y upgrade
 
