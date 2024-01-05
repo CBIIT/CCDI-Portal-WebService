@@ -15,15 +15,8 @@ RUN apt-get update && apt-get install unzip
 RUN rm -rf /usr/local/tomcat/webapps.dist
 RUN rm -rf /usr/local/tomcat/webapps/ROOT
 
-# Create a script to modify the web.xml file
-RUN sed -i 's|</web-app>||' /usr/local/tomcat/conf/web.xml \
-    && echo '    <error-page>' >> /usr/local/tomcat/conf/web.xml \
-    #&& echo '      <exception-type>java.lang.Throwable</exception-type>' >> /usr/local/tomcat/conf/web.xml \
-    && echo '      <error-code>405</error-code>' >> /usr/local/tomcat/conf/web.xml \
-    && echo '      <location>/error.jsp</location>' >> /usr/local/tomcat/conf/web.xml \
-    && echo '    </error-page>' >> /usr/local/tomcat/conf/web.xml \
-    && echo '</web-app>' >> /usr/local/tomcat/conf/web.xml
-COPY --from=build  /usr/src/app/tomcat/conf/error.jsp /usr/local/tomcat/webapps/error.jsp
+# Modify the server.xml file to block error reportiing
+RUN sed -i 's|</Host>|  <Valve className="org.apache.catalina.valves.ErrorReportValve”\n               showReport="false”\n               showServerInfo="false" />\n\n      </Host>|' conf/server.xml 
 
 # expose ports
 EXPOSE 8080
