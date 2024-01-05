@@ -19,6 +19,7 @@ RUN rm -rf /usr/local/tomcat/webapps/ROOT
 RUN sed -i 's|</web-app>||' /usr/local/tomcat/conf/web.xml \
     && echo '    <error-page>' >> /usr/local/tomcat/conf/web.xml \
     #&& echo '      <exception-type>java.lang.Throwable</exception-type>' >> /usr/local/tomcat/conf/web.xml \
+    && echo '      <error-code>405</error-code>' >> /usr/local/tomcat/conf/web.xml \
     && echo '      <location>/error.jsp</location>' >> /usr/local/tomcat/conf/web.xml \
     && echo '    </error-page>' >> /usr/local/tomcat/conf/web.xml \
     && echo '</web-app>' >> /usr/local/tomcat/conf/web.xml
