@@ -6,7 +6,7 @@ COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:10.1.15-jdk17
+FROM tomcat:10.1.17-jdk17
 
 RUN apt-get update && apt-get -y upgrade
 
@@ -14,6 +14,9 @@ RUN apt-get update && apt-get -y upgrade
 RUN apt-get update && apt-get install unzip
 RUN rm -rf /usr/local/tomcat/webapps.dist
 RUN rm -rf /usr/local/tomcat/webapps/ROOT
+
+# Modify the server.xml file to block error reportiing
+RUN sed -i 's|</Host>|  <Valve className="org.apache.catalina.valves.ErrorReportValve"\n               showReport="false"\n               showServerInfo="false" />\n\n      </Host>|' conf/server.xml 
 
 # expose ports
 EXPOSE 8080
