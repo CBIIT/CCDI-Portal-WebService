@@ -227,7 +227,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-core</artifactId>
-            <version>1.12.411</version>
+            <version>1.12.642</version>
             <scope>compile</scope>
         </dependency>
         <!-- Lombok -->
