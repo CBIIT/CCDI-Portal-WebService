@@ -333,12 +333,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
-                    WIDGET_QUERY, "participantCountByDiagnosis",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByICDO",
-                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "age_at_diagnosis",
                     WIDGET_QUERY, "participantCountByDiagnosisAge",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAge",
@@ -622,7 +616,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"study_short_title", "study_short_title"},
             new String[]{"personnel_name", "PIs"},
             new String[]{"num_of_participants", "num_of_participants"},
-            new String[]{"diagnosis", "diagnosis_cancer"},
             new String[]{"num_of_samples", "num_of_samples"},
             new String[]{"anatomic_site", "diagnosis_anatomic_site"},
             new String[]{"num_of_files", "num_of_files"},
