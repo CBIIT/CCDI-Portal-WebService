@@ -59,9 +59,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final Set<String> INCLUDE_PARAMS  = Set.of("race", "ethnicity");
 
-    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "sex_at_birth", "ethnicity", "diagnosis_classification", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
-    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "diagnosis_classification", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
-    final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_classification", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
+    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "sex_at_birth", "ethnicity", "diagnosis_classification", "disease_phase", "diagnosis_classification_system", "diagnosis_verification_status", "diagnosis_basis","diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
+    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "diagnosis_classification", "disease_phase", "diagnosis_classification_system", "diagnosis_verification_status", "diagnosis_basis","diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
+    final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_classification", "disease_phase", "diagnosis_classification_system", "diagnosis_verification_status", "diagnosis_basis", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "phs_accession", "study_acronym", "study_short_title");
     final Set<String> FILE_REGULAR_PARAMS = Set.of("file_category", "phs_accession", "study_acronym", "study_short_title", "file_type", "library_selection", "library_source", "library_strategy");
@@ -380,6 +380,24 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "disease_phase",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
+                    AGG_NAME, "diagnosis_classification_system",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
+                    AGG_NAME, "diagnosis_verification_status",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisVerificationStatus",
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
+                    AGG_NAME, "diagnosis_basis",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
