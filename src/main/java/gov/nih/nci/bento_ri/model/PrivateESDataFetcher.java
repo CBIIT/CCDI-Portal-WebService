@@ -612,6 +612,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"diagnosis_classification", "diagnosis_classification"},
             new String[]{"anatomic_site", "diagnosis_anatomic_site"},
             new String[]{"disease_phase", "disease_phase"},
+                new String[]{"diagnosis_classification_system", "diagnosis_classification_system"},
+                new String[]{"diagnosis_verification_status", "diagnosis_verification_status"},
+                new String[]{"diagnosis_basis", "diagnosis_basis"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis"},
             new String[]{"vital_status", "last_vital_status"},
             new String[]{"files", "files"}
@@ -627,6 +630,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("diagnosis_classification", "diagnosis_classification"),
                 Map.entry("anatomic_site", "diagnosis_anatomic_site"),
                 Map.entry("disease_phase", "disease_phase"),
+                Map.entry("diagnosis_basis", "diagnosis_basis"),
+                Map.entry("diagnosis_classification_system", "diagnosis_classification_system"),
+                Map.entry("diagnosis_verification_status", "diagnosis_verification_status"),
                 Map.entry("age_at_diagnosis", "age_at_diagnosis"),
                 Map.entry("vital_status", "last_vital_status")
         );
