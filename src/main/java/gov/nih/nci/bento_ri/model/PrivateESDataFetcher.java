@@ -717,6 +717,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"sample_diagnosis_classification", "sample_diagnosis_classification"},
                 new String[]{"sample_diagnosis_classification_system", "sample_diagnosis_classification_system"},
                 new String[]{"sample_diagnosis_verification_status", "sample_diagnosis_verification_status"},
+                new String[]{"sample_diagnosis_comment", "sample_diagnosis_comment"},
                 new String[]{"sample_diagnosis_basis", "sample_diagnosis_basis"},
             new String[]{"sample_tumor_status", "sample_tumor_status"},
             new String[]{"tumor_classification", "tumor_classification"},
