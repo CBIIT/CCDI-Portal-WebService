@@ -266,8 +266,14 @@ public class InventoryESService extends ESService {
                 }
                 filter_2.add(Map.of("nested", Map.of("path", "combined_filters", "query", Map.of("bool", Map.of("filter", combined_participant_filters)), "inner_hits", Map.of())));
                 List<Object> overall_filter = new ArrayList<>();
-                overall_filter.add(Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "pid")), "filter", filter_1)));
-                overall_filter.add(Map.of("bool", Map.of("must_not", Map.of("exists", Map.of("field", "pid")), "filter", filter_2)));
+                List<Object> should_filter = new ArrayList<>();
+                should_filter.add(Map.of("exists", Map.of("field", "pid")));
+                should_filter.add(Map.of("exists", Map.of("field", "sample_id")));
+                overall_filter.add(Map.of("bool", Map.of("should", should_filter, "filter", filter_1)));
+                List<Object> must_not_filter = new ArrayList<>();
+                must_not_filter.add(Map.of("exists", Map.of("field", "pid")));
+                must_not_filter.add(Map.of("exists", Map.of("field", "sample_id")));
+                overall_filter.add(Map.of("bool", Map.of("must_not", must_not_filter, "filter", filter_2)));
                 result.put("query", Map.of("bool", Map.of("should", overall_filter)));
             }
         } else {
