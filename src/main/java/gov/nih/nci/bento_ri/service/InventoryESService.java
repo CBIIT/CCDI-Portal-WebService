@@ -27,8 +27,8 @@ public class InventoryESService extends ESService {
     public static final String JSON_OBJECT = "jsonObject";
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 500000;
-    final Set<String> PARTICIPANT_PARAMS = Set.of("race", "gender", "ethnicity");
-    final Set<String> DIAGNOSIS_PARAMS = Set.of("diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
+    final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth", "ethnicity");
+    final Set<String> DIAGNOSIS_PARAMS = Set.of("diagnosis_comment", "diagnosis_classification", "disease_phase", "diagnosis_classification_system", "diagnosis_verification_status", "diagnosis_basis", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> FILE_PARAMS = Set.of("assay_method", "file_type", "library_selection", "library_source", "library_strategy");
     final Set<String> SAMPLE_FILE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "library_selection", "library_source", "library_strategy");
@@ -266,8 +266,14 @@ public class InventoryESService extends ESService {
                 }
                 filter_2.add(Map.of("nested", Map.of("path", "combined_filters", "query", Map.of("bool", Map.of("filter", combined_participant_filters)), "inner_hits", Map.of())));
                 List<Object> overall_filter = new ArrayList<>();
-                overall_filter.add(Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "pid")), "filter", filter_1)));
-                overall_filter.add(Map.of("bool", Map.of("must_not", Map.of("exists", Map.of("field", "pid")), "filter", filter_2)));
+                List<Object> should_filter = new ArrayList<>();
+                should_filter.add(Map.of("exists", Map.of("field", "pid")));
+                should_filter.add(Map.of("exists", Map.of("field", "sample_id")));
+                overall_filter.add(Map.of("bool", Map.of("should", should_filter, "filter", filter_1)));
+                List<Object> must_not_filter = new ArrayList<>();
+                must_not_filter.add(Map.of("exists", Map.of("field", "pid")));
+                must_not_filter.add(Map.of("exists", Map.of("field", "sample_id")));
+                overall_filter.add(Map.of("bool", Map.of("must_not", must_not_filter, "filter", filter_2)));
                 result.put("query", Map.of("bool", Map.of("should", overall_filter)));
             }
         } else {
@@ -384,12 +390,12 @@ public class InventoryESService extends ESService {
 
         // "aggs" : {
         //     "langs" : {
-        //         "terms" : { "field" : "language",  "size" : 500 }
+        //         "terms" : { "field" : "language",  "size" : 10000 }
         //     }
         // }
 
         Map<String, Object> fields = new HashMap<String, Object>();
-        fields.put(nodeName, Map.of("terms", Map.of("field", nodeName)));
+        fields.put(nodeName, Map.of("terms", Map.of("field", nodeName, "size", 10000)));
         newQuery.put("aggs", fields);
         
         return newQuery;
