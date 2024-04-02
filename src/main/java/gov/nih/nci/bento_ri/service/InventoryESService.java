@@ -27,8 +27,8 @@ public class InventoryESService extends ESService {
     public static final String JSON_OBJECT = "jsonObject";
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 500000;
-    final Set<String> PARTICIPANT_PARAMS = Set.of("race", "gender", "ethnicity");
-    final Set<String> DIAGNOSIS_PARAMS = Set.of("diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
+    final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth", "ethnicity");
+    final Set<String> DIAGNOSIS_PARAMS = Set.of("diagnosis_comment", "diagnosis_classification", "disease_phase", "diagnosis_classification_system", "diagnosis_verification_status", "diagnosis_basis", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> FILE_PARAMS = Set.of("assay_method", "file_type", "library_selection", "library_source", "library_strategy");
     final Set<String> SAMPLE_FILE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "library_selection", "library_source", "library_strategy");
@@ -127,132 +127,247 @@ public class InventoryESService extends ESService {
     public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, Set<String> regular_fields, String nestedProperty, String indexType) throws IOException {
         Map<String, Object> result = new HashMap<>();
 
-        List<Object> filter = new ArrayList<>();
-        List<Object> participant_filters = new ArrayList<>();
-        List<Object> diagnosis_filters = new ArrayList<>();
-        List<Object> sample_filters = new ArrayList<>();
-        List<Object> file_filters = new ArrayList<>();
-        List<Object> sample_file_filters = new ArrayList<>();
-        
-        for (String key: params.keySet()) {
-            String finalKey = key;
-            if (indexType.equals("files") && key.equals("assay_method")) {
-                    finalKey = "file_category";
-            }
-            if (excludedParams.contains(finalKey)) {
-                continue;
-            }
+        if (indexType.equals("files")) {
+            //regular files query
+            List<Object> filter_1 = new ArrayList<>();
+            //query for files directly linked to study
+            List<Object> filter_2 = new ArrayList<>();
+            List<Object> participant_filters = new ArrayList<>();
+            List<Object> combined_participant_filters = new ArrayList<>();
+            List<Object> diagnosis_filters = new ArrayList<>();
+            List<Object> combined_diagnosis_filters = new ArrayList<>();
+            List<Object> sample_filters = new ArrayList<>();
+            List<Object> combined_sample_filters = new ArrayList<>();
+            
+            for (String key: params.keySet()) {
+                String finalKey = key;
+                if (key.equals("assay_method")) {
+                        finalKey = "file_category";
+                }
+                if (excludedParams.contains(finalKey)) {
+                    continue;
+                }
 
-            if (rangeParams.contains(key)) {
-                // Range parameters, should contain two doubles, first lower bound, then upper bound
-                // Any other values after those two will be ignored
-                List<Integer> bounds = (List<Integer>) params.get(key);
-                if (bounds.size() >= 2) {
-                    Integer lower = bounds.get(0);
-                    Integer higher = bounds.get(1);
-                    if (lower == null && higher == null) {
-                        throw new IOException("Lower bound and Upper bound can't be both null!");
-                    }
-                    Map<String, Integer> range = new HashMap<>();
-                    if (lower != null) {
-                        range.put("gte", lower);
-                    }
-                    if (higher != null) {
-                        range.put("lte", higher);
-                    }
-                    if (!indexType.equals("diagnosis") && key.equals("age_at_diagnosis")) {
-                        diagnosis_filters.add(Map.of(
-                            "range", Map.of("diagnosis_filters."+key, range)
-                        ));
-                    } else if (!indexType.equals("samples") && key.equals("participant_age_at_collection")) {
-                        if (indexType.equals("files")) {
+                if (rangeParams.contains(key)) {
+                    // Range parameters, should contain two doubles, first lower bound, then upper bound
+                    // Any other values after those two will be ignored
+                    List<Integer> bounds = (List<Integer>) params.get(key);
+                    if (bounds.size() >= 2) {
+                        Integer lower = bounds.get(0);
+                        Integer higher = bounds.get(1);
+                        if (lower == null && higher == null) {
+                            throw new IOException("Lower bound and Upper bound can't be both null!");
+                        }
+                        Map<String, Integer> range = new HashMap<>();
+                        if (lower != null) {
+                            range.put("gte", lower);
+                        }
+                        if (higher != null) {
+                            range.put("lte", higher);
+                        }
+                        if (key.equals("age_at_diagnosis")) {
+                            diagnosis_filters.add(Map.of(
+                                "range", Map.of("diagnosis_filters."+key, range)
+                            ));
+                            combined_diagnosis_filters.add(Map.of(
+                                "range", Map.of("combined_filters.diagnosis."+key, range)
+                            ));
+                        } else if (key.equals("participant_age_at_collection")) {
                             sample_filters.add(Map.of(
                                 "range", Map.of("sample_filters."+key, range)
                             ));
+                            combined_sample_filters.add(Map.of(
+                                "range", Map.of("combined_filters.samples."+key, range)
+                            ));
                         } else {
-                            sample_file_filters.add(Map.of(
-                                "range", Map.of("sample_file_filters."+key, range)
+                            filter_1.add(Map.of(
+                                "range", Map.of(key, range)
+                            ));
+                            filter_2.add(Map.of(
+                                "range", Map.of(key, range)
                             ));
                         }
-                    } else {
-                        filter.add(Map.of(
-                            "range", Map.of(key, range)
-                        ));
                     }
-                }
-            } else {
-                // Term parameters (default)
-                List<String> valueSet = (List<String>) params.get(key);
-                
-                if (indexType.equals("files")) {
+                } else {
+                    // Term parameters (default)
+                    List<String> valueSet = (List<String>) params.get(key);
+                    
                     if (key.equals("assay_method")) {
                         key = "file_category";
                     }
                     if (key.equals("participant_ids")) {
-                        key = "file_participant_ids";
+                        key = "participant_id";
+                    }
+                    // list with only one empty string [""] means return all records
+                    if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
+                        if (PARTICIPANT_PARAMS.contains(key)) {
+                            participant_filters.add(Map.of(
+                                "terms", Map.of("participant_filters."+key, valueSet)
+                            ));
+                            combined_participant_filters.add(Map.of(
+                                "terms", Map.of("combined_filters."+key, valueSet)
+                            ));
+                        } else if (DIAGNOSIS_PARAMS.contains(key)) {
+                            diagnosis_filters.add(Map.of(
+                                "terms", Map.of("diagnosis_filters."+key, valueSet)
+                            ));
+                            combined_diagnosis_filters.add(Map.of(
+                                "terms", Map.of("combined_filters.diagnosis."+key, valueSet)
+                            ));
+                        } else if (SAMPLE_PARAMS.contains(key)) {
+                            sample_filters.add(Map.of(
+                                "terms", Map.of("sample_filters."+key, valueSet)
+                            ));
+                            combined_sample_filters.add(Map.of(
+                                "terms", Map.of("combined_filters.samples."+key, valueSet)
+                            ));
+                        } else {
+                            filter_1.add(Map.of(
+                                "terms", Map.of(key, valueSet)
+                            ));
+                            if (key.equals("participant_id")) {
+                                combined_participant_filters.add(Map.of(
+                                    "terms", Map.of("combined_filters."+key, valueSet)
+                                ));
+                            } else {
+                                filter_2.add(Map.of(
+                                    "terms", Map.of(key, valueSet)
+                                ));
+                            }
+                        }
                     }
                 }
-                if (key.equals("participant_ids")) {
-                    key = "participant_id";
+            }
+
+            int filterLen = filter_1.size();
+            int participantFilterLen = participant_filters.size();
+            int combinedParticipantFilterLen = combined_participant_filters.size();
+            int diagnosisFilterLen = diagnosis_filters.size();
+            int combinedDiagnosisFilterLen = combined_diagnosis_filters.size();
+            int sampleFilterLen = sample_filters.size();
+            int combinedSampleFilterLen = combined_sample_filters.size();
+            if (filterLen + participantFilterLen + combinedParticipantFilterLen + diagnosisFilterLen + combinedDiagnosisFilterLen + sampleFilterLen + combinedSampleFilterLen == 0) {
+                result.put("query", Map.of("match_all", Map.of()));
+            } else {
+                if (participantFilterLen > 0) {
+                    filter_1.add(Map.of("nested", Map.of("path", "participant_filters", "query", Map.of("bool", Map.of("filter", participant_filters)), "inner_hits", Map.of())));
                 }
-                // list with only one empty string [""] means return all records
-                if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
-                    if (PARTICIPANT_PARAMS.contains(key) && indexType.equals("files")) {
-                        participant_filters.add(Map.of(
-                            "terms", Map.of("participant_filters."+key, valueSet)
-                        ));
-                    } else if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnosis")) {
-                        diagnosis_filters.add(Map.of(
-                            "terms", Map.of("diagnosis_filters."+key, valueSet)
-                        ));
-                    } else if (SAMPLE_FILE_PARAMS.contains(key) && !(indexType.equals("samples") || indexType.equals("files"))) {
-                        sample_file_filters.add(Map.of(
-                            "terms", Map.of("sample_file_filters."+key, valueSet)
-                        ));
-                    } else if (SAMPLE_PARAMS.contains(key) && indexType.equals("files")) {
-                        sample_filters.add(Map.of(
-                            "terms", Map.of("sample_filters."+key, valueSet)
-                        ));
-                    } else if (FILE_PARAMS.contains(key) && indexType.equals("samples")) {
-                        file_filters.add(Map.of(
-                            "terms", Map.of("file_filters."+key, valueSet)
-                        ));
-                    } else {
-                        filter.add(Map.of(
-                            "terms", Map.of(key, valueSet)
-                        ));
+                if (diagnosisFilterLen > 0) {
+                    filter_1.add(Map.of("nested", Map.of("path", "diagnosis_filters", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
+                }
+                if (sampleFilterLen > 0) {
+                    filter_1.add(Map.of("nested", Map.of("path", "sample_filters", "query", Map.of("bool", Map.of("filter", sample_filters)), "inner_hits", Map.of())));
+                }
+                if (combinedDiagnosisFilterLen > 0) {
+                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.diagnosis", "query", Map.of("bool", Map.of("filter", combined_diagnosis_filters)), "inner_hits", Map.of())));
+                }
+                if (combinedSampleFilterLen > 0) {
+                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.samples", "query", Map.of("bool", Map.of("filter", combined_sample_filters)), "inner_hits", Map.of())));
+                }
+                filter_2.add(Map.of("nested", Map.of("path", "combined_filters", "query", Map.of("bool", Map.of("filter", combined_participant_filters)), "inner_hits", Map.of())));
+                List<Object> overall_filter = new ArrayList<>();
+                List<Object> should_filter = new ArrayList<>();
+                should_filter.add(Map.of("exists", Map.of("field", "pid")));
+                should_filter.add(Map.of("exists", Map.of("field", "sample_id")));
+                overall_filter.add(Map.of("bool", Map.of("should", should_filter, "filter", filter_1)));
+                List<Object> must_not_filter = new ArrayList<>();
+                must_not_filter.add(Map.of("exists", Map.of("field", "pid")));
+                must_not_filter.add(Map.of("exists", Map.of("field", "sample_id")));
+                overall_filter.add(Map.of("bool", Map.of("must_not", must_not_filter, "filter", filter_2)));
+                result.put("query", Map.of("bool", Map.of("should", overall_filter)));
+            }
+        } else {
+            List<Object> filter = new ArrayList<>();
+            List<Object> diagnosis_filters = new ArrayList<>();
+            List<Object> file_filters = new ArrayList<>();
+            List<Object> sample_file_filters = new ArrayList<>();
+            
+            for (String key: params.keySet()) {
+                if (excludedParams.contains(key)) {
+                    continue;
+                }
+
+                if (rangeParams.contains(key)) {
+                    // Range parameters, should contain two doubles, first lower bound, then upper bound
+                    // Any other values after those two will be ignored
+                    List<Integer> bounds = (List<Integer>) params.get(key);
+                    if (bounds.size() >= 2) {
+                        Integer lower = bounds.get(0);
+                        Integer higher = bounds.get(1);
+                        if (lower == null && higher == null) {
+                            throw new IOException("Lower bound and Upper bound can't be both null!");
+                        }
+                        Map<String, Integer> range = new HashMap<>();
+                        if (lower != null) {
+                            range.put("gte", lower);
+                        }
+                        if (higher != null) {
+                            range.put("lte", higher);
+                        }
+                        if (!indexType.equals("diagnosis") && key.equals("age_at_diagnosis")) {
+                            diagnosis_filters.add(Map.of(
+                                "range", Map.of("diagnosis_filters."+key, range)
+                            ));
+                        } else if (!indexType.equals("samples") && key.equals("participant_age_at_collection")) {
+                            sample_file_filters.add(Map.of(
+                                "range", Map.of("sample_file_filters."+key, range)
+                            ));
+                        } else {
+                            filter.add(Map.of(
+                                "range", Map.of(key, range)
+                            ));
+                        }
+                    }
+                } else {
+                    // Term parameters (default)
+                    List<String> valueSet = (List<String>) params.get(key);
+                    
+                    if (key.equals("participant_ids")) {
+                        key = "participant_id";
+                    }
+                    // list with only one empty string [""] means return all records
+                    if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
+                        if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnosis")) {
+                            diagnosis_filters.add(Map.of(
+                                "terms", Map.of("diagnosis_filters."+key, valueSet)
+                            ));
+                        } else if (SAMPLE_FILE_PARAMS.contains(key) && !indexType.equals("samples")) {
+                            sample_file_filters.add(Map.of(
+                                "terms", Map.of("sample_file_filters."+key, valueSet)
+                            ));
+                        } else if (FILE_PARAMS.contains(key) && indexType.equals("samples")) {
+                            file_filters.add(Map.of(
+                                "terms", Map.of("file_filters."+key, valueSet)
+                            ));
+                        } else {
+                            filter.add(Map.of(
+                                "terms", Map.of(key, valueSet)
+                            ));
+                        }
                     }
                 }
+            }
+
+            int FilterLen = filter.size();
+            int diagnosisFilterLen = diagnosis_filters.size();
+            int sampleFileFilterLen = sample_file_filters.size();
+            int fileFilterLen = file_filters.size();
+            if (FilterLen + diagnosisFilterLen + sampleFileFilterLen + fileFilterLen == 0) {
+                result.put("query", Map.of("match_all", Map.of()));
+            } else {
+                if (diagnosisFilterLen > 0) {
+                    filter.add(Map.of("nested", Map.of("path", "diagnosis_filters", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
+                }
+                if (sampleFileFilterLen > 0) {
+                    filter.add(Map.of("nested", Map.of("path", "sample_file_filters", "query", Map.of("bool", Map.of("filter", sample_file_filters)), "inner_hits", Map.of())));
+                }
+                if (fileFilterLen > 0) {
+                    filter.add(Map.of("nested", Map.of("path", "file_filters", "query", Map.of("bool", Map.of("filter", file_filters)), "inner_hits", Map.of())));
+                }
+                result.put("query", Map.of("bool", Map.of("filter", filter)));
             }
         }
 
-        int FilterLen = filter.size();
-        int participantFilterLen = participant_filters.size();
-        int diagnosisFilterLen = diagnosis_filters.size();
-        int sampleFileFilterLen = sample_file_filters.size();
-        int sampleFilterLen = sample_filters.size();
-        int fileFilterLen = file_filters.size();
-        if (FilterLen + participantFilterLen + diagnosisFilterLen + sampleFileFilterLen + sampleFilterLen + fileFilterLen == 0) {
-            result.put("query", Map.of("match_all", Map.of()));
-        } else {
-            if (participantFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "participant_filters", "query", Map.of("bool", Map.of("filter", participant_filters)), "inner_hits", Map.of())));
-            }
-            if (diagnosisFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "diagnosis_filters", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
-            }
-            if (sampleFileFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "sample_file_filters", "query", Map.of("bool", Map.of("filter", sample_file_filters)), "inner_hits", Map.of())));
-            }
-            if (sampleFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "sample_filters", "query", Map.of("bool", Map.of("filter", sample_filters)), "inner_hits", Map.of())));
-            }
-            if (fileFilterLen > 0) {
-                filter.add(Map.of("nested", Map.of("path", "file_filters", "query", Map.of("bool", Map.of("filter", file_filters)), "inner_hits", Map.of())));
-            }
-            result.put("query", Map.of("bool", Map.of("filter", filter)));
-        }
-        
         return result;
     }
 
@@ -275,12 +390,12 @@ public class InventoryESService extends ESService {
 
         // "aggs" : {
         //     "langs" : {
-        //         "terms" : { "field" : "language",  "size" : 500 }
+        //         "terms" : { "field" : "language",  "size" : 10000 }
         //     }
         // }
 
         Map<String, Object> fields = new HashMap<String, Object>();
-        fields.put(nodeName, Map.of("terms", Map.of("field", nodeName)));
+        fields.put(nodeName, Map.of("terms", Map.of("field", nodeName, "size", 10000)));
         newQuery.put("aggs", fields);
         
         return newQuery;

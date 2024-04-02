@@ -59,10 +59,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final Set<String> INCLUDE_PARAMS  = Set.of("race", "ethnicity");
 
-    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "gender", "ethnicity", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
-    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
-    final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_icd_o", "disease_phase", "diagnosis_anatomic_site", "age_at_diagnosis");
-    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "gender", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
+    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "sex_at_birth", "ethnicity", "diagnosis_classification", "diagnosis_comment", "disease_phase", "diagnosis_classification_system", "diagnosis_verification_status", "diagnosis_basis","diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
+    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "diagnosis_classification", "diagnosis_comment", "disease_phase", "diagnosis_classification_system", "diagnosis_verification_status", "diagnosis_basis","diagnosis_anatomic_site", "age_at_diagnosis", "vital_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "phs_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source", "library_strategy");
+    final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "diagnosis_classification","diagnosis_comment", "disease_phase", "diagnosis_classification_system", "diagnosis_verification_status", "diagnosis_basis", "diagnosis_anatomic_site", "age_at_diagnosis");
+    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "ethnicity", "phs_accession", "study_acronym", "study_short_title", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "phs_accession", "study_acronym", "study_short_title");
     final Set<String> FILE_REGULAR_PARAMS = Set.of("file_category", "phs_accession", "study_acronym", "study_short_title", "file_type", "library_selection", "library_source", "library_strategy");
 
@@ -333,9 +333,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "diagnosis_icd_o",
+                    AGG_NAME, "diagnosis_classification",
                     WIDGET_QUERY, "participantCountByDiagnosis",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByICDO",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassification",
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -346,9 +346,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    AGG_NAME, "gender",
-                    WIDGET_QUERY,"participantCountByGender",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByGender",
+                    AGG_NAME, "sex_at_birth",
+                    WIDGET_QUERY,"participantCountBySexAtBirth",
+                    FILTER_COUNT_QUERY, "filterParticipantCountBySexAtBirth",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -380,6 +380,24 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "disease_phase",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
+                    AGG_NAME, "diagnosis_classification_system",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
+                    AGG_NAME, "diagnosis_verification_status",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisVerificationStatus",
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
+                    AGG_NAME, "diagnosis_basis",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -563,7 +581,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"phs_accession", "phs_accession"},
                 new String[]{"study_id", "study_id"},
             new String[]{"race", "race_str"},
-            new String[]{"gender", "gender"},
+            new String[]{"sex_at_birth", "sex_at_birth"},
             new String[]{"ethnicity", "ethnicity_str"},
             new String[]{"alternate_participant_id", "alternate_participant_id"},
             new String[]{"files", "files"}
@@ -576,7 +594,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("phs_accession", "phs_accession"),
                 Map.entry("study_id", "study_id"),
                 Map.entry("race", "race_str"),
-                Map.entry("gender", "gender"),
+                Map.entry("sex_at_birth", "sex_at_birth"),
                 Map.entry("ethnicity", "ethnicity_str"),
                 Map.entry("alternate_participant_id", "alternate_participant_id")
         );
@@ -591,9 +609,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"participant_id", "participant_id"},
             new String[]{"phs_accession", "phs_accession"},
                 new String[]{"study_id", "study_id"},
-            new String[]{"diagnosis_icd_o", "diagnosis_icd_o"},
+            new String[]{"diagnosis_classification", "diagnosis_classification"},
+                new String[]{"diagnosis_comment", "diagnosis_comment"},
             new String[]{"anatomic_site", "diagnosis_anatomic_site"},
             new String[]{"disease_phase", "disease_phase"},
+                new String[]{"diagnosis_classification_system", "diagnosis_classification_system"},
+                new String[]{"diagnosis_verification_status", "diagnosis_verification_status"},
+                new String[]{"diagnosis_basis", "diagnosis_basis"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis"},
             new String[]{"vital_status", "last_vital_status"},
             new String[]{"files", "files"}
@@ -606,9 +628,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("participant_id", "participant_id"),
                 Map.entry("phs_accession", "phs_accession"),
                 Map.entry("study_id", "study_id"),
-                Map.entry("diagnosis_icd_o", "diagnosis_icd_o"),
+                Map.entry("diagnosis_classification", "diagnosis_classification"),
+                Map.entry("diagnosis_comment", "diagnosis_comment"),
                 Map.entry("anatomic_site", "diagnosis_anatomic_site"),
                 Map.entry("disease_phase", "disease_phase"),
+                Map.entry("diagnosis_basis", "diagnosis_basis"),
+                Map.entry("diagnosis_classification_system", "diagnosis_classification_system"),
+                Map.entry("diagnosis_verification_status", "diagnosis_verification_status"),
                 Map.entry("age_at_diagnosis", "age_at_diagnosis"),
                 Map.entry("vital_status", "last_vital_status")
         );
@@ -688,7 +714,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"study_id", "study_id"},
             new String[]{"anatomic_site", "sample_anatomic_site"},
             new String[]{"participant_age_at_collection", "participant_age_at_collection"},
-            new String[]{"diagnosis_icd_o", "sample_diagnosis_icd_o"},
+            new String[]{"sample_diagnosis_classification", "sample_diagnosis_classification"},
+                new String[]{"sample_diagnosis_classification_system", "sample_diagnosis_classification_system"},
+                new String[]{"sample_diagnosis_verification_status", "sample_diagnosis_verification_status"},
+                new String[]{"sample_diagnosis_comment", "sample_diagnosis_comment"},
+                new String[]{"sample_diagnosis_basis", "sample_diagnosis_basis"},
             new String[]{"sample_tumor_status", "sample_tumor_status"},
             new String[]{"tumor_classification", "tumor_classification"},
             new String[]{"files", "files"}
@@ -702,7 +732,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("study_id", "study_id"),
                 Map.entry("anatomic_site", "sample_anatomic_site"),
                 Map.entry("participant_age_at_collection", "participant_age_at_collection"),
-                Map.entry("diagnosis_icd_o", "sample_diagnosis_icd_o"),
+                Map.entry("sample_diagnosis_classification", "sample_diagnosis_classification"),
+                Map.entry("sample_diagnosis_comment", "sample_diagnosis_comment"),
+                Map.entry("sample_diagnosis_classification_system", "sample_diagnosis_classification_system"),
+                Map.entry("sample_diagnosis_verification_status", "sample_diagnosis_verification_status"),
+                Map.entry("sample_diagnosis_basis", "sample_diagnosis_basis"),
                 Map.entry("sample_tumor_status", "sample_tumor_status"),
                 Map.entry("tumor_classification", "tumor_classification")
         );
