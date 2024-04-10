@@ -127,7 +127,7 @@ public class InventoryESService extends ESService {
     public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, Set<String> regular_fields, String nestedProperty, String indexType) throws IOException {
         Map<String, Object> result = new HashMap<>();
 
-        if (indexType.equals("files")) {
+        if (indexType.startsWith("files")) {
             //regular files query
             List<Object> filter_1 = new ArrayList<>();
             //query for files directly linked to study
@@ -269,11 +269,19 @@ public class InventoryESService extends ESService {
                 List<Object> should_filter = new ArrayList<>();
                 should_filter.add(Map.of("exists", Map.of("field", "pid")));
                 should_filter.add(Map.of("exists", Map.of("field", "sample_id")));
-                overall_filter.add(Map.of("bool", Map.of("should", should_filter, "filter", filter_1)));
+                if (indexType.equals("files_overall")) {
+                    overall_filter.add(Map.of("bool", Map.of("should", should_filter, "filter", filter_1)));
+                } else {
+                    overall_filter.add(Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")), "should", should_filter, "filter", filter_1))); 
+                }
                 List<Object> must_not_filter = new ArrayList<>();
                 must_not_filter.add(Map.of("exists", Map.of("field", "pid")));
                 must_not_filter.add(Map.of("exists", Map.of("field", "sample_id")));
-                overall_filter.add(Map.of("bool", Map.of("must_not", must_not_filter, "filter", filter_2)));
+                if (indexType.equals("files_overall")) {
+                    overall_filter.add(Map.of("bool", Map.of("must_not", must_not_filter, "filter", filter_2)));
+                } else {
+                        overall_filter.add(Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")), "must_not", must_not_filter, "filter", filter_2)));
+                }
                 result.put("query", Map.of("bool", Map.of("should", overall_filter)));
             }
         } else {

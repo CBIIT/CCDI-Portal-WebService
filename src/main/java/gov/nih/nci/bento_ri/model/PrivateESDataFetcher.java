@@ -515,12 +515,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             int numberOfSamples = samplesCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
             int samples_file_count = samplesCountResult.getAsJsonObject("aggregations").getAsJsonObject("file_count").get("value").getAsInt();
 
-            Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files");
-            int numberOfStudies = getNodeCount("study_id", query_files, FILES_END_POINT).size();
+            Map<String, Object> query_files_all_records = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files_overall");
+            int numberOfStudies = getNodeCount("study_id", query_files_all_records, FILES_END_POINT).size();
 
             Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
-            // System.out.println(gson.toJson(query_files));
-            filesCountRequest.setJsonEntity(gson.toJson(query_files));
+            Map<String, Object> query_files_valid_records = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files");
+            filesCountRequest.setJsonEntity(gson.toJson(query_files_valid_records));
             JsonObject filesCountResult = inventoryESService.send(filesCountRequest);
             int numberOfFiles = filesCountResult.get("count").getAsInt();
 
