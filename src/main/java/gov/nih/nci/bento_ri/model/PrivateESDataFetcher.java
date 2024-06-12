@@ -775,7 +775,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("file_type", "file_type"),
                 Map.entry("file_size", "file_size"),
                 Map.entry("study_id", "study_id"),
-                Map.entry("library_selection", "library_selection"),
+                Map.entry("library_selection", "library_selection.sort"),
                 Map.entry("library_source", "library_source"),
                 Map.entry("library_strategy", "library_strategy"),
                 Map.entry("participant_id", "participant_id"),
