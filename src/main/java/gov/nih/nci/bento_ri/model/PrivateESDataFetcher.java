@@ -515,12 +515,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             int numberOfSamples = samplesCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
             int samples_file_count = samplesCountResult.getAsJsonObject("aggregations").getAsJsonObject("file_count").get("value").getAsInt();
 
-            Map<String, Object> query_files = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files");
-            int numberOfStudies = getNodeCount("study_id", query_files, FILES_END_POINT).size();
+            Map<String, Object> query_files_all_records = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files_overall");
+            int numberOfStudies = getNodeCount("study_id", query_files_all_records, FILES_END_POINT).size();
 
             Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
-            // System.out.println(gson.toJson(query_files));
-            filesCountRequest.setJsonEntity(gson.toJson(query_files));
+            Map<String, Object> query_files_valid_records = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files");
+            filesCountRequest.setJsonEntity(gson.toJson(query_files_valid_records));
             JsonObject filesCountResult = inventoryESService.send(filesCountRequest);
             int numberOfFiles = filesCountResult.get("count").getAsInt();
 
@@ -754,6 +754,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"file_description", "file_description"},
             new String[]{"file_type", "file_type"},
             new String[]{"file_size", "file_size"},
+                new String[]{"library_selection", "library_selection"},
+                new String[]{"library_source", "library_source"},
+                new String[]{"library_strategy", "library_strategy"},
             new String[]{"study_id", "study_id"},
             new String[]{"participant_id", "participant_id"},
             new String[]{"sample_id", "sample_id"},
@@ -772,6 +775,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("file_type", "file_type"),
                 Map.entry("file_size", "file_size"),
                 Map.entry("study_id", "study_id"),
+                Map.entry("library_selection", "library_selection.sort"),
+                Map.entry("library_source", "library_source.sort"),
+                Map.entry("library_strategy", "library_strategy.sort"),
                 Map.entry("participant_id", "participant_id"),
                 Map.entry("sample_id", "sample_id"),
                 Map.entry("md5sum", "md5sum")

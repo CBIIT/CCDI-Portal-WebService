@@ -143,6 +143,9 @@ type FileOverViewResult {
     file_description: String
     file_type: String
     file_size: String
+    library_selection: String
+    library_source: String
+    library_strategy: String
     sample_id: String
     participant_id: String
     study_id: String
@@ -157,6 +160,9 @@ type FileDetail {
     file_id: String
     guid: String
     file_name: String
+    library_selection: String
+    library_source: String
+    library_strategy: String
     study_short_title: String
     phs_accession: String
     sample_id: String
