@@ -225,7 +225,7 @@ public class InventoryESService extends ESService {
                             filter_1.add(Map.of(
                                 "terms", Map.of(key, valueSet)
                             ));
-                            if (key.equals("participant_id") || key.equals("vital_status")) {
+                            if (key.equals("participant_id") || key.equals("last_known_survival_status")) {
                                 combined_participant_filters.add(Map.of(
                                     "terms", Map.of("combined_filters."+key, valueSet)
                                 ));
