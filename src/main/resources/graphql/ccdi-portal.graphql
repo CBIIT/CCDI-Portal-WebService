@@ -3,7 +3,6 @@ type Study {
     dbgap_accession: String
     acl: String
     study_name: String
-    study_short_title: String
     study_acronym: String
     study_description: String
     consent: String
