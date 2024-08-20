@@ -582,7 +582,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 new String[]{"study_id", "study_id"},
             new String[]{"race", "race_str"},
             new String[]{"sex_at_birth", "sex_at_birth"},
-            new String[]{"alternate_participant_id", "alternate_participant_id"},
+            new String[]{"synonym_id", "synonym_id"},
             new String[]{"files", "files"}
         };
 
@@ -595,7 +595,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("race", "race_str"),
                 Map.entry("sex_at_birth", "sex_at_birth"),
 
-                Map.entry("alternate_participant_id", "alternate_participant_id")
+                Map.entry("synonym_id", "synonym_id")
         );
 
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");

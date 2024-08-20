@@ -79,7 +79,7 @@ type ParticipantOverViewResult {
     study_id: String
     race: String
     sex_at_birth: String
-    alternate_participant_id: String
+    synonym_id: String
     files: [String]
 }
 
