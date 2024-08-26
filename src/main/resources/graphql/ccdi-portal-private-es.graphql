@@ -75,6 +75,7 @@ type SearchParticipantsResult {
     participantCountByDiagnosisAge: [SearchParticipantsReturnObject]
     participantCountBySexAtBirth: [SearchParticipantsReturnObject]
     participantCountByRace: [SearchParticipantsReturnObject]
+    participantCountByAssayMethod: [SearchParticipantsReturnObject]
 }
 
 type ParticipantOverViewResult {
