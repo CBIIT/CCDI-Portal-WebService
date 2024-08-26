@@ -60,6 +60,7 @@ type SearchParticipantsResult {
     participantCountByDiagnosisAge: [SearchParticipantsReturnObject]
     participantCountBySexAtBirth: [SearchParticipantsReturnObject]
     participantCountByRace: [SearchParticipantsReturnObject]
+    participantCountByAssayMethod: [SearchParticipantsReturnObject]
 }
 
 schema {

@@ -437,6 +437,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "file_category",
+                    WIDGET_QUERY, "participantCountByAssayMethod",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAssayMethod",
                     AGG_ENDPOINT, FILES_END_POINT
             ));
