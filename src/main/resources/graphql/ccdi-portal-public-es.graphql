@@ -47,7 +47,8 @@ type SearchParticipantsResult {
     filterParticipantCountByAcronym: [SearchParticipantsReturnObject]
     filterParticipantCountByStudyTitle: [SearchParticipantsReturnObject]
     filterParticipantCountByLibrarySelection: [SearchParticipantsReturnObject]
-    filterParticipantCountByLibrarySource: [SearchParticipantsReturnObject]
+    filterParticipantCountByLibrarySourceMaterial: [SearchParticipantsReturnObject]
+    filterParticipantCountByLibrarySourceMolecule: [SearchParticipantsReturnObject]
     filterParticipantCountByLibraryStrategy: [SearchParticipantsReturnObject]
 
     numberOfStudies: Int
@@ -73,6 +74,6 @@ type QueryType {
 
     idsLists: IdsListsES
     
-    searchParticipants (participant_ids: [String] = [""], race: [String] = [""], sex_at_birth: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], diagnosis_comment: [String] = [""], disease_phase: [String] = [""], diagnosis_classification_system: [String] = [""], diagnosis_basis: [String] = [""], diagnosis: [String] = [""], tumor_grade_source: [String] = [""], tumor_stage_source: [String] = [""], last_known_survival_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], dbgap_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_name: [String] = [""], study_acronym: [String] = [""], library_selection: [String] = [""], library_source_material: [String] = [""], library_source_molecule: [String] = [""], library_strategy: [String] = [""]): SearchParticipantsResult
+    searchParticipants (participant_ids: [String] = [""], race: [String] = [""], sex_at_birth: [String] = [""], age_at_diagnosis: [Int] = [0], diagnosis_anatomic_site: [String] = [""], disease_phase: [String] = [""], diagnosis_classification_system: [String] = [""], diagnosis_basis: [String] = [""], diagnosis: [String] = [""], tumor_grade_source: [String] = [""], tumor_stage_source: [String] = [""], last_known_survival_status: [String] = [""], sample_anatomic_site: [String] = [""], participant_age_at_collection: [Int] = [0], sample_tumor_status: [String] = [""], tumor_classification: [String] = [""], assay_method: [String] = [""], file_type: [String] = [""], dbgap_accession: [String] = [""], grant_id: [String] = [""], institution: [String] = [""], study_name: [String] = [""], study_acronym: [String] = [""], library_selection: [String] = [""], library_source_material: [String] = [""], library_source_molecule: [String] = [""], library_strategy: [String] = [""]): SearchParticipantsResult
 
 }
