@@ -247,7 +247,11 @@ public class InventoryESService extends ESService {
             int sampleFilterLen = sample_filters.size();
             int combinedSampleFilterLen = combined_sample_filters.size();
             if (filterLen + participantFilterLen + combinedParticipantFilterLen + diagnosisFilterLen + combinedDiagnosisFilterLen + sampleFilterLen + combinedSampleFilterLen == 0) {
-                result.put("query", Map.of("match_all", Map.of()));
+                if (indexType.equals("files_overall")) {
+                    result.put("query", Map.of("match_all", Map.of()));
+                } else {
+                    result.put("query", Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")))));
+                }
             } else {
                 if (participantFilterLen > 0) {
                     filter_1.add(Map.of("nested", Map.of("path", "participant_filters", "query", Map.of("bool", Map.of("filter", participant_filters)), "inner_hits", Map.of())));
