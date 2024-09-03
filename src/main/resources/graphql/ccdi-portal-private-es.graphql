@@ -133,7 +133,6 @@ type SampleOverViewResult {
     study_id: String
     anatomic_site: String
     participant_age_at_collection: Int
-    sample_diagnosis_classification_system: String
     sample_tumor_status: String
     tumor_classification: String
     files: [String]

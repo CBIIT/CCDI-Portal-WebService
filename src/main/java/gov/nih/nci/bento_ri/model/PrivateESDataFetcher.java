@@ -489,7 +489,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
                     AGG_ENDPOINT, FILES_END_POINT
             ));
-
+            
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
             // System.out.println(gson.toJson(query_participants));
             Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
@@ -520,7 +520,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             fields_sample.put("file_count", Map.of("sum", Map.of("field", "file_count")));
             newQuery_samples.put("aggs", fields_sample);
             Request samplesCountRequest = new Request("GET", SAMPLES_END_POINT);
-            // System.out.println(gson.toJson(newQuery_samples));
+            //System.out.println(gson.toJson(newQuery_samples));
             samplesCountRequest.setJsonEntity(gson.toJson(newQuery_samples));
             JsonObject samplesCountResult = inventoryESService.send(samplesCountRequest);
             int numberOfSamples = samplesCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
@@ -593,7 +593,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 new String[]{"study_id", "study_id"},
             new String[]{"race", "race_str"},
             new String[]{"sex_at_birth", "sex_at_birth"},
-            new String[]{"synonym_id", "synonym_id"},
+            new String[]{"synonym_id", "alternate_participant_id"},
             new String[]{"files", "files"}
         };
 
@@ -606,7 +606,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("race", "race_str"),
                 Map.entry("sex_at_birth", "sex_at_birth"),
 
-                Map.entry("synonym_id", "synonym_id")
+                Map.entry("synonym_id", "alternate_participant_id")
         );
 
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
@@ -726,7 +726,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"study_id", "study_id"},
             new String[]{"anatomic_site", "sample_anatomic_site"},
             new String[]{"participant_age_at_collection", "participant_age_at_collection"},
-                new String[]{"sample_diagnosis_classification_system", "sample_diagnosis_classification_system"},
             new String[]{"sample_tumor_status", "sample_tumor_status"},
             new String[]{"tumor_classification", "tumor_classification"},
             new String[]{"files", "files"}
@@ -740,7 +739,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("study_id", "study_id"),
                 Map.entry("anatomic_site", "sample_anatomic_site"),
                 Map.entry("participant_age_at_collection", "participant_age_at_collection"),
-                Map.entry("sample_diagnosis_classification_system", "sample_diagnosis_classification_system"),
                 Map.entry("sample_tumor_status", "sample_tumor_status"),
                 Map.entry("tumor_classification", "tumor_classification")
         );
