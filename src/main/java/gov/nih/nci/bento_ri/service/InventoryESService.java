@@ -259,7 +259,7 @@ public class InventoryESService extends ESService {
                 if (combinedFilterLen > 0) {
                     combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.sample_diagnosis_filters", "query", Map.of("bool", Map.of("filter", combined_filters)), "inner_hits", Map.of())));
                 }
-                System.out.println(filter_1);
+                // System.out.println(filter_1);
                 filter_2.add(Map.of("nested", Map.of("path", "combined_filters", "query", Map.of("bool", Map.of("filter", combined_participant_filters)), "inner_hits", Map.of())));
                 List<Object> overall_filter = new ArrayList<>();
                 List<Object> should_filter = new ArrayList<>();
