@@ -518,7 +518,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             newQuery_samples.put("size", 0);
             newQuery_samples.put("track_total_hits", 10000000);
             Map<String, Object> fields_sample = new HashMap<String, Object>();
-            fields_sample.put("file_count", Map.of("sum", Map.of("field", "file_count")));
+            fields_sample.put("file_count", Map.of("sum", Map.of("field", "direct_file_count")));
             newQuery_samples.put("aggs", fields_sample);
             Request samplesCountRequest = new Request("GET", SAMPLES_END_POINT);
             //System.out.println(gson.toJson(newQuery_samples));
@@ -622,7 +622,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"dbgap_accession", "dbgap_accession"},
                 new String[]{"study_id", "study_id"},
             new String[]{"diagnosis", "diagnosis"},
-            new String[]{"anatomic_site", "diagnosis_anatomic_site"},
+            new String[]{"anatomic_site", "diagnosis_anatomic_site_str"},
             new String[]{"disease_phase", "disease_phase"},
                 new String[]{"diagnosis_classification_system", "diagnosis_classification_system"},
                 new String[]{"diagnosis_basis", "diagnosis_basis"},
@@ -642,7 +642,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("dbgap_accession", "dbgap_accession"),
                 Map.entry("study_id", "study_id"),
                 Map.entry("diagnosis", "diagnosis"),
-                Map.entry("anatomic_site", "diagnosis_anatomic_site"),
+                Map.entry("anatomic_site", "diagnosis_anatomic_site_str"),
                 Map.entry("disease_phase", "disease_phase"),
                 Map.entry("diagnosis_basis", "diagnosis_basis"),
                 Map.entry("diagnosis_classification_system", "diagnosis_classification_system"),
@@ -725,7 +725,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"sample_id", "sample_id"},
             new String[]{"participant_id", "participant_id"},
             new String[]{"study_id", "study_id"},
-            new String[]{"anatomic_site", "sample_anatomic_site"},
+            new String[]{"anatomic_site", "sample_anatomic_site_str"},
             new String[]{"participant_age_at_collection", "participant_age_at_collection"},
             new String[]{"sample_tumor_status", "sample_tumor_status"},
             new String[]{"tumor_classification", "tumor_classification"},
@@ -738,7 +738,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("sample_id", "sample_id"),
                 Map.entry("participant_id", "participant_id"),
                 Map.entry("study_id", "study_id"),
-                Map.entry("anatomic_site", "sample_anatomic_site"),
+                Map.entry("anatomic_site", "sample_anatomic_site_str"),
                 Map.entry("participant_age_at_collection", "participant_age_at_collection"),
                 Map.entry("sample_tumor_status", "sample_tumor_status"),
                 Map.entry("tumor_classification", "tumor_classification")
