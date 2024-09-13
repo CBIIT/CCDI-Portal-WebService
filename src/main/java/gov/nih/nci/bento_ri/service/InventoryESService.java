@@ -524,6 +524,36 @@ public class InventoryESService extends ESService {
         return newQuery;
     }
 
+    public Map<String, Object> addCustomAggregations(Map<String, Object> query, String aggName, String field, String nestedProperty) {
+        // "aggs": {
+        //     "customAgg": {
+            //     "nested": {
+            //         "path": "sample_diagnosis_file_filters"
+            //     },
+            //     "aggs": {
+            //         "min_price": {
+            //         "terms": {
+            //             "field": "sample_diagnosis_file_filters.diagnosis_classification_system"
+            //         },
+            //         "aggs": {
+            //             "top_reverse_nested": {
+            //             "reverse_nested": {}
+            //             }
+            //         }
+            //         }
+            //     }
+        //     }
+        // }
+        Map<String, Object> newQuery = new HashMap<>(query);
+        newQuery.put("size", 0);
+        Map<String, Object> aggSection = new HashMap<String, Object>();
+        Map<String, Object> aggSubSection = new HashMap<String, Object>();
+        aggSubSection.put("agg_buckets", Map.of("terms", Map.of("field", nestedProperty + "." + field, "size", 1000), "aggs", Map.of("top_reverse_nested", Map.of("reverse_nested", Map.of()))));
+        aggSection.put(aggName, Map.of("nested", Map.of("path", nestedProperty), "aggs", aggSubSection));
+        newQuery.put("aggs", aggSection);
+        return newQuery;
+    }
+
     public Map<String, Object> addCardinalityHelper(String cardinalityAggName) {
         return Map.of("cardinality_count", Map.of("cardinality", Map.of("field", cardinalityAggName, "precision_threshold", 40000)));
     }
@@ -571,6 +601,16 @@ public class InventoryESService extends ESService {
         JsonArray buckets = aggs.getAsJsonObject(aggName).getAsJsonArray("buckets");
         for (var bucket: buckets) {
             data.add(bucket.getAsJsonObject().get("key").getAsString());
+        }
+        return data;
+    }
+
+    public Map<String, Integer> collectCustomTerms(JsonObject jsonObject, String aggName) {
+        Map<String, Integer> data = new HashMap<>();
+        JsonObject aggs = jsonObject.getAsJsonObject("aggregations").getAsJsonObject(aggName);
+        JsonArray buckets = aggs.getAsJsonObject("agg_buckets").getAsJsonArray("buckets");
+        for (var bucket: buckets) {
+            data.put(bucket.getAsJsonObject().get("key").getAsString(), bucket.getAsJsonObject().getAsJsonObject("top_reverse_nested").get("doc_count").getAsInt());
         }
         return data;
     }

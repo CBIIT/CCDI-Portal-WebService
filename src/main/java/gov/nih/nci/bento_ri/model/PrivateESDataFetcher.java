@@ -19,6 +19,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -51,6 +52,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String SAMPLES_COUNT_END_POINT = "/samples/_count";
     final String FILES_COUNT_END_POINT = "/files/_count";
 
+    final String ADDITIONAL_UPDATE = "additional_update";
+
     final Set<String> RANGE_PARAMS = Set.of("age_at_diagnosis", "participant_age_at_collection");
 
     final Set<String> BOOLEAN_PARAMS = Set.of("assay_method");
@@ -59,8 +62,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final Set<String> INCLUDE_PARAMS  = Set.of("race");
 
-    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
-    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "grant_id", "institution", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
+    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
+    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "sample_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "dbgap_accession", "study_acronym", "study_name");
@@ -328,7 +331,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             final String WIDGET_QUERY = "widgetQueryName";
             final String FILTER_COUNT_QUERY = "filterCountQueryName";
             // Query related values
-            final List<Map<String, String>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
+            final List<Map<String, Object>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "study_acronym",
@@ -379,18 +382,21 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "disease_phase",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
+                    ADDITIONAL_UPDATE, Map.of("Not Reported", 3500),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_classification_system",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
+                    ADDITIONAL_UPDATE, Map.of("ICD-O-3.2", 5000),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_basis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
+                    ADDITIONAL_UPDATE, Map.of("Clinical", 3500),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -426,12 +432,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "sample_tumor_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByTumorStatus",
+                    ADDITIONAL_UPDATE, Map.of("Normal", 4000, "Tumor", 4500),
                     AGG_ENDPOINT, SAMPLES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "tumor_classification",
                     FILTER_COUNT_QUERY, "filterParticipantCountByTumorClassification",
+                    ADDITIONAL_UPDATE, Map.of("Not Applicable", 4000),
                     AGG_ENDPOINT, SAMPLES_END_POINT
             ));
             //assay_method mapped to file_category
@@ -440,12 +448,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "file_category",
                     WIDGET_QUERY, "participantCountByAssayMethod",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAssayMethod",
+                    ADDITIONAL_UPDATE, Map.of("Sequencing", 4500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "file_type",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFileType",
+                    ADDITIONAL_UPDATE, Map.of("bam", 3500, "crai", 3600, "cram", 4000, "html", 3000, "pdf", 3000, "txt", 3500, "vcf" , 3500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -456,32 +466,23 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "grant_id",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByGrantID",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "institution",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByInstitution",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_selection",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySelection",
+                    ADDITIONAL_UPDATE, Map.of("Hybrid Selection", 4500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_source_material",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySourceMaterial",
+                    ADDITIONAL_UPDATE, Map.of("Bulk Cells", 3000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_source_molecule",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySourceMolecule",
+                    ADDITIONAL_UPDATE, Map.of("Genomic", 5000, "Transcriptomic", 3500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -549,12 +550,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             // widgets data and facet filter counts for projects
             for (var agg: PARTICIPANT_TERM_AGGS) {
-                String field = agg.get(AGG_NAME);
-                String widgetQueryName = agg.get(WIDGET_QUERY);
-                String filterCountQueryName = agg.get(FILTER_COUNT_QUERY);
-                String endpoint = agg.get(AGG_ENDPOINT);
+                String field = (String)agg.get(AGG_NAME);
+                String widgetQueryName = (String)agg.get(WIDGET_QUERY);
+                Map<String, Integer> additionalUpdate = (Map<String, Integer>)agg.get(ADDITIONAL_UPDATE);
+                String filterCountQueryName = (String)agg.get(FILTER_COUNT_QUERY);
+                String endpoint = (String)agg.get(AGG_ENDPOINT);
                 String indexType = endpoint.replace("/", "").replace("_search", "");
-                String cardinalityAggName = agg.get(CARDINALITY_AGG_NAME);
+                String cardinalityAggName = (String)agg.get(CARDINALITY_AGG_NAME);
                 // System.out.println(cardinalityAggName);
                 List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
                 if(RANGE_PARAMS.contains(field)) {
@@ -576,6 +578,60 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         }
                     }
 
+                }
+
+                if (additionalUpdate != null) {
+                    List<Map<String, Object>> filterCount_2_update = (List<Map<String, Object>>)data.get(filterCountQueryName);
+                    List<Map<String, Object>> widgetCount_2_update = (List<Map<String, Object>>)data.get(widgetQueryName);
+                    List<String> facetValues_need_update = new ArrayList<String>();
+                    //check if the count for each of the group within the filterCount is smaller than the marked number
+                    for (Map<String, Object> map : filterCount_2_update) {
+                        String group = (String)map.get("group");
+                        if (additionalUpdate.containsKey(group)) {
+                            int count = (Integer)map.get("subjects");
+                            int marked = (Integer)additionalUpdate.get(group);
+                            if (count > marked) {
+                                //need to perform query
+                                facetValues_need_update.add(group);
+                            }
+                        }
+                    }
+                    //if any facet value is above the number, perform the query
+                    if (facetValues_need_update.size() > 0) {
+                        Map<String, Object> query_4_update = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(field), REGULAR_PARAMS, "nested_filters", "participants");
+                        String prop = field.equals("file_category") ? "assay_method" : field;
+                        query_4_update = inventoryESService.addCustomAggregations(query_4_update, "facetAgg", prop, "sample_diagnosis_file_filters");
+                        Request request = new Request("GET", PARTICIPANTS_END_POINT);
+                        request.setJsonEntity(gson.toJson(query_4_update));
+                        JsonObject jsonObject = inventoryESService.send(request);
+                        Map<String, Integer> updated_values = inventoryESService.collectCustomTerms(jsonObject, "facetAgg");
+                        //update the facet value one more time
+                        List<Map<String, Object>> filterCount_new = new ArrayList<Map<String, Object>>();
+                        for (Map<String, Object> map : filterCount_2_update) {
+                            String group = (String)map.get("group");
+                            int count = (Integer)map.get("subjects");
+                            // System.out.println(count);
+                            if (facetValues_need_update.indexOf(group) >= 0) {
+                                count = updated_values.get(group);
+                                // System.out.println("-->"+ count);
+                            }
+                            filterCount_new.add(Map.of("group", group, "subjects", count));
+                        }
+                        data.put(filterCountQueryName, filterCount_new);
+                        //update the widget facet value if widget exists
+                        if (widgetCount_2_update != null) {
+                            List<Map<String, Object>> widgetCount_new = new ArrayList<Map<String, Object>>();
+                            for (Map<String, Object> map : widgetCount_2_update) {
+                                String group = (String)map.get("group");
+                                int count = (Integer)map.get("subjects");
+                                if (facetValues_need_update.indexOf(group) >= 0) {
+                                    count = updated_values.get(group);
+                                }
+                                widgetCount_new.add(Map.of("group", group, "subjects", count));
+                            }
+                            data.put(widgetQueryName, widgetCount_new);
+                        }
+                    }
                 }
             }
 
