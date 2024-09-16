@@ -448,7 +448,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "file_category",
                     WIDGET_QUERY, "participantCountByAssayMethod",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAssayMethod",
-                    ADDITIONAL_UPDATE, Map.of("Sequencing", 4500),
+                    ADDITIONAL_UPDATE, Map.of("Sequencing", 500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
