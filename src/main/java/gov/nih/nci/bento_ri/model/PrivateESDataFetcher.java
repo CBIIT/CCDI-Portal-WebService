@@ -856,6 +856,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         String order_by = (String)params.get(ORDER_BY);
         String direction = ((String)params.get(SORT_DIRECTION)).toLowerCase();
         query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
+        // "_source": {"exclude": [ "sample_diagnosis_file_filters"]}
+        if (overviewType.equals("participants")) {
+            query.put("_source", Map.of("exclude", Set.of("sample_diagnosis_file_filters")));
+        }
         int pageSize = (int) params.get(PAGE_SIZE);
         int offset = (int) params.get(OFFSET);
         List<Map<String, Object>> page = inventoryESService.collectPage(request, query, properties, pageSize, offset);
