@@ -41,6 +41,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
+    final String SURVIVALS_END_POINT = "/survivals/_search";
     final String DIAGNOSIS_END_POINT = "/diagnosis/_search";
     final String STUDIES_END_POINT = "/studies/_search";
     final String SAMPLES_END_POINT = "/samples/_search";
@@ -62,8 +63,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final Set<String> INCLUDE_PARAMS  = Set.of("race");
 
-    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
-    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
+    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_event_free_survival_status", "event_free_survival_status", "first_event", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
+    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_event_free_survival_status", "event_free_survival_status", "first_event", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "sample_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "dbgap_accession", "study_acronym", "study_name");
@@ -88,6 +89,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return participantOverview(args);
+                        })
+                        .dataFetcher("survivalsOverview", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return survivalsOverview(args);
                         })
                         .dataFetcher("diagnosisOverview", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -400,9 +405,28 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "last_known_survival_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountBySurvivalStatus",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, SURVIVALS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
+                    AGG_NAME, "age_at_event_free_survival_status",
+                    FILTER_COUNT_QUERY, "filterParticipantAgeAtEventFreeSurvivalStatus",
+                    AGG_ENDPOINT, SURVIVALS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "pid",
+                AGG_NAME, "event_free_survival_status",
+                FILTER_COUNT_QUERY, "filterParticipantEventFreeSurvivalStatus",
+                AGG_ENDPOINT, SURVIVALS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "pid",
+                AGG_NAME, "first_event",
+                FILTER_COUNT_QUERY, "filterParticipantFirstEvent",
+                AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
@@ -667,6 +691,44 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
+    }
+
+    private List<Map<String, Object>> survivalsOverview(Map<String, Object> params) throws IOException {
+        final String[][] PROPERTIES = new String[][]{
+            new String[]{"id", "id"},
+            new String[]{"participant_id", "participant_id"},
+            new String[]{"dbgap_accession", "dbgap_accession"},
+            new String[]{"study_id", "study_id"},
+            new String[]{"study_acronym", "study_acronym"},
+            new String[]{"study_name", "study_name"},
+            new String[]{"race", "race_str"},
+            new String[]{"sex_at_birth", "sex_at_birth"},
+            new String[]{"synonym_id", "alternate_participant_id"},
+            new String[]{"last_known_survival_status", "last_known_survival_status"},
+            new String[]{"age_at_event_free_survival_status", "age_at_event_free_survival_status"},
+            new String[]{"event_free_survival_status", "event_free_survival_status"},
+            new String[]{"first_event", "first_event"},
+            new String[]{"files", "files"}
+        };
+
+        String defaultSort = "participant_id"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+                Map.entry("participant_id", "participant_id"),
+                Map.entry("dbgap_accession", "dbgap_accession"),
+                Map.entry("study_id", "study_id"),
+                Map.entry("race", "race_str"),
+                Map.entry("sex_at_birth", "sex_at_birth"),
+                Map.entry("synonym_id", "alternate_participant_id"),
+                Map.entry("study_acronym", "study_acronym"),
+                Map.entry("study_name", "study_name"),
+                Map.entry("last_known_survival_status", "last_known_survival_status"),
+                Map.entry("age_at_event_free_survival_status", "age_at_event_free_survival_status"),
+                Map.entry("event_free_survival_status", "event_free_survival_status"),
+                Map.entry("first_event", "first_event")
+        );
+
+        return overview(SURVIVALS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "survivals");
     }
 
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
