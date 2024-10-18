@@ -43,9 +43,9 @@ type SearchParticipantsResult {
     filterParticipantCountByTumorGradeSource: [SearchParticipantsReturnObject]
     filterParticipantCountByTumorStageSource: [SearchParticipantsReturnObject]
     filterParticipantCountBySurvivalStatus: [SearchParticipantsReturnObject]
-    filterParticipantAgeAtEventFreeSurvivalStatus: [SearchParticipantsReturnObject]
-    filterParticipantEventFreeSurvivalStatus: [SearchParticipantsReturnObject]
-    filterParticipantFirstEvent: [SearchParticipantsReturnObject]
+    filterParticipantCountByAgeAtEventFreeSurvivalStatus: [SearchParticipantsReturnObject]
+    filterParticipantCountByEventFreeSurvivalStatus: [SearchParticipantsReturnObject]
+    filterParticipantCountByFirstEvent: [SearchParticipantsReturnObject]
     filterParticipantCountBySampleAnatomicSite: [SearchParticipantsReturnObject]
     filterParticipantCountBySampleAge: RangeCount
     filterParticipantCountByTumorStatus: [SearchParticipantsReturnObject]
