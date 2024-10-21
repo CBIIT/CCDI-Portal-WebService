@@ -28,7 +28,7 @@ public class InventoryESService extends ESService {
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 500000;
     final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth");
-    final Set<String> SURVIVAL_PARAMS = Set.of("last_known_survival_status", "age_at_event_free_survival_status", "event_free_survival_status", "first_event");
+    final Set<String> SURVIVAL_PARAMS = Set.of("last_known_survival_status", "age_at_last_known_survival_status", "event_free_survival_status", "first_event");
     final Set<String> DIAGNOSIS_PARAMS = Set.of( "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> FILE_PARAMS = Set.of("assay_method", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
@@ -179,6 +179,15 @@ public class InventoryESService extends ESService {
                             combined_filters.add(Map.of(
                                 "range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)
                             ));
+                        
+                        } else if (key.equals("age_at_last_known_survival_status")) {
+                            survival_filters.add(Map.of(
+                                "range", Map.of("survival_filters."+key, range)
+                            ));
+                            combined_filters.add(Map.of(
+                                "range", Map.of("combined_filters.survival_filters."+key, range)
+                            ));
+                        
                         } else {
                             filter_1.add(Map.of(
                                 "range", Map.of(key, range)
@@ -335,6 +344,10 @@ public class InventoryESService extends ESService {
                             sample_file_filters.add(Map.of(
                                 "range", Map.of("sample_file_filters."+key, range)
                             ));
+                        } else if (!indexType.equals("survivals") && key.equals("age_at_last_known_survival_status")) {
+                            survival_filters.add(Map.of(
+                                "range", Map.of("survival_filters."+key, range)
+                            ));
                         } else {
                             filter.add(Map.of(
                                 "range", Map.of(key, range)
@@ -407,6 +420,7 @@ public class InventoryESService extends ESService {
                 result.put("query", Map.of("bool", Map.of("filter", filter)));
             }
         }
+   
         return result;
     }
 
