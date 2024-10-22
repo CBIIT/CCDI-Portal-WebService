@@ -401,16 +401,19 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "treatment_type",
                 FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentType",
                 AGG_ENDPOINT, TREATMENT_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "treatment_agent",
                 FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentAgent",
                 AGG_ENDPOINT, TREATMENT_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "age_at_treatment_start",
                 FILTER_COUNT_QUERY, "filterParticipantCountByAgeAtTreatmentStart",
                 AGG_ENDPOINT, TREATMENT_END_POINT
