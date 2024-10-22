@@ -29,6 +29,7 @@ public class InventoryESService extends ESService {
     public static final int MAX_ES_SIZE = 500000;
     final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth");
     final Set<String> SURVIVAL_PARAMS = Set.of("last_known_survival_status", "age_at_last_known_survival_status", "event_free_survival_status", "first_event");
+    final Set<String> TREATMENT_PARAMS = Set.of("treatment_type", "treatment_agent", "age_at_treatment_start");
     final Set<String> DIAGNOSIS_PARAMS = Set.of( "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> FILE_PARAMS = Set.of("assay_method", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
@@ -138,6 +139,7 @@ public class InventoryESService extends ESService {
             List<Object> sample_diagnosis_filters = new ArrayList<>();
             List<Object> combined_filters = new ArrayList<>();
             List<Object> survival_filters = new ArrayList<>();
+            List<Object> treatment_filters = new ArrayList<>();
             
             for (String key: params.keySet()) { 
                 String finalKey = key;
@@ -180,6 +182,13 @@ public class InventoryESService extends ESService {
                                 "range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)
                             ));
                         
+                        } else if (key.equals("age_at_treatment_start")) {
+                            treatment_filters.add(Map.of(
+                                "range", Map.of("treatment_filters."+key, range)
+                            ));
+                            combined_filters.add(Map.of(
+                                "range", Map.of("combined_filters.treatment_filters."+key, range)
+                            ));
                         } else if (key.equals("age_at_last_known_survival_status")) {
                             survival_filters.add(Map.of(
                                 "range", Map.of("survival_filters."+key, range)
@@ -221,9 +230,16 @@ public class InventoryESService extends ESService {
                                 "terms", Map.of("survival_filters."+key, valueSet)
                             ));
                             combined_filters.add(Map.of(
-                                "terms", Map.of("combined_filters."+key, valueSet)
+                                "terms", Map.of("combined_filters.survival_filters."+key, valueSet)
                             ));
-                        } else if (DIAGNOSIS_PARAMS.contains(key)) {
+                        } else if (TREATMENT_PARAMS.contains(key)) {
+                            treatment_filters.add(Map.of(
+                                "terms", Map.of("treatment_filters."+key, valueSet)
+                            ));
+                            combined_filters.add(Map.of(
+                                "terms", Map.of("combined_filters.treatment_filters."+key, valueSet)
+                            ));
+                        }  else if (DIAGNOSIS_PARAMS.contains(key)) {
                             sample_diagnosis_filters.add(Map.of(
                                 "terms", Map.of("sample_diagnosis_filters."+key, valueSet)
                             ));
@@ -258,11 +274,12 @@ public class InventoryESService extends ESService {
             int filterLen = filter_1.size();
             int participantFilterLen = participant_filters.size();
             int survivalFilterLen = survival_filters.size();
+            int treatmentFilterLen = treatment_filters.size();
             int combinedParticipantFilterLen = combined_participant_filters.size();
             int sampleDiagnosisFilterLen = sample_diagnosis_filters.size();
             int combinedFilterLen = combined_filters.size();
 
-            if (filterLen + participantFilterLen + survivalFilterLen + combinedParticipantFilterLen + sampleDiagnosisFilterLen + combinedFilterLen == 0) {
+            if (filterLen + participantFilterLen + survivalFilterLen + treatmentFilterLen + combinedParticipantFilterLen + sampleDiagnosisFilterLen + combinedFilterLen == 0) {
                 if (indexType.equals("files_overall")) {
                     result.put("query", Map.of("match_all", Map.of()));
                 } else {
@@ -277,6 +294,9 @@ public class InventoryESService extends ESService {
                 }
                 if (survivalFilterLen > 0) {
                     filter_1.add(Map.of("nested", Map.of("path", "survival_filters", "query", Map.of("bool", Map.of("filter", survival_filters)), "inner_hits", Map.of())));
+                }
+                if (treatmentFilterLen > 0) {
+                    filter_1.add(Map.of("nested", Map.of("path", "treatment_filters", "query", Map.of("bool", Map.of("filter", treatment_filters)), "inner_hits", Map.of())));
                 }
                 if (combinedFilterLen > 0) {
                     combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.sample_diagnosis_filters", "query", Map.of("bool", Map.of("filter", combined_filters)), "inner_hits", Map.of())));
@@ -306,6 +326,7 @@ public class InventoryESService extends ESService {
             List<Object> filter = new ArrayList<>();
             List<Object> diagnosis_filters = new ArrayList<>();
             List<Object> survival_filters = new ArrayList<>();
+            List<Object> treatment_filters = new ArrayList<>();
             List<Object> file_filters = new ArrayList<>();
             List<Object> sample_file_filters = new ArrayList<>();
             List<Object> sample_diagnosis_file_filters = new ArrayList<>();
@@ -344,6 +365,10 @@ public class InventoryESService extends ESService {
                             sample_file_filters.add(Map.of(
                                 "range", Map.of("sample_file_filters."+key, range)
                             ));
+                        } else if (!indexType.equals("treatments") && key.equals("age_at_treatment_start")) {
+                            treatment_filters.add(Map.of(
+                                "range", Map.of("treatment_filters."+key, range)
+                            ));
                         } else if (!indexType.equals("survivals") && key.equals("age_at_last_known_survival_status")) {
                             survival_filters.add(Map.of(
                                 "range", Map.of("survival_filters."+key, range)
@@ -363,7 +388,7 @@ public class InventoryESService extends ESService {
                     }
                     // list with only one empty string [""] means return all records
                     if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
-                        if ((DIAGNOSIS_PARAMS.contains(key) || SAMPLE_FILE_PARAMS.contains(key) || FILE_PARAMS.contains(key)) && indexType.endsWith("participants")) {
+                        if ((DIAGNOSIS_PARAMS.contains(key) || SAMPLE_FILE_PARAMS.contains(key) || FILE_PARAMS.contains(key)) && (!indexType.equals("diagnosis") && !indexType.equals("samples"))) {
                             sample_diagnosis_file_filters.add(Map.of(
                                 "terms", Map.of("sample_diagnosis_file_filters."+key, valueSet)
                             ));
@@ -371,7 +396,11 @@ public class InventoryESService extends ESService {
                             survival_filters.add(Map.of(
                                 "terms", Map.of("survival_filters."+key, valueSet)
                             ));
-                        }else if (DIAGNOSIS_PARAMS.contains(key) && !indexType.equals("diagnosis")) {
+                        } else if (TREATMENT_PARAMS.contains(key) && !indexType.equals("treatments"))  {
+                            treatment_filters.add(Map.of(
+                                "terms", Map.of("treatment_filters."+key, valueSet)
+                            ));
+                        }  else if (DIAGNOSIS_PARAMS.contains(key) && indexType.equals("samples")) {
                             diagnosis_filters.add(Map.of(
                                 "terms", Map.of("diagnosis_filters."+key, valueSet)
                             ));
@@ -394,12 +423,13 @@ public class InventoryESService extends ESService {
 
             int FilterLen = filter.size();
             int survivalFilterLen = survival_filters.size();
+            int treatmentFilterLen = treatment_filters.size();
             int diagnosisFilterLen = diagnosis_filters.size();
             int sampleFileFilterLen = sample_file_filters.size();
             int fileFilterLen = file_filters.size();
             int sampleDiagnosisFileFilterLen = sample_diagnosis_file_filters.size();
 
-            if (FilterLen + survivalFilterLen + diagnosisFilterLen + sampleFileFilterLen + fileFilterLen + sampleDiagnosisFileFilterLen == 0) {
+            if (FilterLen + survivalFilterLen + treatmentFilterLen + diagnosisFilterLen + sampleFileFilterLen + fileFilterLen + sampleDiagnosisFileFilterLen == 0) {
                 result.put("query", Map.of("match_all", Map.of()));
             } else {
                 if (diagnosisFilterLen > 0) {
@@ -407,6 +437,9 @@ public class InventoryESService extends ESService {
                 }
                 if (survivalFilterLen > 0) {
                     filter.add(Map.of("nested", Map.of("path", "survival_filters", "query", Map.of("bool", Map.of("filter", survival_filters)), "inner_hits", Map.of())));
+                }
+                if (treatmentFilterLen > 0) {
+                    filter.add(Map.of("nested", Map.of("path", "treatment_filters", "query", Map.of("bool", Map.of("filter", treatment_filters)), "inner_hits", Map.of())));
                 }
                 if (sampleFileFilterLen > 0) {
                     filter.add(Map.of("nested", Map.of("path", "sample_file_filters", "query", Map.of("bool", Map.of("filter", sample_file_filters)), "inner_hits", Map.of())));
@@ -420,7 +453,7 @@ public class InventoryESService extends ESService {
                 result.put("query", Map.of("bool", Map.of("filter", filter)));
             }
         }
-   
+
         return result;
     }
 
