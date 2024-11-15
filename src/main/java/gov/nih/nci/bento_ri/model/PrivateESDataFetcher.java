@@ -546,6 +546,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "file_mapping_level",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFileMappingLevel",
+                    ADDITIONAL_UPDATE, Map.of("Sample", 5000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
