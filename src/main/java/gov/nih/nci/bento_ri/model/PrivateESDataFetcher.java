@@ -916,7 +916,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
         // "_source": {"exclude": [ "sample_diagnosis_file_filters"]}
         if (overviewType.equals("participants")) {
-            query.put("_source", Map.of("exclude", Set.of("sample_diagnosis_file_filters")));
+            query.put("_source", Map.of("exclude", Set.of("sample_diagnosis_file_filters", "survival_filters", "treatment_filters", "treatment_response_filters")));
+        }
+        if (overviewType.equals("diagnosis")) {
+            query.put("_source", Map.of("exclude", Set.of("sample_file_filters", "survival_filters", "treatment_filters", "treatment_response_filters")));
+        }
+        if (overviewType.equals("samples")) {
+            query.put("_source", Map.of("exclude", Set.of("diagnosis_filters", "file_filters", "survival_filters", "treatment_filters", "treatment_response_filters")));
+        }
+        if (overviewType.equals("files")) {
+            query.put("_source", Map.of("exclude", Set.of("combined_filters", "participant_filters", "sample_diagnosis_filters", "survival_filters", "treatment_filters", "treatment_response_filters")));
         }
         int pageSize = (int) params.get(PAGE_SIZE);
         int offset = (int) params.get(OFFSET);
