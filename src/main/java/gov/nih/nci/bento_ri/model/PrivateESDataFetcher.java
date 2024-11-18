@@ -59,18 +59,18 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final Set<String> RANGE_PARAMS = Set.of("age_at_diagnosis", "participant_age_at_collection","age_at_treatment_start", "age_at_response", "age_at_last_known_survival_status");
 
-    final Set<String> BOOLEAN_PARAMS = Set.of("assay_method");
+    final Set<String> BOOLEAN_PARAMS = Set.of("data_category");
 
     final Set<String> ARRAY_PARAMS = Set.of("file_type");
 
     final Set<String> INCLUDE_PARAMS  = Set.of("race");
 
-    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status", "event_free_survival_status", "first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
-    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status", "event_free_survival_status", "first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
+    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status", "event_free_survival_status", "first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
+    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status", "event_free_survival_status", "first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "sample_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "dbgap_accession", "study_acronym", "study_name");
-    final Set<String> FILE_REGULAR_PARAMS = Set.of("file_category", "dbgap_accession", "study_acronym", "study_name", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy", "file_mapping_level");
+    final Set<String> FILE_REGULAR_PARAMS = Set.of("data_category", "dbgap_accession", "study_acronym", "study_name", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy", "file_mapping_level");
 
     public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
@@ -493,12 +493,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     ADDITIONAL_UPDATE, Map.of("Not Applicable", 4000),
                     AGG_ENDPOINT, SAMPLES_END_POINT
             ));
-            //assay_method mapped to file_category
+            //data_category mapped to data_category
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "file_category",
-                    WIDGET_QUERY, "participantCountByAssayMethod",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByAssayMethod",
+                    AGG_NAME, "data_category",
+                    WIDGET_QUERY, "participantCountByDataCategory",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDataCategory",
                     ADDITIONAL_UPDATE, Map.of("Sequencing", 500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
@@ -617,7 +617,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 String cardinalityAggName = (String)agg.get(CARDINALITY_AGG_NAME);
                 // System.out.println(cardinalityAggName);
                 List<Map<String, Object>> filterCount = filterSubjectCountBy(field, params, endpoint, cardinalityAggName, indexType);
-
                 if(RANGE_PARAMS.contains(field)) {
                     data.put(filterCountQueryName, filterCount.get(0));
                 } else {
@@ -658,7 +657,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     //if any facet value is above the number, perform the query
                     if (facetValues_need_update.size() > 0) {
                         Map<String, Object> query_4_update = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(field), REGULAR_PARAMS, "nested_filters", "participants");
-                        String prop = field.equals("file_category") ? "assay_method" : field;
+                        String prop = field;
                         query_4_update = inventoryESService.addCustomAggregations(query_4_update, "facetAgg", prop, "sample_diagnosis_file_filters");
                         Request request = new Request("GET", PARTICIPANTS_END_POINT);
                         request.setJsonEntity(gson.toJson(query_4_update));
@@ -864,7 +863,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"file_id", "file_id"},
             new String[]{"guid", "guid"},
             new String[]{"file_name", "file_name"},
-            new String[]{"file_category", "file_category"},
+            new String[]{"data_category", "data_category"},
             new String[]{"file_description", "file_description"},
             new String[]{"file_type", "file_type"},
             new String[]{"file_size", "file_size"},
@@ -886,7 +885,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("file_id", "file_id"),
                 Map.entry("guid", "guid"),
                 Map.entry("file_name", "file_name"),
-                Map.entry("file_category", "file_category"),
+                Map.entry("data_category", "data_category"),
                 Map.entry("file_description", "file_description"),
                 Map.entry("file_type", "file_type"),
                 Map.entry("file_size", "file_size"),
