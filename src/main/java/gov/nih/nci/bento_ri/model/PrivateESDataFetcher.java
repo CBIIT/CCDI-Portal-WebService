@@ -199,8 +199,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             request.setJsonEntity(gson.toJson(query));
             JsonObject jsonObject = inventoryESService.send(request);
             Map<String, JsonArray> aggs = inventoryESService.collectTermAggs(jsonObject, AGG_NAMES);
-            System.out.println(AGG_NAMES);
-            System.out.println(aggs);
             JsonArray buckets = aggs.get(category);
 
             return getGroupCountHelper(buckets, cardinalityAggName);
