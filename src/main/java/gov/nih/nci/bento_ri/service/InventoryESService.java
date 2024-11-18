@@ -33,8 +33,8 @@ public class InventoryESService extends ESService {
     final Set<String> TREATMENT_RESPONSE_PARAMS = Set.of("response_category", "age_at_response");
     final Set<String> DIAGNOSIS_PARAMS = Set.of( "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis");
     final Set<String> SAMPLE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
-    final Set<String> FILE_PARAMS = Set.of("assay_method", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy", "file_mapping_level");
-    final Set<String> SAMPLE_FILE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "assay_method", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
+    final Set<String> FILE_PARAMS = Set.of("data_category", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy", "file_mapping_level");
+    final Set<String> SAMPLE_FILE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
     
 
     static final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
@@ -129,7 +129,7 @@ public class InventoryESService extends ESService {
 
     public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, Set<String> regular_fields, String nestedProperty, String indexType) throws IOException {
         Map<String, Object> result = new HashMap<>();
-        
+
         if (indexType.startsWith("files")) {
             //regular files query
             List<Object> filter_1 = new ArrayList<>();
@@ -148,8 +148,8 @@ public class InventoryESService extends ESService {
             
             for (String key: params.keySet()) { 
                 String finalKey = key;
-                if (key.equals("assay_method")) {
-                        finalKey = "file_category";
+                if (key.equals("data_category")) {
+                        finalKey = "data_category";
                 }
                 if (excludedParams.contains(finalKey)) {
                     continue;
@@ -222,9 +222,6 @@ public class InventoryESService extends ESService {
                     // Term parameters (default)
                     List<String> valueSet = (List<String>) params.get(key);
                     
-                    if (key.equals("assay_method")) {
-                        key = "file_category";
-                    }
                     if (key.equals("participant_ids")) {
                         key = "participant_id";
                     }
@@ -501,7 +498,7 @@ public class InventoryESService extends ESService {
                 result.put("query", Map.of("bool", Map.of("filter", filter)));
             }
         }
-
+  
         return result;
     }
 
