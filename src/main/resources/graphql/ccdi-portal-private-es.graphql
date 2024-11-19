@@ -158,6 +158,7 @@ type FileOverViewResult {
     library_source_molecule: String
     file_mapping_level: String
     library_strategy: String
+    file_access: String
     sample_id: String
     participant_id: String
     study_id: String
@@ -177,6 +178,7 @@ type FileDetail {
     library_source_molecule: String
     library_strategy: String
     file_mapping_level: String
+    file_access: String
     study_name: String
     dbgap_accession: String
     sample_id: String
