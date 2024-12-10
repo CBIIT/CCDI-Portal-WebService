@@ -526,7 +526,7 @@ public class InventoryESService extends ESService {
         // }
 
         Map<String, Object> fields = new HashMap<String, Object>();
-        fields.put(nodeName, Map.of("terms", Map.of("field", nodeName, "size", 10000)));
+        fields.put(nodeName, Map.of("terms", Map.of("field", nodeName, "size", 200000)));
         newQuery.put("aggs", fields);
         
         return newQuery;
@@ -623,7 +623,7 @@ public class InventoryESService extends ESService {
         for (String field: termAggNames) {
             Map<String, Object> subField = new HashMap<String, Object>();
             subField.put("field", field);
-            subField.put("size", 100000);
+            subField.put("size", 200000);
             if (only_includes.size() > 0) {
                 subField.put("include", only_includes);
             }
