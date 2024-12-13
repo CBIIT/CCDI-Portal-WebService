@@ -740,9 +740,9 @@ public class InventoryESService extends ESService {
 
     public List<Map<String, Object>> collectPage(Request request, Map<String, Object> query, String[][] properties, int pageSize, int offset) throws IOException {
         // data over limit of Elasticsearch, have to use roll API
-        if (pageSize > MAX_ES_SIZE) {
+        /*if (pageSize > MAX_ES_SIZE) {
             throw new IOException("Parameter 'first' must not exceeded " + MAX_ES_SIZE);
-        }
+        }*/
         if (pageSize + offset > MAX_ES_SIZE) {
             return collectPageWithScroll(request, query, properties, pageSize, offset);
         }
