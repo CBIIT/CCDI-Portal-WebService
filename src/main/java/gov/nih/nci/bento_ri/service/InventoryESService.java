@@ -26,7 +26,7 @@ public class InventoryESService extends ESService {
     public static final String SCROLL_ENDPOINT = "/_search/scroll";
     public static final String JSON_OBJECT = "jsonObject";
     public static final String AGGS = "aggs";
-    public static final int MAX_ES_SIZE = 500000;
+    public static final int MAX_ES_SIZE = 10000;
     final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth");
     final Set<String> SURVIVAL_PARAMS = Set.of("last_known_survival_status", "age_at_last_known_survival_status", "first_event");
     final Set<String> TREATMENT_PARAMS = Set.of("treatment_type", "treatment_agent", "age_at_treatment_start");
