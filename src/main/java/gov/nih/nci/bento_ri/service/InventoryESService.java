@@ -759,10 +759,11 @@ public class InventoryESService extends ESService {
     // offset MUST be multiple of pageSize, otherwise the page won't be complete
     private List<Map<String, Object>> collectPageWithScroll(
             Request request, Map<String, Object> query, String[][] properties, int pageSize, int offset) throws IOException {
-        final int optimumSize = ( MAX_ES_SIZE / pageSize ) * pageSize;
+        final int optimumSize = 20000;
         if (offset % pageSize != 0) {
             throw new IOException("'offset' must be multiple of 'first'!");
         }
+        System.out.println(offset % optimumSize);
         query.put("size", optimumSize);
         request.setJsonEntity(gson.toJson(query));
         request.addParameter("scroll", "10S");
