@@ -26,7 +26,7 @@ public class InventoryESService extends ESService {
     public static final String SCROLL_ENDPOINT = "/_search/scroll";
     public static final String JSON_OBJECT = "jsonObject";
     public static final String AGGS = "aggs";
-    public static final int MAX_ES_SIZE = 500000;
+    public static final int MAX_ES_SIZE = 10000;
     final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth");
     final Set<String> SURVIVAL_PARAMS = Set.of("last_known_survival_status", "age_at_last_known_survival_status", "first_event");
     final Set<String> TREATMENT_PARAMS = Set.of("treatment_type", "treatment_agent", "age_at_treatment_start");
@@ -623,7 +623,7 @@ public class InventoryESService extends ESService {
         for (String field: termAggNames) {
             Map<String, Object> subField = new HashMap<String, Object>();
             subField.put("field", field);
-            subField.put("size", 100000);
+            subField.put("size", 10000);
             if (only_includes.size() > 0) {
                 subField.put("include", only_includes);
             }
@@ -736,68 +736,6 @@ public class InventoryESService extends ESService {
             data.put(aggName, aggs.getAsJsonObject(aggName));
         }
         return data;
-    }
-
-    public List<Map<String, Object>> collectPage(Request request, Map<String, Object> query, String[][] properties, int pageSize, int offset) throws IOException {
-        // data over limit of Elasticsearch, have to use roll API
-        if (pageSize > MAX_ES_SIZE) {
-            throw new IOException("Parameter 'first' must not exceeded " + MAX_ES_SIZE);
-        }
-        if (pageSize + offset > MAX_ES_SIZE) {
-            return collectPageWithScroll(request, query, properties, pageSize, offset);
-        }
-
-        // data within limit can use just from/size
-        query.put("size", pageSize);
-        query.put("from", offset);
-        // System.out.println(gson.toJson(query));
-        request.setJsonEntity(gson.toJson(query));
-        JsonObject jsonObject = send(request);
-        return collectPage(jsonObject, properties, pageSize);
-    }
-
-    // offset MUST be multiple of pageSize, otherwise the page won't be complete
-    private List<Map<String, Object>> collectPageWithScroll(
-            Request request, Map<String, Object> query, String[][] properties, int pageSize, int offset) throws IOException {
-        final int optimumSize = ( MAX_ES_SIZE / pageSize ) * pageSize;
-        if (offset % pageSize != 0) {
-            throw new IOException("'offset' must be multiple of 'first'!");
-        }
-        query.put("size", optimumSize);
-        request.setJsonEntity(gson.toJson(query));
-        request.addParameter("scroll", "10S");
-        JsonObject page = rollToPage(request, offset);
-        return collectPage(page, properties, pageSize, offset % optimumSize);
-    }
-
-    private JsonObject rollToPage(Request request, int offset) throws IOException {
-        int rolledRecords = 0;
-        JsonObject jsonObject = send(request);
-        String scrollId = jsonObject.get("_scroll_id").getAsString();
-        JsonArray searchHits = jsonObject.getAsJsonObject("hits").getAsJsonArray("hits");
-        rolledRecords += searchHits.size();
-
-        while (rolledRecords <= offset && searchHits.size() > 0) {
-            // Keep roll until correct page
-            logger.info("Current records: " + rolledRecords + " collecting...");
-            Request scrollRequest = new Request("POST", SCROLL_ENDPOINT);
-            Map<String, Object> scrollQuery = Map.of(
-                    "scroll", "10S",
-                    "scroll_id", scrollId
-            );
-            scrollRequest.setJsonEntity(gson.toJson(scrollQuery));
-            jsonObject = send(scrollRequest);
-            scrollId = jsonObject.get("_scroll_id").getAsString();
-            searchHits = jsonObject.getAsJsonObject("hits").getAsJsonArray("hits");
-            rolledRecords += searchHits.size();
-        }
-
-        // Now return page
-        scrollId = jsonObject.get("_scroll_id").getAsString();
-        Request clearScrollRequest = new Request("DELETE", SCROLL_ENDPOINT);
-        clearScrollRequest.setJsonEntity("{\"scroll_id\":\"" + scrollId +"\"}");
-        send(clearScrollRequest);
-        return jsonObject;
     }
 
     // Collect a page of data, result will be of pageSize or less if not enough data remains
