@@ -120,9 +120,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return findParticipantIdsInList(args);
                         })
-                        .dataFetcher("filesInList", env -> {
+                        .dataFetcher("filesManifestInList", env -> {
                             Map<String, Object> args = env.getArguments();
-                            return filesInList(args);
+                            return filesManifestInList(args);
                         })
                 )
                 .build();
@@ -548,7 +548,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
-            //System.out.println(gson.toJson(query_participants));
+            // System.out.println(gson.toJson(query_participants));
             Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
             newQuery_participants.put("size", 0);
             newQuery_participants.put("track_total_hits", 10000000);
@@ -944,20 +944,23 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE, 0);
     }
 
-    private List<Map<String, Object>> filesInList(Map<String, Object> params) throws IOException {
+    private List<Map<String, Object>> filesManifestInList(Map<String, Object> params) throws IOException {
         final String[][] properties = new String[][]{
+                new String[]{"guid", "guid"},
+                new String[]{"file_id", "file_id"},
                 new String[]{"participant_id", "participant_id"},
-                new String[]{"study_id", "study_id"}
+                new String[]{"md5sum", "md5sum"}
         };
+        Map<String, Object> file_ids = new HashMap<>();
+        file_ids.put("id", params.get("id"));
 
-        String[] ids = params.get("file_ids");
-        params.set("id", ids);
-        Map<String, Object> query = esService.buildListQuery(params, Set.of(), false);
-        query.put("_source", Map.of("include", Set.of("sample_diagnosis_file_filters", "survival_filters", "treatment_filters", "treatment_response_filters")));
-        //System.out.println();
-        Request request = new Request("GET",PARTICIPANTS_END_POINT);
+        int pageSize = (int) params.get(PAGE_SIZE);
+        int offset = (int) params.get(OFFSET);
+        Map<String, Object> query = esService.buildListQuery(file_ids, Set.of(), false);
+        query.put("_source", Map.of("includes", Set.of("guid", "file_id", "participant_id", "md5sum")));
+        Request request = new Request("GET", FILES_END_POINT);
 
-        return esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE, 0);
+        return esService.collectPage(request, query, properties, pageSize, offset);
     }
 
     private Map<String, String> mapSortOrder(String order_by, String direction, String defaultSort, Map<String, String> mapping) {

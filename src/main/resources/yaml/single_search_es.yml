@@ -1,5 +1,5 @@
 queries:
-  - name: deprecatedFilesInList
+  - name: filesInList
     index:
       - files
     filter:

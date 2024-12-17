@@ -96,10 +96,13 @@ public class InventoryESService extends ESService {
                 continue;
             }
             Object obj = params.get(key);
-
             List<String> valueSet;
             if (obj instanceof List) {
                 valueSet = (List<String>) obj;
+            }
+            else if (obj instanceof Integer) {
+                String value = String.valueOf(obj);
+                valueSet = List.of(value);
             } else {
                 String value = (String)obj;
                 valueSet = List.of(value);
