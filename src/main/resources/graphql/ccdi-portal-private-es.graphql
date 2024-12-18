@@ -191,7 +191,7 @@ type FileDetail {
 
 type FileManifestDetail {
     guid: String
-    file_id: String
+    file_name: String
     participant_id: String
     md5sum: String
 }

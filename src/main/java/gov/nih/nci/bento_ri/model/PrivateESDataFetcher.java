@@ -947,7 +947,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> filesManifestInList(Map<String, Object> params) throws IOException {
         final String[][] properties = new String[][]{
                 new String[]{"guid", "guid"},
-                new String[]{"file_id", "file_id"},
+                new String[]{"file_name", "file_name"},
                 new String[]{"participant_id", "participant_id"},
                 new String[]{"md5sum", "md5sum"}
         };
@@ -957,7 +957,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         int pageSize = (int) params.get(PAGE_SIZE);
         int offset = (int) params.get(OFFSET);
         Map<String, Object> query = esService.buildListQuery(file_ids, Set.of(), false);
-        query.put("_source", Map.of("includes", Set.of("guid", "file_id", "participant_id", "md5sum")));
+        query.put("_source", Map.of("includes", Set.of("guid", "file_name", "participant_id", "md5sum")));
         Request request = new Request("GET", FILES_END_POINT);
 
         return esService.collectPage(request, query, properties, pageSize, offset);
