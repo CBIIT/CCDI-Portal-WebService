@@ -274,7 +274,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 }
                 query.put("_source", fields);
                 
-                List<Map<String, Object>> result = esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE,
+                List<Map<String, Object>> result = esService.collectPage(request, query, properties, 200000,
                         0);
                 Map<String, List<String>> indexResults = new HashMap<>();
                 Arrays.asList(properties).forEach(x -> indexResults.put(x[0], new ArrayList<>()));
