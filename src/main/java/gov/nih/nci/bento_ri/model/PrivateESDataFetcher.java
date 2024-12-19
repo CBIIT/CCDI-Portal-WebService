@@ -120,6 +120,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return findParticipantIdsInList(args);
                         })
+                        .dataFetcher("filesManifestInList", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return filesManifestInList(args);
+                        })
                 )
                 .build();
     }
@@ -544,7 +548,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
-            //System.out.println(gson.toJson(query_participants));
+            // System.out.println(gson.toJson(query_participants));
             Map<String, Object> newQuery_participants = new HashMap<>(query_participants);
             newQuery_participants.put("size", 0);
             newQuery_participants.put("track_total_hits", 10000000);
@@ -938,6 +942,25 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Request request = new Request("GET",PARTICIPANTS_END_POINT);
 
         return esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE, 0);
+    }
+
+    private List<Map<String, Object>> filesManifestInList(Map<String, Object> params) throws IOException {
+        final String[][] properties = new String[][]{
+                new String[]{"guid", "guid"},
+                new String[]{"file_name", "file_name"},
+                new String[]{"participant_id", "participant_id"},
+                new String[]{"md5sum", "md5sum"}
+        };
+        Map<String, Object> file_ids = new HashMap<>();
+        file_ids.put("id", params.get("id"));
+
+        int pageSize = (int) params.get(PAGE_SIZE);
+        int offset = (int) params.get(OFFSET);
+        Map<String, Object> query = esService.buildListQuery(file_ids, Set.of(), false);
+        query.put("_source", Map.of("includes", Set.of("guid", "file_name", "participant_id", "md5sum")));
+        Request request = new Request("GET", FILES_END_POINT);
+
+        return esService.collectPage(request, query, properties, pageSize, offset);
     }
 
     private Map<String, String> mapSortOrder(String order_by, String direction, String defaultSort, Map<String, String> mapping) {

@@ -189,6 +189,13 @@ type FileDetail {
     md5sum: String
 }
 
+type FileManifestDetail {
+    guid: String
+    file_name: String
+    participant_id: String
+    md5sum: String
+}
+
 schema {
     query: QueryType
 }
@@ -227,4 +234,12 @@ type QueryType {
         first: Int = 10,
         offset: Int = 0
     ): [FileDetail]
+
+     filesManifestInList(
+        id: [String],
+        order_by: String = "",
+        sort_direction: String = "ASC",
+        first: Int = 10,
+        offset: Int = 0
+    ): [FileManifestDetail]
 }
