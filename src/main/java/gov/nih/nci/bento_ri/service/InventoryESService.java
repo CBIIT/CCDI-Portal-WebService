@@ -310,34 +310,34 @@ public class InventoryESService extends ESService {
                 }
             } else {
                 if (participantFilterLen > 0) {
-                    filter_1.add(Map.of("nested", Map.of("path", "participant_filters", "query", Map.of("bool", Map.of("filter", participant_filters)), "inner_hits", Map.of())));
+                    filter_1.add(Map.of("nested", Map.of("path", "participant_filters", "query", Map.of("bool", Map.of("filter", participant_filters)))));
                 }
                 if (sampleDiagnosisFilterLen > 0) {
-                    filter_1.add(Map.of("nested", Map.of("path", "sample_diagnosis_filters", "query", Map.of("bool", Map.of("filter", sample_diagnosis_filters)), "inner_hits", Map.of())));
+                    filter_1.add(Map.of("nested", Map.of("path", "sample_diagnosis_filters", "query", Map.of("bool", Map.of("filter", sample_diagnosis_filters)))));
                 }
                 if (survivalFilterLen > 0) {
-                    filter_1.add(Map.of("nested", Map.of("path", "survival_filters", "query", Map.of("bool", Map.of("filter", survival_filters)), "inner_hits", Map.of())));
+                    filter_1.add(Map.of("nested", Map.of("path", "survival_filters", "query", Map.of("bool", Map.of("filter", survival_filters)))));
                 }
                 if (treatmentFilterLen > 0) {
-                    filter_1.add(Map.of("nested", Map.of("path", "treatment_filters", "query", Map.of("bool", Map.of("filter", treatment_filters)), "inner_hits", Map.of())));
+                    filter_1.add(Map.of("nested", Map.of("path", "treatment_filters", "query", Map.of("bool", Map.of("filter", treatment_filters)))));
                 }
                 if (treatmentResponseFilterLen > 0) {
-                    filter_1.add(Map.of("nested", Map.of("path", "treatment_response_filters", "query", Map.of("bool", Map.of("filter", treatment_response_filters)), "inner_hits", Map.of())));
+                    filter_1.add(Map.of("nested", Map.of("path", "treatment_response_filters", "query", Map.of("bool", Map.of("filter", treatment_response_filters)))));
                 }
                 if (combinedFilterLen > 0) {
-                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.sample_diagnosis_filters", "query", Map.of("bool", Map.of("filter", combined_filters)), "inner_hits", Map.of())));
+                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.sample_diagnosis_filters", "query", Map.of("bool", Map.of("filter", combined_filters)))));
                 }
                 if (combinedSurvivalFilterLen > 0) {
-                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.survival_filters", "query", Map.of("bool", Map.of("filter", combined_survival_filters)), "inner_hits", Map.of())));
+                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.survival_filters", "query", Map.of("bool", Map.of("filter", combined_survival_filters)))));
                 }
                 if (combinedTreatmentFilterLen > 0) {
-                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.treatment_filters", "query", Map.of("bool", Map.of("filter", combined_treatment_filters)), "inner_hits", Map.of())));
+                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.treatment_filters", "query", Map.of("bool", Map.of("filter", combined_treatment_filters)))));
                 }
                 if (combinedTreatmentResponseFilterLen > 0) {
-                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.treatment_response_filters", "query", Map.of("bool", Map.of("filter", combined_treatment_response_filters)), "inner_hits", Map.of())));
+                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.treatment_response_filters", "query", Map.of("bool", Map.of("filter", combined_treatment_response_filters)))));
                 }
                 // System.out.println(filter_1);
-                filter_2.add(Map.of("nested", Map.of("path", "combined_filters", "query", Map.of("bool", Map.of("filter", combined_participant_filters)), "inner_hits", Map.of())));
+                filter_2.add(Map.of("nested", Map.of("path", "combined_filters", "query", Map.of("bool", Map.of("filter", combined_participant_filters)))));
                 List<Object> overall_filter = new ArrayList<>();
                 List<Object> should_filter = new ArrayList<>();
                 should_filter.add(Map.of("exists", Map.of("field", "pid")));
@@ -478,25 +478,25 @@ public class InventoryESService extends ESService {
                 result.put("query", Map.of("match_all", Map.of()));
             } else {
                 if (diagnosisFilterLen > 0) {
-                    filter.add(Map.of("nested", Map.of("path", "diagnosis_filters", "query", Map.of("bool", Map.of("filter", diagnosis_filters)), "inner_hits", Map.of())));
+                    filter.add(Map.of("nested", Map.of("path", "diagnosis_filters", "query", Map.of("bool", Map.of("filter", diagnosis_filters)))));
                 }
                 if (survivalFilterLen > 0) {
-                    filter.add(Map.of("nested", Map.of("path", "survival_filters", "query", Map.of("bool", Map.of("filter", survival_filters)), "inner_hits", Map.of())));
+                    filter.add(Map.of("nested", Map.of("path", "survival_filters", "query", Map.of("bool", Map.of("filter", survival_filters)))));
                 }
                 if (treatmentFilterLen > 0) {
-                    filter.add(Map.of("nested", Map.of("path", "treatment_filters", "query", Map.of("bool", Map.of("filter", treatment_filters)), "inner_hits", Map.of())));
+                    filter.add(Map.of("nested", Map.of("path", "treatment_filters", "query", Map.of("bool", Map.of("filter", treatment_filters)))));
                 }
                 if (treatmentResponseFilterLen > 0) {
-                    filter.add(Map.of("nested", Map.of("path", "treatment_response_filters", "query", Map.of("bool", Map.of("filter", treatment_response_filters)), "inner_hits", Map.of())));
+                    filter.add(Map.of("nested", Map.of("path", "treatment_response_filters", "query", Map.of("bool", Map.of("filter", treatment_response_filters)))));
                 }
                 if (sampleFileFilterLen > 0) {
-                    filter.add(Map.of("nested", Map.of("path", "sample_file_filters", "query", Map.of("bool", Map.of("filter", sample_file_filters)), "inner_hits", Map.of())));
+                    filter.add(Map.of("nested", Map.of("path", "sample_file_filters", "query", Map.of("bool", Map.of("filter", sample_file_filters)))));
                 }
                 if (fileFilterLen > 0) {
-                    filter.add(Map.of("nested", Map.of("path", "file_filters", "query", Map.of("bool", Map.of("filter", file_filters)), "inner_hits", Map.of())));
+                    filter.add(Map.of("nested", Map.of("path", "file_filters", "query", Map.of("bool", Map.of("filter", file_filters)))));
                 }
                 if (sampleDiagnosisFileFilterLen > 0) {
-                    filter.add(Map.of("nested", Map.of("path", "sample_diagnosis_file_filters", "query", Map.of("bool", Map.of("filter", sample_diagnosis_file_filters)), "inner_hits", Map.of())));
+                    filter.add(Map.of("nested", Map.of("path", "sample_diagnosis_file_filters", "query", Map.of("bool", Map.of("filter", sample_diagnosis_file_filters)))));
                 }
                 result.put("query", Map.of("bool", Map.of("filter", filter)));
             }

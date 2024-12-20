@@ -857,7 +857,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> fileOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
-            new String[]{"id", "id"},
+                new String[]{"id", "id"},
             new String[]{"file_id", "file_id"},
             new String[]{"guid", "guid"},
             new String[]{"file_name", "file_name"},
@@ -865,17 +865,17 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"file_description", "file_description"},
             new String[]{"file_type", "file_type"},
             new String[]{"file_size", "file_size"},
-                new String[]{"library_selection", "library_selection"},
-                new String[]{"library_source_material", "library_source_material"},
-                new String[]{"library_source_molecule", "library_source_molecule"},
-                new String[]{"library_strategy", "library_strategy"},
-                new String[]{"file_mapping_level", "file_mapping_level"},
-                new String[]{"file_access", "file_access"},
+            new String[]{"library_selection", "library_selection"},
+            new String[]{"library_source_material", "library_source_material"},
+            new String[]{"library_source_molecule", "library_source_molecule"},
+            new String[]{"library_strategy", "library_strategy"},
+            new String[]{"file_mapping_level", "file_mapping_level"},
+            new String[]{"file_access", "file_access"},
             new String[]{"study_id", "study_id"},
             new String[]{"participant_id", "participant_id"},
             new String[]{"sample_id", "sample_id"},
             new String[]{"md5sum", "md5sum"},
-            new String[]{"files", "files"}
+                new String[]{"files", "files"}
         };
 
         String defaultSort = "file_id"; // Default sort order
@@ -924,7 +924,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             query.put("_source", Map.of("exclude", Set.of("diagnosis_filters", "file_filters", "survival_filters", "treatment_filters", "treatment_response_filters")));
         }
         if (overviewType.equals("files")) {
-            query.put("_source", Map.of("exclude", Set.of("combined_filters", "participant_filters", "sample_diagnosis_filters", "survival_filters", "treatment_filters", "treatment_response_filters")));
+            query.put("_source", Map.of("includes", Set.of("id","file_id","guid","file_name","data_category","file_description","file_type","file_size","library_selection","library_source_material","library_source_molecule","library_strategy","file_mapping_level","file_access","study_id","participant_id","sample_id","md5sum","files")));
+            //query.put("_source", Map.of("exclude", Set.of("combined_filters", "participant_filters", "sample_diagnosis_filters", "survival_filters", "treatment_filters", "treatment_response_filters")));
         }
         int pageSize = (int) params.get(PAGE_SIZE);
         int offset = (int) params.get(OFFSET);
