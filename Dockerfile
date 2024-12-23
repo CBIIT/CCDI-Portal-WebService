@@ -8,8 +8,6 @@ RUN mvn package -DskipTests
 # Production stage
 FROM tomcat:10.1.17-jdk17 AS fnl_base_image
 
-ENV JAVA_OPTS="-Xmx6g -Xms3g"
-
 RUN apt-get update && apt-get -y upgrade
 
 # install dependencies and clean up unused files
