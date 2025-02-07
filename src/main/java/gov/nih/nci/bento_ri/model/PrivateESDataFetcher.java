@@ -790,7 +790,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "cohorts");
-        System.out.println(participants);
         // Restructure the data to a map, keyed by dbgap_accession
         participants.forEach((Map<String, Object> participant) -> {
             String dbgapAccession = (String) participant.get("dbgap_accession");
@@ -811,7 +810,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("participants", people)
             ));
         });
-        System.out.println(listOfParticipantsByStudy);
         return listOfParticipantsByStudy;
     }
 
