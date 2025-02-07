@@ -39,6 +39,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String ORDER_BY = "order_by";
     final String SORT_DIRECTION = "sort_direction";
 
+    final String COHORTS_END_POINT = "/cohorts/_search";
     final String STUDIES_FACET_END_POINT = "/study_participants/_search";
     final String PARTICIPANTS_END_POINT = "/participants/_search";
     final String SURVIVALS_END_POINT = "/survivals/_search";
@@ -87,6 +88,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("searchParticipants", env -> {
                             Map<String, Object> args = env.getArguments();
                             return searchParticipants(args);
+                        })
+                        .dataFetcher("cohortManifest", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return cohortManifest(args);
+                        })
+                        .dataFetcher("cohortMetadata", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return cohortMetadata(args);
                         })
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -723,6 +732,89 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
     }
 
+    private List<Map<String, Object>> cohortManifest(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> participants;
+        final String[][] PROPERTIES = new String[][]{
+            // Demographics
+            new String[]{"id", "id"},
+            new String[]{"participant_id", "participant_id"},
+            new String[]{"dbgap_accession", "dbgap_accession"},
+            new String[]{"race", "race"},
+            new String[]{"sex_at_birth", "sex_at_birth"},
+            new String[]{"diagnosis", "diagnosis_str"},
+        };
+
+        String defaultSort = "participant_id"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+            Map.entry("participant_id", "participant_id"),
+            Map.entry("dbgap_accession", "dbgap_accession"),
+            Map.entry("race", "race"),
+            Map.entry("sex_at_birth", "sex_at_birth"),
+            Map.entry("diagnosis", "diagnosis_str")
+        );
+
+        return overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "cohorts");
+    }
+
+    private List<Map<String, Object>> cohortMetadata(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> participants;
+        Map<String, List<Map<String, Object>>> participantsByStudy = new HashMap<String, List<Map<String, Object>>>();
+        List<Map<String, Object>> listOfParticipantsByStudy = new ArrayList<Map<String, Object>>();
+
+        final String[][] PROPERTIES = new String[][]{
+            
+            new String[]{"id", "id"},
+            new String[]{"participant_id", "participant_id"},
+            new String[]{"dbgap_accession", "dbgap_accession"},
+            new String[]{"race", "race"},
+            new String[]{"sex_at_birth", "sex_at_birth"},
+            new String[]{"diagnosis", "diagnosis_str"},
+            
+            new String[]{"diagnoses", "diagnoses"},
+            new String[]{"survivals", "survivals"},
+            new String[]{"treatments", "treatments"},
+            new String[]{"treatment_responses", "treatment_responses"},
+            new String[]{"samples", "samples"},
+            new String[]{"files", "files"},
+        };
+
+        String defaultSort = "participant_id"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+            Map.entry("participant_id", "participant_id"),
+            Map.entry("dbgap_accession", "dbgap_accession"),
+            Map.entry("race", "race"),
+            Map.entry("sex_at_birth", "sex_at_birth"),
+            Map.entry("diagnosis", "diagnosis_str")
+        );
+
+        participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "cohorts");
+        System.out.println(participants);
+        // Restructure the data to a map, keyed by dbgap_accession
+        participants.forEach((Map<String, Object> participant) -> {
+            String dbgapAccession = (String) participant.get("dbgap_accession");
+
+            if (participantsByStudy.containsKey(dbgapAccession)) {
+                participantsByStudy.get(dbgapAccession).add(participant);
+            } else {
+                participantsByStudy.put(dbgapAccession, new ArrayList<Map<String, Object>>(
+                    List.of(participant)
+                ));
+            }
+        });
+
+        // Restructure the map to a list
+        participantsByStudy.forEach((accession, people) -> {
+            listOfParticipantsByStudy.add(Map.ofEntries(
+                Map.entry("dbgap_accession", accession),
+                Map.entry("participants", people)
+            ));
+        });
+        System.out.println(listOfParticipantsByStudy);
+        return listOfParticipantsByStudy;
+    }
+
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             new String[]{"id", "id"},
@@ -906,10 +998,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     // if the nestedProperty is set, this will filter based upon the params against the nested property for the endpoint's index.
     // otherwise, this will filter based upon the params against the top level properties for the index
     private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, String[][] properties, String defaultSort, Map<String, String> mapping, Set<String> regular_fields, String nestedProperty, String overviewType) throws IOException {
-
+        
         Request request = new Request("GET", endpoint);
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), regular_fields, nestedProperty, overviewType);
-        
         String order_by = (String)params.get(ORDER_BY);
         String direction = ((String)params.get(SORT_DIRECTION)).toLowerCase();
         query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
@@ -929,6 +1020,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
         int pageSize = (int) params.get(PAGE_SIZE);
         int offset = (int) params.get(OFFSET);
+        System.out.println(query);
         List<Map<String, Object>> page = inventoryESService.collectPage(request, query, properties, pageSize, offset);
         return page;
     }
