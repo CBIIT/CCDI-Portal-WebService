@@ -123,6 +123,15 @@ type ParticipantOverViewResult {
     sex_at_birth: String
     synonym_id: String
     files: [String]
+    diagnosis: String
+    anatomic_site: String
+    age_at_diagnosis: String
+    treatment_agent: String
+    treatment_type: String
+    age_at_treatment_start: String
+    first_event: String
+    last_known_survival_status: String
+    age_at_last_known_survival_status: String
 }
 
 type DiagnosisOverViewResult {
