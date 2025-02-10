@@ -714,7 +714,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"race", "race_str"},
             new String[]{"sex_at_birth", "sex_at_birth"},
             new String[]{"synonym_id", "alternate_participant_id"},
-            new String[]{"files", "files"}
+            new String[]{"files", "files"},
+            new String[]{"diagnosis", "diagnosis_str"},
+            new String[]{"anatomic_site", "diagnosis_anatomic_site_str"},
+            new String[]{"age_at_diagnosis", "age_at_diagnosis_str"},
+            new String[]{"treatment_agent", "treatment_agent_str"},
+            new String[]{"treatment_type", "treatment_type_str"},
+            new String[]{"age_at_treatment_start", "age_at_treatment_start_str"},
+            new String[]{"first_event", "first_event_str"},
+            new String[]{"last_known_survival_status", "last_known_survival_status_str"},
+            new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status_str"}
         };
 
         String defaultSort = "participant_id"; // Default sort order
@@ -725,8 +734,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("study_id", "study_id"),
                 Map.entry("race", "race_str"),
                 Map.entry("sex_at_birth", "sex_at_birth"),
-
-                Map.entry("synonym_id", "alternate_participant_id")
+                Map.entry("synonym_id", "alternate_participant_id"),
+                Map.entry("diagnosis", "diagnosis_str"),
+                Map.entry("anatomic_site", "diagnosis_anatomic_site_str"),
+                Map.entry("age_at_diagnosis", "age_at_diagnosis_str"),
+                Map.entry("treatment_agent", "treatment_agent_str"),
+                Map.entry("treatment_type", "treatment_type_str"),
+                Map.entry("age_at_treatment_start", "age_at_treatment_start_str"),
+                Map.entry("first_event", "first_event_str"),
+                Map.entry("last_known_survival_status", "last_known_survival_status_str"),
+                Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status_str")
         );
 
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
