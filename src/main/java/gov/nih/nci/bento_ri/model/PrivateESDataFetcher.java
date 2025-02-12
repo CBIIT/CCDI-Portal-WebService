@@ -944,6 +944,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"participant_age_at_collection", "participant_age_at_collection"},
             new String[]{"sample_tumor_status", "sample_tumor_status"},
             new String[]{"tumor_classification", "tumor_classification"},
+            new String[]{"diagnosis", "diagnosis_str"},
             new String[]{"files", "files"}
         };
 
@@ -956,7 +957,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("anatomic_site", "sample_anatomic_site_str"),
                 Map.entry("participant_age_at_collection", "participant_age_at_collection"),
                 Map.entry("sample_tumor_status", "sample_tumor_status"),
-                Map.entry("tumor_classification", "tumor_classification")
+                Map.entry("tumor_classification", "tumor_classification"),
+                Map.entry("diagnosis", "diagnosis_str")
         );
 
         return overview(SAMPLES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "samples");

@@ -179,6 +179,7 @@ type SampleOverViewResult {
     participant_age_at_collection: Int
     sample_tumor_status: String
     tumor_classification: String
+    diagnosis: String
     files: [String]
 }
 
