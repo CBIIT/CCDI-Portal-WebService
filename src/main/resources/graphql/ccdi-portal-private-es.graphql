@@ -115,6 +115,15 @@ type CohortManifestResult {
     diagnosis: String
 }
 
+type CPIOverViewResult {
+    associated_id: String
+    repository_of_synonym_id: String
+    domain_description: String
+    domain_category: String
+    data_location: String
+    data_type: String
+}
+
 type ParticipantOverViewResult {
     id: String
     participant_id: String
@@ -133,6 +142,7 @@ type ParticipantOverViewResult {
     first_event: String
     last_known_survival_status: String
     age_at_last_known_survival_status: String
+    cpi_data: [CPIOverViewResult]
 }
 
 type DiagnosisOverViewResult {

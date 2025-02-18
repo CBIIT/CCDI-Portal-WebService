@@ -729,7 +729,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"age_at_treatment_start", "age_at_treatment_start_str"},
             new String[]{"first_event", "first_event_str"},
             new String[]{"last_known_survival_status", "last_known_survival_status_str"},
-            new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status_str"}
+            new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status_str"},
+            new String[]{"cpi_data", "cpi_data"}
         };
 
         String defaultSort = "participant_id"; // Default sort order
@@ -749,7 +750,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("age_at_treatment_start", "age_at_treatment_start_str"),
                 Map.entry("first_event", "first_event_str"),
                 Map.entry("last_known_survival_status", "last_known_survival_status_str"),
-                Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status_str")
+                Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status_str"),
+                Map.entry("cpi_data","cpi_data")
         );
 
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
