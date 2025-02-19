@@ -31,7 +31,6 @@ type CohortMetadataReturnObject {
     race: String
     sex_at_birth: String
     study_id: String
-    diagnosis: String
 
     diagnoses: [DiagnosisOverViewResult]
     survivals: [SurvivalOverViewResult]

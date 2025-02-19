@@ -794,7 +794,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"dbgap_accession", "dbgap_accession"},
             new String[]{"race", "race"},
             new String[]{"sex_at_birth", "sex_at_birth"},
-            new String[]{"diagnosis", "diagnosis_str"},
             
             new String[]{"diagnoses", "diagnoses"},
             new String[]{"survivals", "survivals"},
@@ -810,8 +809,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("participant_id", "participant_id"),
             Map.entry("dbgap_accession", "dbgap_accession"),
             Map.entry("race", "race"),
-            Map.entry("sex_at_birth", "sex_at_birth"),
-            Map.entry("diagnosis", "diagnosis_str")
+            Map.entry("sex_at_birth", "sex_at_birth")
         );
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "cohorts");
@@ -1047,7 +1045,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         }
         int pageSize = (int) params.get(PAGE_SIZE);
         int offset = (int) params.get(OFFSET);
-        System.out.println(query);
         List<Map<String, Object>> page = inventoryESService.collectPage(request, query, properties, pageSize, offset);
         return page;
     }
