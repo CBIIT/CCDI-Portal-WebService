@@ -25,7 +25,7 @@
         <java.version>17</java.version>
         <spring.version>6.0.14</spring.version>
         <spring.restdocs.version>3.0.1</spring.restdocs.version>
-        <snakeyaml.version>2.3</snakeyaml.version>
+        <snakeyaml.version>2.4</snakeyaml.version>
     </properties>
 
     <dependencies>
@@ -175,7 +175,7 @@
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
-            <version>10.1.16</version>
+            <version>11.0.4</version>
         </dependency>
         <!-- JUnit -->
         <dependency>
@@ -207,7 +207,7 @@
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-graphql-java</artifactId>
-            <version>1.8.0</version>
+            <version>1.9.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.graphql-java</groupId>
@@ -223,7 +223,7 @@
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-dsl</artifactId>
-            <version>2023.0.0</version>
+            <version>2023.9.5</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>
