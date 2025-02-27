@@ -315,6 +315,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, Object> params = new HashMap<>();
         List study_ids=new ArrayList();
         study_ids.add("phs002790");
+        study_ids.add("phs000466");
         params.put("study_id",study_ids);
 
 
