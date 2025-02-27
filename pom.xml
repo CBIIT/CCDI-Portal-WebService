@@ -181,7 +181,7 @@
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
-            <version>10.1.36</version>
+            <version>11.0.2</version>
         </dependency>
         <!-- JUnit -->
         <dependency>
