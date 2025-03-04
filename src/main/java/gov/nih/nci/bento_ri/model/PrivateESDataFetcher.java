@@ -397,7 +397,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "disease_phase",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
-                    ADDITIONAL_UPDATE, Map.of("Not Reported", 3500),
+                    ADDITIONAL_UPDATE, Map.of("Initial Diagnosis", 2000, "Not Reported", 3500),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -497,7 +497,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "tumor_classification",
                     FILTER_COUNT_QUERY, "filterParticipantCountByTumorClassification",
-                    ADDITIONAL_UPDATE, Map.of("Not Applicable", 4000),
+                    ADDITIONAL_UPDATE, Map.of("Primary", 1000, "Not Applicable", 4000),
                     AGG_ENDPOINT, SAMPLES_END_POINT
             ));
             //data_category mapped to data_category
@@ -513,7 +513,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "file_type",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFileType",
-                    ADDITIONAL_UPDATE, Map.of("bam", 3500, "crai", 3600, "cram", 4000, "html", 3000, "pdf", 3000, "txt", 3500, "vcf" , 3500),
+                    ADDITIONAL_UPDATE, Map.of("bam", 3500, "crai", 3600, "cram", 4000, "fastq", 2000, "html", 3000, "pdf", 3000, "txt", 3500, "vcf" , 3500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -523,10 +523,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
+                    // CARDINALITY_AGG_NAME, "pid",
+                    // AGG_NAME, "study_status",
+                    // FILTER_COUNT_QUERY, "filterParticipantCountByStudyStatus",
+                    // ADDITIONAL_UPDATE, Map.of("Active", 2000,"Completed", 3000),
+                    // AGG_ENDPOINT, STUDIES_FACET_END_POINT
                     AGG_NAME, "study_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByStudyStatus",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
@@ -559,7 +563,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "file_mapping_level",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFileMappingLevel",
-                    ADDITIONAL_UPDATE, Map.of("Sample", 5000),
+                    ADDITIONAL_UPDATE, Map.of("Participant", 1000,"Sample", 5000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             Map<String, Object> query_participants = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "participants");
