@@ -97,6 +97,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return cohortMetadata(args);
                         })
+                        .dataFetcher("studiesListing", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return studiesListing(args);
+                        })
                         .dataFetcher("participantOverview", env -> {
                             Map<String, Object> args = env.getArguments();
                             return participantOverview(args);
@@ -759,6 +763,33 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
+    }
+
+
+    private List<Map<String, Object>> studiesListing(Map<String, Object> params) throws IOException {
+        System.out.println(params);
+        final String[][] PROPERTIES = new String[][]{
+            // Demographics
+            new String[]{"id", "id"},
+            new String[]{"dbgap_accession", "dbgap_accession"},
+            new String[]{"study_name", "study_name"},
+            new String[]{"num_of_participants", "num_of_participants"},
+            new String[]{"num_of_samples", "num_of_samples"},
+            new String[]{"sex_at_birth", "sex_at_birth"},
+            new String[]{"num_of_files", "num_of_files"},
+        };
+
+        String defaultSort = "dbgap_accession"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+            Map.entry("dbgap_accession", "dbgap_accession"),
+            Map.entry("study_name", "study_name"),
+            Map.entry("num_of_participants", "num_of_participants"),
+            Map.entry("num_of_samples", "num_of_samples"),
+            Map.entry("num_of_files", "num_of_files")
+        );
+
+        return overview(STUDIES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "studies");
     }
 
     private List<Map<String, Object>> cohortManifest(Map<String, Object> params) throws IOException {
