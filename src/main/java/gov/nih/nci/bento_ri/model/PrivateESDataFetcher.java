@@ -121,6 +121,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return fileOverview(args);
                         })
+                        .dataFetcher("numberOfStudies", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return numberOfStudies(args);
+                        })
                         .dataFetcher("fileIDsFromList", env -> {
                             Map<String, Object> args = env.getArguments();
                             return fileIDsFromList(args);
@@ -767,11 +771,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
 
     private List<Map<String, Object>> studiesListing(Map<String, Object> params) throws IOException {
-        System.out.println(params);
         final String[][] PROPERTIES = new String[][]{
             // Demographics
             new String[]{"id", "id"},
-            new String[]{"dbgap_accession", "dbgap_accession"},
+            new String[]{"study_id", "study_id"},
             new String[]{"study_name", "study_name"},
             new String[]{"num_of_participants", "num_of_participants"},
             new String[]{"num_of_samples", "num_of_samples"},
@@ -782,7 +785,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         String defaultSort = "dbgap_accession"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
-            Map.entry("dbgap_accession", "dbgap_accession"),
+            Map.entry("study_id", "study_id"),
             Map.entry("study_name", "study_name"),
             Map.entry("num_of_participants", "num_of_participants"),
             Map.entry("num_of_samples", "num_of_samples"),
@@ -1094,6 +1097,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Request request = new Request("GET",PARTICIPANTS_END_POINT);
 
         return esService.collectPage(request, query, properties, ESService.MAX_ES_SIZE, 0);
+    }
+
+    private Integer numberOfStudies(Map<String, Object> params) throws IOException {
+        Map<String, Object> query_files_all_records = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files_overall");
+        int numStudies = getNodeCount("study_id", query_files_all_records, FILES_END_POINT).size();
+        System.out.println(numStudies);
+        return numStudies;
     }
 
     private List<Map<String, Object>> filesManifestInList(Map<String, Object> params) throws IOException {
