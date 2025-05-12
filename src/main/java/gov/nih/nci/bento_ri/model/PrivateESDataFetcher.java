@@ -97,6 +97,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return cohortMetadata(args);
                         })
+                        .dataFetcher("studyDetails", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return studyDetails(args);
+                        })
                         .dataFetcher("studiesListing", env -> {
                             Map<String, Object> args = env.getArguments();
                             return studiesListing(args);
@@ -769,6 +773,49 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
     }
 
+    private Map<String, Object> studyDetails(Map<String, Object> params) throws IOException {
+        Map<String, Object> study;
+        String studyId = (String) params.get("study_id");
+        List<Map<String, Object>> studies;
+
+        final String[][] PROPERTIES = new String[][]{
+            // Demographics
+            new String[]{"id", "id"},
+            new String[]{"study_id", "study_id"},
+            new String[]{"dbgap_accession", "dbgap_accession"},
+            new String[]{"study_name", "study_name"},
+            new String[]{"study_description", "study_description"},
+            new String[]{"num_of_participants", "num_of_participants"},
+            new String[]{"num_of_samples", "num_of_samples"},
+            new String[]{"num_of_files", "num_of_files"},
+        };
+
+        String defaultSort = "dbgap_accession"; // Default sort order
+
+        Map<String, String> mapping = Map.ofEntries(
+            Map.entry("study_id", "study_id"),
+            Map.entry("study_name", "study_name"),
+            Map.entry("study_description", "study_description"),
+            Map.entry("num_of_participants", "num_of_participants"),
+            Map.entry("num_of_samples", "num_of_samples"),
+            Map.entry("num_of_files", "num_of_files")
+        );
+
+        Map<String, Object> study_params = Map.ofEntries(
+            Map.entry("study_id", List.of(studyId)),
+            Map.entry(ORDER_BY, "study_id"),
+            Map.entry(SORT_DIRECTION, "ASC"),
+            Map.entry(PAGE_SIZE, 1),
+            Map.entry(OFFSET, 0)
+        );
+
+        studies = overview(STUDIES_END_POINT, study_params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "studies");
+
+        // studies = overview(STUDIES_END_POINT, study_params, PROPERTIES, "dbgap_accession", mapping, "studies");
+
+        study = studies.get(0);
+        return study;
+    }
 
     private List<Map<String, Object>> studiesListing(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
