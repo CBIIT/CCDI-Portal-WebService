@@ -1,13 +1,75 @@
+type GlobalSearchResult {
+    participants: [GS_participant]
+    participant_count: Int
+
+    studies: [GS_Studies]
+    study_count: Int
+
+    samples: [GS_Samples]
+    sample_count: Int
+
+    files: [GS_Files]
+    file_count: Int
+
+    model: [GS_Model]
+    model_count: Int
+    
+    about_page: [GS_About]
+    about_count: Int
+}
+
+type GS_participant {
+    participant_id: String
+    study_id: String
+    race_str: String
+    sex_at_birth: String
+}
+
+type GS_Studies {
+    study_id: String
+    study_name: String
+    study_status: String
+    num_of_participants: Int
+    num_of_files: Int
+}
+
+type GS_Samples {
+    sample_id: String
+    participant_id: String
+    study_id: String
+    sample_anatomic_site_str: String
+    sample_tumor_status: String
+    diagnosis_str: String
+    tumor_classification: String
+}
+
+type GS_Files {
+    file_name: String
+    data_category: String
+    participant_id: String
+    file_description: String
+    study_id: String
+    file_type: String
+    sample_id: String
+    file_size: Int
+}
+
+type GS_Model {
+  type: String
+  node: String
+  property: String
+  property_description: String
+  property_required: String
+  property_type: String
+  value: String
+  highlight: String
+}
+
 type GS_About {
     page: String
     title: String
     type: String
     text: [String]
-}
-
-type GlobalSearchResult {
-    about_count: Int
-    about_page: [GS_About]
 }
 
 type IdsListsES {
