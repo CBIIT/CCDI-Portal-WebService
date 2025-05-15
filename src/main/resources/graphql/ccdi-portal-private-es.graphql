@@ -346,6 +346,7 @@ type StudyDetailsResult {
     study_name: String
     dbgap_accession: String
     study_description: String
+    pubmed_ids: String
     num_of_participants: Int
     num_of_samples: Int
     num_of_files: Int

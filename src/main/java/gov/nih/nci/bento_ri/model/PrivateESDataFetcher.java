@@ -785,6 +785,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"dbgap_accession", "dbgap_accession"},
             new String[]{"study_name", "study_name"},
             new String[]{"study_description", "study_description"},
+            new String[]{"pubmed_ids", "pubmed_ids"},
             new String[]{"num_of_participants", "num_of_participants"},
             new String[]{"num_of_samples", "num_of_samples"},
             new String[]{"num_of_files", "num_of_files"},
@@ -796,6 +797,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("study_id", "study_id"),
             Map.entry("study_name", "study_name"),
             Map.entry("study_description", "study_description"),
+            Map.entry("pubmed_ids", "pubmed_ids"),
             Map.entry("num_of_participants", "num_of_participants"),
             Map.entry("num_of_samples", "num_of_samples"),
             Map.entry("num_of_files", "num_of_files")
