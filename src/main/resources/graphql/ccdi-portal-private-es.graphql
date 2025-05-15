@@ -20,9 +20,14 @@ type GlobalSearchResult {
 
 type GS_participant {
     participant_id: String
+    diagnosis_str: String
+    age_at_diagnosis_str: String
+    treatment_type_str: String
+    treatment_agent_str: String
     study_id: String
     race_str: String
     sex_at_birth: String
+    last_known_survival_status_str: String
 }
 
 type GS_Studies {
@@ -30,6 +35,7 @@ type GS_Studies {
     study_name: String
     study_status: String
     num_of_participants: Int
+    num_of_samples: Int
     num_of_files: Int
 }
 
