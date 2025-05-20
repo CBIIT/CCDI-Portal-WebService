@@ -36,7 +36,7 @@ type GS_Studies {
     study_status: String
     num_of_participants: Int
     num_of_samples: Int
-    num_of_files: Int
+    num_of_files: Long
 }
 
 type GS_Samples {
@@ -57,7 +57,7 @@ type GS_Files {
     study_id: String
     file_type: String
     sample_id: String
-    file_size: Int
+    file_size: Long
 }
 
 type GS_Model {
