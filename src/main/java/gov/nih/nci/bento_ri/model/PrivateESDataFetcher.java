@@ -49,13 +49,32 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final String STUDIES_END_POINT = "/studies/_search";
     final String SAMPLES_END_POINT = "/samples/_search";
     final String FILES_END_POINT = "/files/_search";
+    final String GS_ABOUT_END_POINT = "/ccdi_hub_static_pages/_search";
+    final String NODES_END_POINT = "/model_nodes/_search";
+    final String PROPERTIES_END_POINT = "/model_properties/_search";
+    final String VALUES_END_POINT = "/model_values/_search";
 
     final String PARTICIPANTS_COUNT_END_POINT = "/participants/_count";
     final String DIAGNOSIS_COUNT_END_POINT = "/diagnosis/_count";
     final String STUDIES_COUNT_END_POINT = "/studies/_count";
     final String SAMPLES_COUNT_END_POINT = "/samples/_count";
     final String FILES_COUNT_END_POINT = "/files/_count";
+    final String NODES_COUNT_END_POINT = "/model_nodes/_count";
+    final String PROPERTIES_COUNT_END_POINT = "/model_properties/_count";
+    final String VALUES_COUNT_END_POINT = "/model_values/_count";
 
+    final String GS_END_POINT = "endpoint";
+    final String GS_COUNT_ENDPOINT = "count_endpoint";
+    final String GS_RESULT_FIELD = "result_field";
+    final String GS_COUNT_RESULT_FIELD = "count_result_field";
+    final String GS_SEARCH_FIELD = "search_field";
+    final String GS_COLLECT_FIELDS = "collect_fields";
+    final String GS_SORT_FIELD = "sort_field";
+    final String GS_CATEGORY_TYPE = "type";
+    final String GS_ABOUT = "about";
+    final String GS_HIGHLIGHT_FIELDS = "highlight_fields";
+    final String GS_HIGHLIGHT_DELIMITER = "$";
+    
     final String ADDITIONAL_UPDATE = "additional_update";
 
     final Set<String> RANGE_PARAMS = Set.of("age_at_diagnosis", "participant_age_at_collection","age_at_treatment_start", "age_at_response", "age_at_last_known_survival_status");
@@ -145,8 +164,287 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return filesManifestInList(args);
                         })
+                        .dataFetcher("globalSearch", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return globalSearch(args);
+                        })
                 )
                 .build();
+    }
+
+    private Map<String, Object> addHighlight(Map<String, Object> query, Map<String, Object> category) {
+        Map<String, Object> result = new HashMap<>(query);
+        List<String> searchFields = (List<String>)category.get(GS_SEARCH_FIELD);
+        Map<String, Object> highlightClauses = new HashMap<>();
+        for (String searchFieldName: searchFields) {
+            highlightClauses.put(searchFieldName, Map.of());
+        }
+
+        result.put("highlight", Map.of(
+                        "fields", highlightClauses,
+                        "pre_tags", "",
+                        "post_tags", "",
+                        "fragment_size", 1
+                )
+        );
+        return result;
+    }
+
+    private Map<String, Object> getGlobalSearchQuery(String input, Map<String, Object> category) {
+        List<String> searchFields = (List<String>)category.get(GS_SEARCH_FIELD);
+        List<Object> searchClauses = new ArrayList<>();
+        for (String searchFieldName: searchFields) {
+            searchClauses.add(Map.of("match_phrase_prefix", Map.of(searchFieldName, input)));
+        }
+        Map<String, Object> query = new HashMap<>();
+        query.put("query", Map.of("bool", Map.of("should", searchClauses)));
+        return query;
+    }
+
+    private List paginate(List org, int pageSize, int offset) {
+        List<Object> result = new ArrayList<>();
+        int size = org.size();
+        if (offset <= size -1) {
+            int end_index = offset + pageSize;
+            if (end_index > size) {
+                end_index = size;
+            }
+            result = org.subList(offset, end_index);
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> searchAboutPage(String input) throws IOException {
+        final String ABOUT_CONTENT = "content.paragraph";
+        Map<String, Object> query = Map.of(
+                "query", Map.of("match", Map.of(ABOUT_CONTENT, input)),
+                "highlight", Map.of(
+                        "fields", Map.of(ABOUT_CONTENT, Map.of()),
+                        "pre_tags", GS_HIGHLIGHT_DELIMITER,
+                        "post_tags", GS_HIGHLIGHT_DELIMITER
+                ),
+                "size", 10000
+        );
+        Request request = new Request("GET", GS_ABOUT_END_POINT);
+        request.setJsonEntity(gson.toJson(query));
+        JsonObject jsonObject = esService.send(request);
+
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (JsonElement hit: jsonObject.get("hits").getAsJsonObject().get("hits").getAsJsonArray()) {
+            String page = hit.getAsJsonObject().get("_source").getAsJsonObject().get("page").getAsString();
+            String title = hit.getAsJsonObject().get("_source").getAsJsonObject().get("title").getAsString();
+            JsonArray arr = hit.getAsJsonObject().get("highlight").getAsJsonObject().get(ABOUT_CONTENT).getAsJsonArray();
+            List<String> list = new ArrayList<String>();
+            for (var element: arr) {
+                list.add(element.getAsString());
+            }
+            result.add(Map.of(
+                    GS_CATEGORY_TYPE, GS_ABOUT,
+                    "page", page,
+                    "title", title,
+                    "text", list
+            ));
+        }
+
+        return result;
+    }
+
+    private Map<String, Object> globalSearch(Map<String, Object> params) throws IOException {
+        Map<String, Object> result = new HashMap<>();
+        String input = (String) params.get("input");
+        int size = (int) params.get("first");
+        int offset = (int) params.get("offset");
+        List<Map<String, Object>> searchCategories = new ArrayList<>();
+        searchCategories.add(Map.of(
+                GS_END_POINT, PARTICIPANTS_END_POINT,
+                GS_COUNT_ENDPOINT, PARTICIPANTS_COUNT_END_POINT,
+                GS_COUNT_RESULT_FIELD, "participant_count",
+                GS_RESULT_FIELD, "participants",
+                GS_SEARCH_FIELD, List.of("participant_id_gs","diagnosis_str_gs", "study_id_gs", "age_at_diagnosis_str_gs", "treatment_type_str_gs", "sex_at_birth_gs", "treatment_agent_str_gs", "race_str_gs", "last_known_survival_status_str_gs"),
+                GS_SORT_FIELD, "participant_id",
+                GS_COLLECT_FIELDS, new String[][]{
+                        new String[]{"participant_id", "participant_id"},
+                        new String[]{"diagnosis_str", "diagnosis_str"},
+                        new String[]{"age_at_diagnosis_str", "age_at_diagnosis_str"},
+                        new String[]{"treatment_agent_str", "treatment_agent_str"},
+                        new String[]{"treatment_type_str", "treatment_type_str"},
+                        new String[]{"study_id", "study_id"},
+                        new String[]{"race_str", "race_str"},
+                        new String[]{"sex_at_birth", "sex_at_birth"},
+                        new String[]{"last_known_survival_status_str", "last_known_survival_status_str"}
+                },
+                GS_CATEGORY_TYPE, "subject"
+        ));
+        searchCategories.add(Map.of(
+                GS_END_POINT, STUDIES_END_POINT,
+                GS_COUNT_ENDPOINT, STUDIES_COUNT_END_POINT,
+                GS_COUNT_RESULT_FIELD, "study_count",
+                GS_RESULT_FIELD, "studies",
+                GS_SEARCH_FIELD, List.of("study_id_gs", "study_name_gs", "study_status_gs"),
+                GS_SORT_FIELD, "study_id",
+                GS_COLLECT_FIELDS, new String[][]{
+                        new String[]{"study_id", "study_id"},
+                        new String[]{"study_name", "study_name"},
+                        new String[]{"study_status", "study_status"},
+                        new String[]{"num_of_participants", "num_of_participants"},
+                        new String[]{"num_of_samples", "num_of_samples"},
+                        new String[]{"num_of_files", "num_of_files"}
+                },
+                GS_CATEGORY_TYPE, "study"
+        ));
+        searchCategories.add(Map.of(
+                GS_END_POINT, SAMPLES_END_POINT,
+                GS_COUNT_ENDPOINT, SAMPLES_COUNT_END_POINT,
+                GS_COUNT_RESULT_FIELD, "sample_count",
+                GS_RESULT_FIELD, "samples",
+                GS_SEARCH_FIELD, List.of("sample_id_gs", "participant_id_gs", "study_id_gs", "sample_anatomic_site_str_gs", "sample_tumor_status_gs", "diagnosis_str_gs", "tumor_classification_gs"),
+                GS_SORT_FIELD, "sample_id",
+                GS_COLLECT_FIELDS, new String[][]{
+                        new String[]{"sample_id", "sample_id"},
+                        new String[]{"participant_id", "participant_id"},
+                        new String[]{"study_id", "study_id"},
+                        new String[]{"sample_anatomic_site_str", "sample_anatomic_site_str"},
+                        new String[]{"sample_tumor_status", "sample_tumor_status"},
+                        new String[]{"diagnosis_str", "diagnosis_str"},
+                        new String[]{"tumor_classification", "tumor_classification"}
+                },
+                GS_CATEGORY_TYPE, "sample"
+        ));
+        searchCategories.add(Map.of(
+                GS_END_POINT, FILES_END_POINT,
+                GS_COUNT_ENDPOINT, FILES_COUNT_END_POINT,
+                GS_COUNT_RESULT_FIELD, "file_count",
+                GS_RESULT_FIELD, "files",
+                GS_SEARCH_FIELD, List.of("participant_id_gs","sample_id_gs","study_id_gs","file_description_gs","file_type_gs","file_name_gs","data_category_gs"),
+                GS_SORT_FIELD, "file_id",
+                GS_COLLECT_FIELDS, new String[][]{
+                        new String[]{"participant_id", "participant_id"},
+                        new String[]{"sample_id", "sample_id"},
+                        new String[]{"study_id", "study_id"},
+                        new String[]{"file_name", "file_name"},
+                        new String[]{"data_category", "data_category"},
+                        new String[]{"file_description", "file_description"},
+                        new String[]{"file_type","file_type"},
+                        new String[]{"file_size","file_size"}
+                },
+                GS_CATEGORY_TYPE, "file"
+        ));
+        searchCategories.add(Map.of(
+                GS_END_POINT, NODES_END_POINT,
+                GS_COUNT_ENDPOINT, NODES_COUNT_END_POINT,
+                GS_COUNT_RESULT_FIELD, "model_count",
+                GS_RESULT_FIELD, "model",
+                GS_SEARCH_FIELD, List.of("node"),
+                GS_SORT_FIELD, "node_kw",
+                GS_COLLECT_FIELDS, new String[][]{
+                        new String[]{"node_name", "node"}
+                },
+                GS_HIGHLIGHT_FIELDS, new String[][] {
+                        new String[]{"highlight", "node"}
+                },
+                GS_CATEGORY_TYPE, "node"
+        ));
+        searchCategories.add(Map.of(
+                GS_END_POINT, PROPERTIES_END_POINT,
+                GS_COUNT_ENDPOINT, PROPERTIES_COUNT_END_POINT,
+                GS_COUNT_RESULT_FIELD, "model_count",
+                GS_RESULT_FIELD, "model",
+                GS_SEARCH_FIELD, List.of("property", "property_description", "property_type", "property_required"),
+                GS_SORT_FIELD, "property_kw",
+                GS_COLLECT_FIELDS, new String[][]{
+                        new String[]{"node", "node"},
+                        new String[]{"property", "property"},
+                        new String[]{"property_type", "property_type"},
+                        new String[]{"property_required", "property_required"},
+                        new String[]{"property_description", "property_description"}
+                },
+                GS_HIGHLIGHT_FIELDS, new String[][] {
+                        new String[]{"highlight", "property"},
+                        new String[]{"highlight", "property_description"},
+                        new String[]{"highlight", "property_type"},
+                        new String[]{"highlight", "property_required"}
+                },
+                GS_CATEGORY_TYPE, "property"
+        ));
+        searchCategories.add(Map.of(
+                GS_END_POINT, VALUES_END_POINT,
+                GS_COUNT_ENDPOINT, VALUES_COUNT_END_POINT,
+                GS_COUNT_RESULT_FIELD, "model_count",
+                GS_RESULT_FIELD, "model",
+                GS_SEARCH_FIELD, List.of("value"),
+                GS_SORT_FIELD, "value_kw",
+                GS_COLLECT_FIELDS, new String[][]{
+                        new String[]{"node", "node"},
+                        new String[]{"property", "property"},
+                        new String[]{"property_type", "property_type"},
+                        new String[]{"property_required", "property_required"},
+                        new String[]{"property_description", "property_description"},
+                        new String[]{"value", "value"}
+                },
+                GS_HIGHLIGHT_FIELDS, new String[][] {
+                        new String[]{"highlight", "value"}
+                },
+                GS_CATEGORY_TYPE, "value"
+        ));
+
+        Set<String> combinedCategories = Set.of("model") ;
+
+        for (Map<String, Object> category: searchCategories) {
+            String countResultFieldName = (String) category.get(GS_COUNT_RESULT_FIELD);
+            String resultFieldName = (String) category.get(GS_RESULT_FIELD);
+            String[][] properties = (String[][]) category.get(GS_COLLECT_FIELDS);
+            String[][] highlights = (String[][]) category.get(GS_HIGHLIGHT_FIELDS);
+            Map<String, Object> query = getGlobalSearchQuery(input, category);
+
+            // Get count
+            Request countRequest = new Request("GET", (String) category.get(GS_COUNT_ENDPOINT));
+            countRequest.setJsonEntity(gson.toJson(query));
+            JsonObject countResult = esService.send(countRequest);
+            int oldCount = (int)result.getOrDefault(countResultFieldName, 0);
+            result.put(countResultFieldName, countResult.get("count").getAsInt() + oldCount);
+
+            // Get results
+            Request request = new Request("GET", (String)category.get(GS_END_POINT));
+            String sortFieldName = (String)category.get(GS_SORT_FIELD);
+            query.put("sort", Map.of(sortFieldName, "asc"));
+            query = addHighlight(query, category);
+
+            if (combinedCategories.contains(resultFieldName)) {
+                query.put("size", 10000);
+                query.put("from", 0);
+            } else {
+                query.put("size", size);
+                query.put("from", offset);
+            }
+            request.setJsonEntity(gson.toJson(query));
+            JsonObject jsonObject = esService.send(request);
+            List<Map<String, Object>> objects = esService.collectPage(jsonObject, properties, highlights, (int)query.get("size"), 0);
+
+            for (var object: objects) {
+                object.put(GS_CATEGORY_TYPE, category.get(GS_CATEGORY_TYPE));
+            }
+
+            List<Map<String, Object>> existingObjects = (List<Map<String, Object>>)result.getOrDefault(resultFieldName, null);
+            if (existingObjects != null) {
+                existingObjects.addAll(objects);
+                result.put(resultFieldName, existingObjects);
+            } else {
+                result.put(resultFieldName, objects);
+            }
+
+        }
+
+        List<Map<String, Object>> about_results = searchAboutPage(input);
+        int about_count = about_results.size();
+        result.put("about_count", about_count);
+        result.put("about_page", paginate(about_results, size, offset));
+        for (String category: combinedCategories) {
+            List<Object> pagedCategory = paginate((List)result.get(category), size, offset);
+            result.put(category, pagedCategory);
+        }
+
+        return result;
     }
 
     private List<Map<String, Object>> subjectCountBy(String category, Map<String, Object> params, String endpoint, String cardinalityAggName, String indexType) throws IOException {
@@ -1151,7 +1449,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private Integer numberOfStudies(Map<String, Object> params) throws IOException {
         Map<String, Object> query_files_all_records = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files_overall");
         int numStudies = getNodeCount("study_id", query_files_all_records, FILES_END_POINT).size();
-        System.out.println(numStudies);
         return numStudies;
     }
 
