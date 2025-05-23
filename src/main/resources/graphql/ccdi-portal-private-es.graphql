@@ -356,6 +356,9 @@ type StudyDetailsResult {
     num_of_participants: Int
     num_of_samples: Int
     num_of_files: Int
+    data_categories: [SearchParticipantsReturnObject]
+    diagnoses: [SearchParticipantsReturnObject]
+    anatomic_sites: [SearchParticipantsReturnObject]
 }
 
 type StudiesListingResult {
