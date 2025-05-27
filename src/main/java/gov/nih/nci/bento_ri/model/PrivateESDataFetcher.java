@@ -1208,6 +1208,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"study_name", "study_name"},
             new String[]{"num_of_participants", "num_of_participants"},
             new String[]{"num_of_samples", "num_of_samples"},
+            new String[]{"num_of_diagnoses", "num_of_diagnoses"},
             new String[]{"sex_at_birth", "sex_at_birth"},
             new String[]{"num_of_files", "num_of_files"},
         };
@@ -1219,6 +1220,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("study_name", "study_name"),
             Map.entry("num_of_participants", "num_of_participants"),
             Map.entry("num_of_samples", "num_of_samples"),
+            Map.entry("num_of_diagnoses", "num_of_diagnoses"),
             Map.entry("num_of_files", "num_of_files")
         );
 
