@@ -365,6 +365,7 @@ type StudiesListingResult {
     study_id: String
     study_name: String
     num_of_participants: Int
+    num_of_diagnoses: Int
     num_of_samples: Int
     num_of_files: Int
 }
