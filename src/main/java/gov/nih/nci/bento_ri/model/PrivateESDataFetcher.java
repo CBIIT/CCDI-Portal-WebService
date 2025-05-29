@@ -405,7 +405,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             String countResultFieldName = (String) category.get(GS_COUNT_RESULT_FIELD);
             String resultFieldName = (String) category.get(GS_RESULT_FIELD);
             String[][] properties = (String[][]) category.get(GS_COLLECT_FIELDS);
-            String[][] highlights = (String[][]) category.get(GS_HIGHLIGHT_FIELDS);
             Map<String, Object> query = getGlobalSearchQuery(input, category);
 
             // Get count
@@ -422,15 +421,19 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             query = addHighlight(query, category);
 
             if (combinedCategories.contains(resultFieldName)) {
-                query.put("size", 10000);
-                query.put("from", 0);
-            } else {
-                query.put("size", size);
-                query.put("from", offset);
+                size = 10000;
+                offset = 0;
             }
+
+            List<String> dataFields = new ArrayList<>();
+            for (String[] prop: properties) {
+                String dataField = prop[1];
+                dataFields.add(dataField);
+            }
+            query.put("_source", Map.of("includes", dataFields));
+
             request.setJsonEntity(gson.toJson(query));
-            JsonObject jsonObject = esService.send(request);
-            List<Map<String, Object>> objects = esService.collectPage(jsonObject, properties, highlights, (int)query.get("size"), 0);
+            List<Map<String, Object>> objects = inventoryESService.collectPage(request, query, properties, size, offset);
 
             for (var object: objects) {
                 object.put(GS_CATEGORY_TYPE, category.get(GS_CATEGORY_TYPE));
