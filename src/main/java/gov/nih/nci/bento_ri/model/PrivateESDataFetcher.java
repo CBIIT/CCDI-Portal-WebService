@@ -203,12 +203,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             searchClauses.add(Map.of("match_phrase_prefix", Map.of(searchFieldName, input)));
         }
         Map<String, Object> query = new HashMap<>();
-        String indexType = (String)category.get(GS_CATEGORY_TYPE);
-        if (indexType.equals("file")) {
-            query.put("query", Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")), "should", searchClauses)));
-        } else {
-            query.put("query", Map.of("bool", Map.of("should", searchClauses)));
-        }
+        query.put("query", Map.of("bool", Map.of("should", searchClauses)));
         return query;
     }
 
@@ -405,6 +400,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             String countResultFieldName = (String) category.get(GS_COUNT_RESULT_FIELD);
             String resultFieldName = (String) category.get(GS_RESULT_FIELD);
             String[][] properties = (String[][]) category.get(GS_COLLECT_FIELDS);
+            String[][] highlights = (String[][]) category.get(GS_HIGHLIGHT_FIELDS);
             Map<String, Object> query = getGlobalSearchQuery(input, category);
 
             // Get count
@@ -421,19 +417,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             query = addHighlight(query, category);
 
             if (combinedCategories.contains(resultFieldName)) {
-                size = 10000;
-                offset = 0;
+                query.put("size", 10000);
+                query.put("from", 0);
+            } else {
+                query.put("size", size);
+                query.put("from", offset);
             }
-
-            List<String> dataFields = new ArrayList<>();
-            for (String[] prop: properties) {
-                String dataField = prop[1];
-                dataFields.add(dataField);
-            }
-            query.put("_source", Map.of("includes", dataFields));
-
             request.setJsonEntity(gson.toJson(query));
-            List<Map<String, Object>> objects = inventoryESService.collectPage(request, query, properties, size, offset);
+            JsonObject jsonObject = esService.send(request);
+            List<Map<String, Object>> objects = esService.collectPage(jsonObject, properties, highlights, (int)query.get("size"), 0);
 
             for (var object: objects) {
                 object.put(GS_CATEGORY_TYPE, category.get(GS_CATEGORY_TYPE));
@@ -1217,7 +1209,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"study_name", "study_name"},
             new String[]{"num_of_participants", "num_of_participants"},
             new String[]{"num_of_samples", "num_of_samples"},
-            new String[]{"num_of_diagnoses", "num_of_diagnoses"},
             new String[]{"sex_at_birth", "sex_at_birth"},
             new String[]{"num_of_files", "num_of_files"},
         };
@@ -1229,7 +1220,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("study_name", "study_name"),
             Map.entry("num_of_participants", "num_of_participants"),
             Map.entry("num_of_samples", "num_of_samples"),
-            Map.entry("num_of_diagnoses", "num_of_diagnoses"),
             Map.entry("num_of_files", "num_of_files")
         );
 
@@ -1317,6 +1307,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
+            new String[]{"pid", "pid"},
             new String[]{"id", "id"},
             new String[]{"diagnosis_id", "diagnosis_id"},
             new String[]{"participant_id", "participant_id"},
@@ -1337,6 +1328,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         String defaultSort = "diagnosis_id"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
+                Map.entry("pid", "pid"),
                 Map.entry("diagnosis_id", "diagnosis_id"),
                 Map.entry("participant_id", "participant_id"),
                 Map.entry("sample_id", "sample_id"),
