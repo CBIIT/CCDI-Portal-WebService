@@ -1050,6 +1050,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         String defaultSort = "participant_id"; // Default sort order
 
         Map<String, String> mapping = Map.ofEntries(
+                Map.entry("id", "id"),
                 Map.entry("participant_id", "participant_id"),
                 Map.entry("dbgap_accession", "dbgap_accession"),
                 Map.entry("study_id", "study_id"),
