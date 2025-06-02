@@ -280,6 +280,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         new String[]{"age_at_diagnosis_str", "age_at_diagnosis_str"},
                         new String[]{"treatment_agent_str", "treatment_agent_str"},
                         new String[]{"treatment_type_str", "treatment_type_str"},
+                        new String[]{"cpi_data", "cpi_data"},
                         new String[]{"study_id", "study_id"},
                         new String[]{"race_str", "race_str"},
                         new String[]{"sex_at_birth", "sex_at_birth"},
@@ -330,6 +331,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 GS_SEARCH_FIELD, List.of("participant_id_gs","sample_id_gs","study_id_gs","file_description_gs","file_type_gs","file_name_gs","data_category_gs"),
                 GS_SORT_FIELD, "file_id",
                 GS_COLLECT_FIELDS, new String[][]{
+                        new String[]{"id", "id"},
                         new String[]{"participant_id", "participant_id"},
                         new String[]{"sample_id", "sample_id"},
                         new String[]{"study_id", "study_id"},

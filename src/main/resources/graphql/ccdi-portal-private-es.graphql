@@ -24,6 +24,7 @@ type GS_participant {
     age_at_diagnosis_str: String
     treatment_type_str: String
     treatment_agent_str: String
+    cpi_data: [CPIOverViewResult]
     study_id: String
     race_str: String
     sex_at_birth: String
@@ -50,6 +51,7 @@ type GS_Samples {
 }
 
 type GS_Files {
+    id: String
     file_name: String
     data_category: String
     participant_id: String
