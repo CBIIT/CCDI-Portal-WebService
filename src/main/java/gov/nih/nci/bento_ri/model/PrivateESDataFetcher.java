@@ -701,11 +701,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "dbgap_accession",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDBGAPAccession",
-                    ADDITIONAL_UPDATE, Map.of("phs002790", 2000),
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
 
             PARTICIPANT_TERM_AGGS.add(Map.of(
