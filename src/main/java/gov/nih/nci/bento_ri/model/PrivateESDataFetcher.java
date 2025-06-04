@@ -205,7 +205,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         Map<String, Object> query = new HashMap<>();
         String indexType = (String)category.get(GS_CATEGORY_TYPE);
         if (indexType.equals("file")) {
-            query.put("query", Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")), "should", searchClauses)));
+            query.put("query", Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")), "should", searchClauses, "minimum_should_match", 1)));
         } else {
             query.put("query", Map.of("bool", Map.of("should", searchClauses)));
         }
