@@ -669,13 +669,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             final List<Map<String, Object>> PARTICIPANT_TERM_AGGS = new ArrayList<>();
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
-                    AGG_NAME, "study_acronym",
-                    WIDGET_QUERY, "participantCountByStudy",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByAcronym",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
-            ));
-            PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis",
                     WIDGET_QUERY, "participantCountByDiagnosis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosis",
@@ -705,7 +698,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     FILTER_COUNT_QUERY, "filterParticipantCountByDBGAPAccession",
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
-
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    AGG_NAME, "study_acronym",
+                    WIDGET_QUERY, "participantCountByStudy",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByAcronym",
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+            ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_anatomic_site",
@@ -900,12 +898,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             int numberOfParticipants = participantsCountResult.getAsJsonObject("hits").getAsJsonObject("total").get("value").getAsInt();
             int participants_file_count = participantsCountResult.getAsJsonObject("aggregations").getAsJsonObject("file_count").get("value").getAsInt();
             // System.out.println(participantsCountResult);
-            Map<String, Object> query_diagnosis = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnosis");
-            Request diagnosisCountRequest = new Request("GET", DIAGNOSIS_COUNT_END_POINT);
+            // Map<String, Object> query_diagnosis = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "diagnosis");
+            // Request diagnosisCountRequest = new Request("GET", DIAGNOSIS_COUNT_END_POINT);
             // System.out.println(gson.toJson(query_diagnosis));
-            diagnosisCountRequest.setJsonEntity(gson.toJson(query_diagnosis));
-            JsonObject diagnosisCountResult = inventoryESService.send(diagnosisCountRequest);
-            int numberOfDiagnosis = diagnosisCountResult.get("count").getAsInt();
+            // diagnosisCountRequest.setJsonEntity(gson.toJson(query_diagnosis));
+            // JsonObject diagnosisCountResult = inventoryESService.send(diagnosisCountRequest);
+            // int numberOfDiagnosis = diagnosisCountResult.get("count").getAsInt();
 
             Map<String, Object> query_samples = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "samples");
             Map<String, Object> newQuery_samples = new HashMap<>(query_samples);
@@ -931,12 +929,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             int numberOfFiles = filesCountResult.get("count").getAsInt();
 
             data.put("numberOfStudies", numberOfStudies);
-            data.put("numberOfDiagnosis", numberOfDiagnosis);
+            data.put("numberOfDiagnosis", 0);
             data.put("numberOfParticipants", numberOfParticipants);
             data.put("numberOfSamples", numberOfSamples);
             data.put("numberOfFiles", numberOfFiles);
             data.put("participantsFileCount", participants_file_count);
-            data.put("diagnosisFileCount", participants_file_count);
+            data.put("diagnosisFileCount", 0);
             data.put("samplesFileCount", samples_file_count);
             data.put("studiesFileCount", numberOfFiles);
             data.put("filesFileCount", numberOfFiles);
