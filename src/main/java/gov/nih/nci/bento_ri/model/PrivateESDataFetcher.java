@@ -351,7 +351,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 GS_SEARCH_FIELD, List.of("node"),
                 GS_SORT_FIELD, "node_kw",
                 GS_COLLECT_FIELDS, new String[][]{
-                        new String[]{"node_name", "node"}
+                        new String[]{"node", "node"}
                 },
                 GS_HIGHLIGHT_FIELDS, new String[][] {
                         new String[]{"highlight", "node"}
@@ -455,8 +455,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         int about_count = about_results.size();
         result.put("about_count", about_count);
         result.put("about_page", paginate(about_results, size, offset));
+        int old_size = (int) params.get("first");
+        int old_offset = (int) params.get("offset");
         for (String category: combinedCategories) {
-            List<Object> pagedCategory = paginate((List)result.get(category), size, offset);
+            List<Object> pagedCategory = paginate((List)result.get(category), old_size, old_offset);
             result.put(category, pagedCategory);
         }
 
