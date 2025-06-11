@@ -63,7 +63,7 @@ type GS_Files {
 }
 
 type GS_Model {
-  type: String
+  category_type: String
   node: String
   property: String
   property_description: String
@@ -76,7 +76,7 @@ type GS_Model {
 type GS_About {
     page: String
     title: String
-    type: String
+    category_type: String
     text: [String]
 }
 
