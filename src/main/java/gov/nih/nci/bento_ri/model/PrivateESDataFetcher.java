@@ -1319,7 +1319,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             new String[]{"d_id", "id"},
-            new String[]{"id", "pid"},
+            new String[]{"pid", "pid"},
             new String[]{"diagnosis_id", "diagnosis_id"},
             new String[]{"participant_id", "participant_id"},
             new String[]{"sample_id", "sample_id"},
