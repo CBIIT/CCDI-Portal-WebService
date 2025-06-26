@@ -22,10 +22,6 @@ RUN rm -rf /usr/local/tomcat/webapps.dist \
 # Harden: disable verbose error and server info in responses
 RUN sed -i 's|</Host>|  <Valve className="org.apache.catalina.valves.ErrorReportValve"\n               showReport="false"\n               showServerInfo="false" />\n\n      </Host>|' conf/server.xml
 
-# Optional: Add a non-root user (basic hardening)
-RUN groupadd -r appgroup && useradd -r -g appgroup appuser
-USER appuser
-
 EXPOSE 8080
 
 # Deploy WAR
