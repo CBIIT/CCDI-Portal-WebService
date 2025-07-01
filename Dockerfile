@@ -6,19 +6,23 @@ COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:10.1.17-jdk17 AS fnl_base_image
+FROM tomcat:11.0.8-jdk17-temurin-noble AS final
 
-RUN apt-get update && apt-get -y upgrade
+# Update and install required packages, then clean up
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y unzip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# install dependencies and clean up unused files
-RUN apt-get update && apt-get install unzip
-RUN rm -rf /usr/local/tomcat/webapps.dist
-RUN rm -rf /usr/local/tomcat/webapps/ROOT
+# Clean up default apps
+RUN rm -rf /usr/local/tomcat/webapps.dist \
+           /usr/local/tomcat/webapps/ROOT
 
-# Modify the server.xml file to block error reportiing
-RUN sed -i 's|</Host>|  <Valve className="org.apache.catalina.valves.ErrorReportValve"\n               showReport="false"\n               showServerInfo="false" />\n\n      </Host>|' conf/server.xml 
+# Harden: disable verbose error and server info in responses
+RUN sed -i 's|</Host>|  <Valve className="org.apache.catalina.valves.ErrorReportValve"\n               showReport="false"\n               showServerInfo="false" />\n\n      </Host>|' conf/server.xml
 
-# expose ports
 EXPOSE 8080
 
+# Deploy WAR
 COPY --from=build /usr/src/app/target/Bento-0.0.1.war /usr/local/tomcat/webapps/ROOT.war
