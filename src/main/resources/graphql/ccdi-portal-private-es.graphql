@@ -19,6 +19,7 @@ type GlobalSearchResult {
 }
 
 type GS_participant {
+    id: String
     participant_id: String
     diagnosis_str: String
     age_at_diagnosis_str: String
