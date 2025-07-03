@@ -659,8 +659,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private Map<String, Object> searchParticipants(Map<String, Object> params) throws IOException {
-        String cacheKey = generateCacheKey(params);
-        Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
+        List<String> importData = (List<String>) params.get("import_data");
+        String cacheKey = "no_cache";
+        Map<String, Object> data = null;
+        if (importData == null || importData.size() == 0) {
+            cacheKey = generateCacheKey(params);
+            data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
+        }
+        
         if (data != null) {
             logger.info("hit cache!");
             return data;
@@ -926,6 +932,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
             Map<String, Object> query_files_valid_records = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files");
+            // System.out.println(gson.toJson(query_files_valid_records));
             filesCountRequest.setJsonEntity(gson.toJson(query_files_valid_records));
             JsonObject filesCountResult = inventoryESService.send(filesCountRequest);
             int numberOfFiles = filesCountResult.get("count").getAsInt();
@@ -1028,10 +1035,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     }
                 }
             }
-            caffeineCache.put(cacheKey, data);
+            if (!cacheKey.equals("no_cache")) {
+                caffeineCache.put(cacheKey, data);
+            }
             return data;
         }
-
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {

@@ -224,6 +224,50 @@ public class InventoryESService extends ESService {
                 } else {
                     // Term parameters (default)
                     List<String> valueSet = (List<String>) params.get(key);
+
+                    if (key.equals("import_data")) {
+                        if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
+                            List<Object> shouldClauses = new ArrayList<>();
+                            for (String obj : valueSet) {
+                                try {
+                                    JsonObject json = JsonParser.parseString(obj).getAsJsonObject();
+                                    String study = json.get("study_id").getAsString();
+                                    JsonArray participants = json.getAsJsonArray("participant_id");
+                                    List<String> participantList = new ArrayList<>();
+                                    for (JsonElement p : participants) {
+                                        participantList.add(p.getAsString());
+                                    }
+                                    shouldClauses.add(
+                                        Map.of(
+                                            "bool", Map.of(
+                                                "filter", List.of(
+                                                    Map.of("term", Map.of("study_id", study)),
+                                                    Map.of("terms", Map.of("participant_id", participantList))
+                                                )
+                                            )
+                                        )
+                                    );
+                                } catch (Exception e) {
+                                    // Handle parse error if needed
+                                }
+                            }
+                            filter_1.add(
+                                Map.of(
+                                    "bool", Map.of(
+                                        "should", shouldClauses
+                                    )
+                                )
+                            );
+                            filter_2.add(
+                                Map.of(
+                                    "bool", Map.of(
+                                        "should", shouldClauses
+                                    )
+                                )
+                            );
+                        }
+                        continue;
+                    }
                     
                     if (key.equals("participant_ids")) {
                         key = "participant_id";
@@ -353,7 +397,7 @@ public class InventoryESService extends ESService {
                 if (indexType.equals("files_overall")) {
                     overall_filter.add(Map.of("bool", Map.of("must_not", must_not_filter, "filter", filter_2)));
                 } else {
-                        overall_filter.add(Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")), "must_not", must_not_filter, "filter", filter_2)));
+                    overall_filter.add(Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")), "must_not", must_not_filter, "filter", filter_2)));
                 }
                 result.put("query", Map.of("bool", Map.of("should", overall_filter)));
             }
@@ -422,6 +466,43 @@ public class InventoryESService extends ESService {
                 } else {
                     // Term parameters (default)
                     List<String> valueSet = (List<String>) params.get(key);
+
+                    if (key.equals("import_data")) {
+                        if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
+                            List<Object> shouldClauses = new ArrayList<>();
+                            for (String obj : valueSet) {
+                                try {
+                                    JsonObject json = JsonParser.parseString(obj).getAsJsonObject();
+                                    String study = json.get("study_id").getAsString();
+                                    JsonArray participants = json.getAsJsonArray("participant_id");
+                                    List<String> participantList = new ArrayList<>();
+                                    for (JsonElement p : participants) {
+                                        participantList.add(p.getAsString());
+                                    }
+                                    shouldClauses.add(
+                                        Map.of(
+                                            "bool", Map.of(
+                                                "filter", List.of(
+                                                    Map.of("term", Map.of("study_id", study)),
+                                                    Map.of("terms", Map.of("participant_id", participantList))
+                                                )
+                                            )
+                                        )
+                                    );
+                                } catch (Exception e) {
+                                    // Handle parse error if needed
+                                }
+                            }
+                            filter.add(
+                                Map.of(
+                                    "bool", Map.of(
+                                        "should", shouldClauses
+                                    )
+                                )
+                            );
+                        }
+                        continue;
+                    }
                     
                     if (key.equals("participant_ids")) {
                         key = "participant_id";
