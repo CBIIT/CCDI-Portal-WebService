@@ -1,12 +1,12 @@
-# Build stage
-FROM maven:3.8.5-openjdk-17 AS build
+# Build stage with patched JDK
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
 WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:11.0.8-jdk17-temurin-noble AS final
+FROM tomcat:11.0.9-jdk17-temurin AS final
 
 # Update and install required packages, then clean up
 RUN apt-get update && \
