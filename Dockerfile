@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17.0.16_0-jdk AS base
+FROM eclipse-temurin:17.0.16_0-jdk AS build
 
 # Download Tomcat 11.0.9
 ENV TOMCAT_VERSION=11.0.9
