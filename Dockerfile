@@ -1,31 +1,28 @@
-# === Stage 1: Build WAR file ===
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+# Build stage
+FROM maven:3.8.5-openjdk-17 AS build
 
 WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
 
-# === Stage 2: Final Image with Patched JDK + Tomcat 11.0.9 ===
-FROM eclipse-temurin:17.0.10_7-jdk AS final
+# Production stage
+FROM tomcat:11.0.8-jdk17-temurin-noble AS final
 
-ENV TOMCAT_VERSION=11.0.9
-RUN curl -fsSL https://downloads.apache.org/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz \
-    | tar xz -C /usr/local && \
-    mv /usr/local/apache-tomcat-${TOMCAT_VERSION} /usr/local/tomcat
-
-RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /usr/local/tomcat
+# Update and install required packages, then clean up
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y unzip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Clean up default apps
-RUN rm -rf webapps.dist webapps/ROOT
+RUN rm -rf /usr/local/tomcat/webapps.dist \
+           /usr/local/tomcat/webapps/ROOT
 
-# Harden Tomcat
+# Harden: disable verbose error and server info in responses
 RUN sed -i 's|</Host>|  <Valve className="org.apache.catalina.valves.ErrorReportValve"\n               showReport="false"\n               showServerInfo="false" />\n\n      </Host>|' conf/server.xml
-
-COPY --from=build /usr/src/app/target/Bento-0.0.1.war webapps/ROOT.war
 
 EXPOSE 8080
 
-CMD ["bin/catalina.sh", "run"]
-
+# Deploy WAR
+COPY --from=build /usr/src/app/target/Bento-0.0.1.war /usr/local/tomcat/webapps/ROOT.war
