@@ -1,5 +1,5 @@
 # === Stage 1: Build WAR file ===
-FROM maven:3.9.6-eclipse-temurin-17 AS builder
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
 WORKDIR /usr/src/app
 COPY . .
@@ -21,7 +21,7 @@ RUN rm -rf webapps.dist webapps/ROOT
 # Harden Tomcat
 RUN sed -i 's|</Host>|  <Valve className="org.apache.catalina.valves.ErrorReportValve"\n               showReport="false"\n               showServerInfo="false" />\n\n      </Host>|' conf/server.xml
 
-COPY --from=builder /usr/src/app/target/Bento-0.0.1.war webapps/ROOT.war
+COPY --from=build /usr/src/app/target/Bento-0.0.1.war webapps/ROOT.war
 
 EXPOSE 8080
 
