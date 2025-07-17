@@ -6,7 +6,7 @@ COPY . .
 RUN mvn package -DskipTests
 
 # === Stage 2: Final Image with Patched JDK + Tomcat 11.0.9 ===
-FROM eclipse-temurin:17.0.16_1-jdk AS final
+FROM eclipse-temurin:17.0.10_7-jdk AS final
 
 ENV TOMCAT_VERSION=11.0.9
 RUN curl -fsSL https://downloads.apache.org/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz \
