@@ -6,7 +6,7 @@ COPY . .
 RUN mvn package -DskipTests
 
 # Production stage
-FROM tomcat:11.0.8-jdk17-temurin-noble AS final
+FROM tomcat:11.0.9-jdk17-temurin-noble AS final
 
 # Update and install required packages, then clean up
 RUN apt-get update && \
