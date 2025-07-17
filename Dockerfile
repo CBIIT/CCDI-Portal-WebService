@@ -13,6 +13,8 @@ RUN curl -fsSL https://downloads.apache.org/tomcat/tomcat-11/v${TOMCAT_VERSION}/
     | tar xz -C /usr/local && \
     mv /usr/local/apache-tomcat-${TOMCAT_VERSION} /usr/local/tomcat
 
+RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /usr/local/tomcat
 
 # Clean up default apps
