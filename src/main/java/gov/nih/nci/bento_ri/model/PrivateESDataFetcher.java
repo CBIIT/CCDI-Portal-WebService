@@ -1061,6 +1061,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"files", "files"},
             new String[]{"diagnosis", "diagnosis_str"},
             new String[]{"anatomic_site", "diagnosis_anatomic_site_str"},
+            new String[]{"diagnosis_category", "diagnosis_category"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis_str"},
             new String[]{"treatment_agent", "treatment_agent_str"},
             new String[]{"treatment_type", "treatment_type_str"},
@@ -1082,6 +1083,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("sex_at_birth", "sex_at_birth"),
                 Map.entry("synonym_id", "alternate_participant_id"),
                 Map.entry("diagnosis", "diagnosis_str"),
+                Map.entry("diagnosis_category", "diagnosis_category"),
                 Map.entry("anatomic_site", "diagnosis_anatomic_site_str"),
                 Map.entry("age_at_diagnosis", "age_at_diagnosis_str"),
                 Map.entry("treatment_agent", "treatment_agent_str"),
@@ -1092,7 +1094,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status_str"),
                 Map.entry("cpi_data","cpi_data")
         );
-
+        
         return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
     }
 
@@ -1385,6 +1387,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"personnel_name", "PIs"},
             new String[]{"num_of_participants", "num_of_participants"},
             new String[]{"diagnosis", "diagnosis_cancer"},
+            new String[]{"diagnosis_category", "diagnosis_category"},
             new String[]{"num_of_samples", "num_of_samples"},
             new String[]{"anatomic_site", "diagnosis_anatomic_site"},
             new String[]{"num_of_files", "num_of_files"},
@@ -1405,7 +1408,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("personnel_name", "PIs"),
                 Map.entry("num_of_participants", "num_of_participants"),
                 Map.entry("num_of_samples", "num_of_samples"),
-                Map.entry("num_of_files", "num_of_files")
+                Map.entry("num_of_files", "num_of_files"),
+                Map.entry("diagnosis_category", "diagnosis_category")
         );
 
         Request request = new Request("GET", FILES_END_POINT);

@@ -206,6 +206,7 @@ type ParticipantOverViewResult {
     synonym_id: String
     files: [String]
     diagnosis: String
+    diagnosis_category: String
     anatomic_site: String
     age_at_diagnosis: String
     treatment_agent: String
@@ -250,6 +251,7 @@ type StudyOverViewResult {
     diagnosis: [String]
     num_of_samples: String
     anatomic_site: [String]
+    diagnosis_category: [String]
     num_of_files: String
     file_type: [String]
     pubmed_id: String
