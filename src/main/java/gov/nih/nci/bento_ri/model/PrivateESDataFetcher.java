@@ -91,10 +91,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final Set<String> INCLUDE_PARAMS  = Set.of("race", "data_category");
 
-    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "diagnosis_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status", "first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
+    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "diagnosis_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_category", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status", "first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
     final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "diagnosis_category", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status","first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "sample_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis");
-    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
+    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "diagnosis_category");
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "dbgap_accession", "study_acronym", "study_name", "study_status");
     final Set<String> FILE_REGULAR_PARAMS = Set.of("data_category", "dbgap_accession", "study_acronym", "study_name", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy", "file_mapping_level");
 
@@ -272,12 +272,13 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 GS_COUNT_ENDPOINT, PARTICIPANTS_COUNT_END_POINT,
                 GS_COUNT_RESULT_FIELD, "participant_count",
                 GS_RESULT_FIELD, "participants",
-                GS_SEARCH_FIELD, List.of("participant_id_gs","diagnosis_str_gs", "study_id_gs", "age_at_diagnosis_str_gs", "treatment_type_str_gs", "sex_at_birth_gs", "treatment_agent_str_gs", "race_str_gs", "last_known_survival_status_str_gs"),
+                GS_SEARCH_FIELD, List.of("participant_id_gs","diagnosis_str_gs", "diagnosis_category_str_gs", "study_id_gs", "age_at_diagnosis_str_gs", "treatment_type_str_gs", "sex_at_birth_gs", "treatment_agent_str_gs", "race_str_gs", "last_known_survival_status_str_gs"),
                 GS_SORT_FIELD, "participant_id",
                 GS_COLLECT_FIELDS, new String[][]{
                         new String[]{"id", "id"},
                         new String[]{"participant_id", "participant_id"},
                         new String[]{"diagnosis_str", "diagnosis_str"},
+                        new String[]{"diagnosis_category_str", "diagnosis_category_str"},
                         new String[]{"age_at_diagnosis_str", "age_at_diagnosis_str"},
                         new String[]{"treatment_agent_str", "treatment_agent_str"},
                         new String[]{"treatment_type_str", "treatment_type_str"},
@@ -311,7 +312,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 GS_COUNT_ENDPOINT, SAMPLES_COUNT_END_POINT,
                 GS_COUNT_RESULT_FIELD, "sample_count",
                 GS_RESULT_FIELD, "samples",
-                GS_SEARCH_FIELD, List.of("sample_id_gs", "participant_id_gs", "study_id_gs", "sample_anatomic_site_str_gs", "sample_tumor_status_gs", "diagnosis_str_gs", "tumor_classification_gs"),
+                GS_SEARCH_FIELD, List.of("sample_id_gs", "participant_id_gs", "study_id_gs", "sample_anatomic_site_str_gs", "diagnosis_category_str_gs", "sample_tumor_status_gs", "diagnosis_str_gs", "tumor_classification_gs"),
                 GS_SORT_FIELD, "sample_id",
                 GS_COLLECT_FIELDS, new String[][]{
                         new String[]{"sample_id", "sample_id"},
@@ -320,6 +321,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         new String[]{"sample_anatomic_site_str", "sample_anatomic_site_str"},
                         new String[]{"sample_tumor_status", "sample_tumor_status"},
                         new String[]{"diagnosis_str", "diagnosis_str"},
+                        new String[]{"diagnosis_category_str", "diagnosis_category_str"},
                         new String[]{"tumor_classification", "tumor_classification"}
                 },
                 GS_CATEGORY_TYPE, "sample"
@@ -1050,6 +1052,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
+        System.out.println(params);
         final String[][] PROPERTIES = new String[][]{
             new String[]{"id", "id"},
             new String[]{"participant_id", "participant_id"},
@@ -1061,7 +1064,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"files", "files"},
             new String[]{"diagnosis", "diagnosis_str"},
             new String[]{"anatomic_site", "diagnosis_anatomic_site_str"},
-            new String[]{"diagnosis_category", "diagnosis_category"},
+            new String[]{"diagnosis_category", "diagnosis_category_str"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis_str"},
             new String[]{"treatment_agent", "treatment_agent_str"},
             new String[]{"treatment_type", "treatment_type_str"},
@@ -1083,7 +1086,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("sex_at_birth", "sex_at_birth"),
                 Map.entry("synonym_id", "alternate_participant_id"),
                 Map.entry("diagnosis", "diagnosis_str"),
-                Map.entry("diagnosis_category", "diagnosis_category"),
+                Map.entry("diagnosis_category", "diagnosis_category_str"),
                 Map.entry("anatomic_site", "diagnosis_anatomic_site_str"),
                 Map.entry("age_at_diagnosis", "age_at_diagnosis_str"),
                 Map.entry("treatment_agent", "treatment_agent_str"),
@@ -1366,7 +1369,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("anatomic_site", "diagnosis_anatomic_site_str"),
                 Map.entry("disease_phase", "disease_phase"),
                 Map.entry("diagnosis_basis", "diagnosis_basis"),
-                Map.entry("diagnosis_category", "diagnosis_category"),
                 Map.entry("diagnosis_classification_system", "diagnosis_classification_system"),
                 Map.entry("age_at_diagnosis", "age_at_diagnosis"),
                 Map.entry("tumor_grade_source", "tumor_grade_source"),
@@ -1387,7 +1389,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"personnel_name", "PIs"},
             new String[]{"num_of_participants", "num_of_participants"},
             new String[]{"diagnosis", "diagnosis_cancer"},
-            new String[]{"diagnosis_category", "diagnosis_category"},
             new String[]{"num_of_samples", "num_of_samples"},
             new String[]{"anatomic_site", "diagnosis_anatomic_site"},
             new String[]{"num_of_files", "num_of_files"},
@@ -1408,8 +1409,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("personnel_name", "PIs"),
                 Map.entry("num_of_participants", "num_of_participants"),
                 Map.entry("num_of_samples", "num_of_samples"),
-                Map.entry("num_of_files", "num_of_files"),
-                Map.entry("diagnosis_category", "diagnosis_category")
+                Map.entry("num_of_files", "num_of_files")
         );
 
         Request request = new Request("GET", FILES_END_POINT);
@@ -1455,6 +1455,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"sample_tumor_status", "sample_tumor_status"},
             new String[]{"tumor_classification", "tumor_classification"},
             new String[]{"diagnosis", "diagnosis_str"},
+            new String[]{"diagnosis_category", "diagnosis_category_str"},
             new String[]{"files", "files"}
         };
 
@@ -1468,7 +1469,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("participant_age_at_collection", "participant_age_at_collection"),
                 Map.entry("sample_tumor_status", "sample_tumor_status"),
                 Map.entry("tumor_classification", "tumor_classification"),
-                Map.entry("diagnosis", "diagnosis_str")
+                Map.entry("diagnosis", "diagnosis_str"),
+                Map.entry("diagnosis_category", "diagnosis_category_str")
         );
 
         return overview(SAMPLES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "samples");
@@ -1528,6 +1530,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         
         Request request = new Request("GET", endpoint);
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), regular_fields, nestedProperty, overviewType);
+        System.out.println(query);
         String order_by = (String)params.get(ORDER_BY);
         String direction = ((String)params.get(SORT_DIRECTION)).toLowerCase();
         query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
