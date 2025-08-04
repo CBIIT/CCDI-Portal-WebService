@@ -1052,7 +1052,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
-        System.out.println(params);
+        // System.out.println(params);
         final String[][] PROPERTIES = new String[][]{
             new String[]{"id", "id"},
             new String[]{"participant_id", "participant_id"},
@@ -1530,7 +1530,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         
         Request request = new Request("GET", endpoint);
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), regular_fields, nestedProperty, overviewType);
-        System.out.println(query);
+        // System.out.println(query);
         String order_by = (String)params.get(ORDER_BY);
         String direction = ((String)params.get(SORT_DIRECTION)).toLowerCase();
         query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
