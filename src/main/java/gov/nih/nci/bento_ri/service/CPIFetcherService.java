@@ -7,15 +7,11 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -313,43 +309,12 @@ public class CPIFetcherService {
     }
     
     /**
-     * Create HTTP client with SSL verification disabled (for development/testing)
+     * Create HTTP client with default SSL verification
      */
     private HttpClient createHttpClient() {
-        try {
-            // Create a trust manager that accepts all certificates
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                new X509TrustManager() {
-                    @Override
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
-                    }
-                    
-                    @Override
-                    public void checkClientTrusted(X509Certificate[] certs, String authType) {
-                        // Trust all client certificates
-                    }
-                    
-                    @Override
-                    public void checkServerTrusted(X509Certificate[] certs, String authType) {
-                        // Trust all server certificates
-                    }
-                }
-            };
-            
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-            
-            return HttpClient.newBuilder()
-                    .sslContext(sslContext)
-                    .connectTimeout(Duration.ofSeconds(30))
-                    .build();
-        } catch (Exception e) {
-            logger.warn("Failed to create HTTP client with disabled SSL verification, using default client", e);
-            return HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(30))
-                    .build();
-        }
+        return HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(30))
+                .build();
     }
     
     /**
