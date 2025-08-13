@@ -63,26 +63,29 @@ public class CPIFetcherService {
     public List<FormattedCPIResponse> fetchAssociatedParticipantIds(List<ParticipantRequest> participantRequests) throws Exception {
         logger.info("Fetching associated participant IDs for {} participants", participantRequests.size());
         
+        if (participantRequests == null || participantRequests.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
         // Get access token
         String accessToken = getAccessToken();
         
         // Get domains information once
         Map<String, DomainInfo> domainsMap = fetchDomainsInfo(accessToken);
         
-        // Process each participant request
-        List<FormattedCPIResponse> formattedResponses = new ArrayList<>();
-        
+        // Transform all input requests to CPI format in a single request
+        List<CPIParticipantRequest> cpiRequests = new ArrayList<>();
         for (ParticipantRequest participantRequest : participantRequests) {
-            // Transform input to CPI format for this specific participant
-            List<CPIParticipantRequest> cpiRequests = List.of(
-                new CPIParticipantRequest(participantRequest.getStudyId(), participantRequest.getParticipantId())
-            );
-            CPIRequestBody requestBody = new CPIRequestBody(cpiRequests);
-            
-            // Make API call for associated participant IDs
-            Map<String, Object> apiResponse = makeApiCall(accessToken, requestBody);
-            
-            // Format the response
+            cpiRequests.add(new CPIParticipantRequest(participantRequest.getStudyId(), participantRequest.getParticipantId()));
+        }
+        CPIRequestBody requestBody = new CPIRequestBody(cpiRequests);
+        
+        // Make single API call for all participants
+        Map<String, Object> apiResponse = makeApiCall(accessToken, requestBody);
+        
+        // Format the response for each participant
+        List<FormattedCPIResponse> formattedResponses = new ArrayList<>();
+        for (ParticipantRequest participantRequest : participantRequests) {
             FormattedCPIResponse formattedResponse = formatResponse(participantRequest, apiResponse, domainsMap);
             formattedResponses.add(formattedResponse);
         }
