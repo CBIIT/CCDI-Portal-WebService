@@ -1,4 +1,4 @@
-package gov.nih.nci.bento.service;
+package gov.nih.nci.bento_ri.service;
 
 import org.junit.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,7 +26,7 @@ public class CPIFetcherServiceTest {
     public void testFetchAssociatedParticipantIds_Example() {
         // Example usage - uncomment and provide real credentials to test
         /*
-        import gov.nih.nci.bento.model.ParticipantRequest;
+        import gov.nih.nci.bento_ri.model.ParticipantRequest;
         import java.util.Arrays;
         import java.util.List;
         import java.util.Map;
