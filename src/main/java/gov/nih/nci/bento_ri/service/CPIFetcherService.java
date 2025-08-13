@@ -104,6 +104,7 @@ public class CPIFetcherService {
      */
     public void clearDomainsCache() {
         cache.invalidate("cpi:domains");
+        cache.invalidate("cpi:domains:count");
         logger.info("Cleared domains cache");
     }
     
@@ -149,12 +150,15 @@ public class CPIFetcherService {
      */
     private Map<String, DomainInfo> fetchDomainsInfo(String accessToken) throws Exception {
         final String CACHE_KEY = "cpi:domains";
+        final String COUNT_CACHE_KEY = "cpi:domains:count";
         
         // Check cache first
         @SuppressWarnings("unchecked")
         Map<String, DomainInfo> cachedDomains = (Map<String, DomainInfo>) cache.getIfPresent(CACHE_KEY);
         if (cachedDomains != null) {
-            logger.debug("Retrieved domains information from cache ({} domains)", cachedDomains.size() / 3); // Divided by 3 because we store 3 variations per domain
+            Integer domainCount = (Integer) cache.getIfPresent(COUNT_CACHE_KEY);
+            String countInfo = domainCount != null ? domainCount.toString() : "unknown";
+            logger.debug("Retrieved domains information from cache ({} domains)", countInfo);
             return cachedDomains;
         }
         
@@ -183,8 +187,9 @@ public class CPIFetcherService {
                 domainsMap.put(domain.getDomainName().toLowerCase(), domain);
             }
             
-            // Cache the result
+            // Cache both the domains map and the actual count
             cache.put(CACHE_KEY, domainsMap);
+            cache.put(COUNT_CACHE_KEY, domains.length);
             logger.info("Successfully fetched and cached {} domains", domains.length);
             
             return domainsMap;
