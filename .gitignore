@@ -14,3 +14,4 @@ target/
 .sts4-cache/*
 src/main/resources/application.properties
 logs/
+.metadata/
