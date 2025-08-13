@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.nci.bento_ri.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import com.github.benmanes.caffeine.cache.Cache;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -47,10 +50,13 @@ public class CPIFetcherService {
     
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
+    private final Cache<String, Object> cache;
     
-    public CPIFetcherService() {
+    @Autowired
+    public CPIFetcherService(Cache<String, Object> caffeineCache) {
         this.objectMapper = new ObjectMapper();
         this.httpClient = createHttpClient();
+        this.cache = caffeineCache;
     }
     
     /**
@@ -94,6 +100,14 @@ public class CPIFetcherService {
     }
     
     /**
+     * Clear the domains cache - useful for testing or when domains are updated
+     */
+    public void clearDomainsCache() {
+        cache.invalidate("cpi:domains");
+        logger.info("Cleared domains cache");
+    }
+    
+    /**
      * Get OAuth2 access token using client credentials
      */
     private String getAccessToken() throws Exception {
@@ -131,10 +145,21 @@ public class CPIFetcherService {
     }
     
     /**
-     * Fetch domains information from CPI service
+     * Fetch domains information from CPI service with caching
      */
     private Map<String, DomainInfo> fetchDomainsInfo(String accessToken) throws Exception {
-        logger.debug("Fetching domains information from: {}", domainsUrl);
+        final String CACHE_KEY = "cpi:domains";
+        
+        // Check cache first
+        @SuppressWarnings("unchecked")
+        Map<String, DomainInfo> cachedDomains = (Map<String, DomainInfo>) cache.getIfPresent(CACHE_KEY);
+        if (cachedDomains != null) {
+            logger.debug("Retrieved domains information from cache ({} domains)", cachedDomains.size() / 3); // Divided by 3 because we store 3 variations per domain
+            return cachedDomains;
+        }
+        
+        // Cache miss - fetch from API
+        logger.debug("Cache miss - fetching domains information from: {}", domainsUrl);
         
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(domainsUrl))
@@ -157,7 +182,11 @@ public class CPIFetcherService {
                 domainsMap.put(domain.getDomainName().toUpperCase(), domain);
                 domainsMap.put(domain.getDomainName().toLowerCase(), domain);
             }
-            logger.debug("Successfully fetched {} domains", domains.length);
+            
+            // Cache the result
+            cache.put(CACHE_KEY, domainsMap);
+            logger.info("Successfully fetched and cached {} domains", domains.length);
+            
             return domainsMap;
         } else {
             logger.error("Failed to fetch domains: {} - {}", response.statusCode(), response.body());
