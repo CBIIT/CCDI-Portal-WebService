@@ -10,11 +10,11 @@ import org.springframework.test.context.TestPropertySource;
  */
 @SpringBootTest
 @TestPropertySource(properties = {
-    "cpi.oauth2.client.id=${OAUTH2_CLIENT_ID:test_client_id}",
-    "cpi.oauth2.client.secret=${OAUTH2_CLIENT_SECRET:test_client_secret}",
-    "cpi.oauth2.token.uri=${OAUTH2_TOKEN_URI:https://example.com/token}",
-    "cpi.api.url=https://participantindex.ccdi.cancer.gov/v1/associated_participant_ids",
-    "cpi.oauth2.scope=custom"
+    "oauth2.client.id=${OAUTH2_CLIENT_ID:test_client_id}",
+    "oauth2.client.secret=${OAUTH2_CLIENT_SECRET:test_client_secret}",
+    "oauth2.token.uri=${OAUTH2_TOKEN_URI:https://example.com/token}",
+    "api.url=https://participantindex.ccdi.cancer.gov/v1/associated_participant_ids",
+    "oauth2.scope=custom"
 })
 public class CPIFetcherServiceTest {
 

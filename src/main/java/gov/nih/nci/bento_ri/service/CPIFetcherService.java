@@ -30,22 +30,22 @@ public class CPIFetcherService {
     
     private static final Logger logger = LogManager.getLogger(CPIFetcherService.class);
     
-    @Value("${cpi.oauth2.client.id:#{environment.OAUTH2_CLIENT_ID}}")
+    @Value("${oauth2.client.id:#{environment.OAUTH2_CLIENT_ID}}")
     private String clientId;
     
-    @Value("${cpi.oauth2.client.secret:#{environment.OAUTH2_CLIENT_SECRET}}")
+    @Value("${oauth2.client.secret:#{environment.OAUTH2_CLIENT_SECRET}}")
     private String clientSecret;
     
-    @Value("${cpi.oauth2.token.uri:#{environment.OAUTH2_TOKEN_URI}}")
+    @Value("${oauth2.token.uri:#{environment.OAUTH2_TOKEN_URI}}")
     private String tokenUri;
     
-    @Value("${cpi.api.url:https://participantindex.ccdi.cancer.gov/v1/associated_participant_ids}")
+    @Value("${api.url:https://participantindex.ccdi.cancer.gov/v1/associated_participant_ids}")
     private String apiUrl;
     
-    @Value("${cpi.domains.url:https://participantindex.ccdi.cancer.gov/v1/domains}")
+    @Value("${domains.url:https://participantindex.ccdi.cancer.gov/v1/domains}")
     private String domainsUrl;
     
-    @Value("${cpi.oauth2.scope:custom}")
+    @Value("${oauth2.scope:custom}")
     private String scope;
     
     private final ObjectMapper objectMapper;
