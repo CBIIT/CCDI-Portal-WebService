@@ -25,7 +25,7 @@ import java.util.Map;
 /**
  * Service for making OAuth2 authenticated API calls to CPI (Child Participant Index) service
  */
-@Service
+@Service("CpiFetcherService")
 public class CPIFetcherService {
     
     private static final Logger logger = LogManager.getLogger(CPIFetcherService.class);
