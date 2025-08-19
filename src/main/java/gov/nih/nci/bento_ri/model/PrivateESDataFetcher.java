@@ -2,11 +2,11 @@ package gov.nih.nci.bento_ri.model;
 
 import gov.nih.nci.bento.constants.Const;
 import gov.nih.nci.bento.model.AbstractPrivateESDataFetcher;
-import gov.nih.nci.bento.model.search.mapper.TypeMapperImpl;
-import gov.nih.nci.bento.model.search.mapper.TypeMapperService;
 import gov.nih.nci.bento.model.search.yaml.YamlQueryFactory;
 import gov.nih.nci.bento.service.ESService;
 import gov.nih.nci.bento_ri.service.InventoryESService;
+import gov.nih.nci.bento_ri.service.CPIFetcherService;
+import gov.nih.nci.bento_ri.model.FormattedCPIResponse;
 import graphql.schema.idl.RuntimeWiring;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,6 +30,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private static final Logger logger = LogManager.getLogger(PrivateESDataFetcher.class);
     private final YamlQueryFactory yamlQueryFactory;
     private InventoryESService inventoryESService;
+    @Autowired
+    private CPIFetcherService cpiFetcherService;
     @Autowired
     private Cache<String, Object> caffeineCache;
 
@@ -1072,7 +1074,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"first_event", "first_event_str"},
             new String[]{"last_known_survival_status", "last_known_survival_status_str"},
             new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status_str"},
-            new String[]{"cpi_data", "cpi_data"}
         };
 
         String defaultSort = "participant_id"; // Default sort order
@@ -1094,12 +1095,210 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("age_at_treatment_start", "age_at_treatment_start_str"),
                 Map.entry("first_event", "first_event_str"),
                 Map.entry("last_known_survival_status", "last_known_survival_status_str"),
-                Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status_str"),
-                Map.entry("cpi_data","cpi_data")
+                Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status_str")
         );
         
-        return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
+        // Get the participant list from overview
+        List<Map<String, Object>> participant_list = overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+        
+        // Extract IDs using helper function
+        List<ParticipantRequest> extracted_ids = extractIDs(participant_list);
+        
+        // Check if CPIFetcherService is properly injected
+        if (cpiFetcherService == null) {
+            logger.warn("CPIFetcherService is not properly injected. CPI integration will be skipped.");
+        } else {
+            try {
+                List<FormattedCPIResponse> cpi_data = cpiFetcherService.fetchAssociatedParticipantIds(extracted_ids);
+                System.out.println("CPI data received: " + cpi_data.size() + " records");
+                
+                // Print the first value as JSON
+                if (cpi_data != null && !cpi_data.isEmpty()) {
+                   System.out.println("First CPI data value BEFORE enrichment: " + gson.toJson(cpi_data.get(0)));
+                    
+                    // Enrich CPI data with additional participant information
+                    enrichCPIDataWithParticipantInfo(cpi_data);
+                    
+                    // Print the first enriched CPI data value
+                    System.out.println("First enriched CPI data value AFTER enrichment: " + gson.toJson(cpi_data.get(0)));
+                    
+                    // Update the participant_list with the enriched CPI data
+                    updateParticipantListWithEnrichedCPIData(participant_list, cpi_data);
+                    
+                } else {
+                    System.out.println("CPI data is empty or null");
+                }
+            } catch (Exception e) {
+                System.err.println("Error fetching CPI data: " + e.getMessage());
+                logger.error("Error fetching CPI data", e);
+            }   
+        }
+
+        System.out.println("Participant list size after enrichment: " + gson.toJson(participant_list));
+        return participant_list;
     }
+    
+    /**
+     * Helper function to extract participant_id and study_id from participant list
+     * @param participant_list List of participant objects
+     * @return List of ParticipantRequest objects containing participant_id and study_id
+     */
+    private List<ParticipantRequest> extractIDs(List<Map<String, Object>> participant_list) {
+        List<ParticipantRequest> ids = new ArrayList<>();
+        
+        for (Map<String, Object> participant : participant_list) {
+            // Extract participant_id
+            Object participantId = participant.get("participant_id");
+            String participantIdStr = participantId != null ? participantId.toString() : "";
+            
+            // Extract study_id
+            Object studyId = participant.get("study_id");
+            String studyIdStr = studyId != null ? studyId.toString() : "";
+            
+            // Create ParticipantRequest object
+            ParticipantRequest participantRequest = new ParticipantRequest(participantIdStr, studyIdStr);
+            ids.add(participantRequest);
+        }
+        
+        return ids;
+    }
+
+    /**
+     * Enriches CPI data with additional participant information using batch queries for improved performance
+     */
+    private void enrichCPIDataWithParticipantInfo(List<FormattedCPIResponse> cpiData) throws IOException {
+        if (cpiData == null || cpiData.isEmpty()) {
+            return;
+        }
+
+        System.out.println("Starting CPI data enrichment for " + cpiData.size() + " records");
+
+        // Step 1: Filter out records that don't have cpiData and collect those that do
+        List<FormattedCPIResponse> recordsWithCpiData = new ArrayList<>();
+        for (FormattedCPIResponse cpiEntry : cpiData) {
+            if (hasCpiData(cpiEntry)) {
+                recordsWithCpiData.add(cpiEntry);
+            }
+        }
+
+        System.out.println("Found " + recordsWithCpiData.size() + " records with cpiData to enrich");
+
+        if (recordsWithCpiData.isEmpty()) {
+            System.out.println("No records with cpiData to enrich, skipping enrichment");
+            return;
+        }
+
+        // Step 2: Build HashMap mapping study_id to participant_ids
+        Map<String, Set<String>> studyToParticipantsMap = buildStudyToParticipantsMap(recordsWithCpiData);
+        System.out.println("Built study-to-participants mapping with " + studyToParticipantsMap.size() + " studies");
+
+        // Step 3: Generate and execute batch OpenSearch query
+        List<Map<String, Object>> batchQueryResults = executeBatchQuery(studyToParticipantsMap);
+        System.out.println("Batch query returned " + batchQueryResults.size() + " results");
+
+        // Step 4: Enrich CPI data with batch query results
+        enrichCpiDataWithBatchResults(recordsWithCpiData, batchQueryResults);
+
+        System.out.println("CPI data enrichment completed");
+    }
+
+    /**
+     * Checks if a FormattedCPIResponse has cpiData
+     */
+    private boolean hasCpiData(FormattedCPIResponse cpiEntry) {
+        try {
+            java.lang.reflect.Field cpiDataField = cpiEntry.getClass().getDeclaredField("cpiData");
+            cpiDataField.setAccessible(true);
+            Object cpiDataValue = cpiDataField.get(cpiEntry);
+            
+            if (cpiDataValue instanceof List) {
+                List<?> cpiDataList = (List<?>) cpiDataValue;
+                return !cpiDataList.isEmpty();
+            }
+            return false;
+        } catch (Exception e) {
+            logger.debug("Error checking if record has cpiData: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Builds a HashMap mapping study_id (repository_of_synonym_id) to participant_ids (associated_id)
+     */
+    private Map<String, Set<String>> buildStudyToParticipantsMap(List<FormattedCPIResponse> recordsWithCpiData) {
+        Map<String, Set<String>> studyToParticipantsMap = new HashMap<>();
+
+        for (FormattedCPIResponse cpiEntry : recordsWithCpiData) {
+            try {
+                java.lang.reflect.Field cpiDataField = cpiEntry.getClass().getDeclaredField("cpiData");
+                cpiDataField.setAccessible(true);
+                Object cpiDataValue = cpiDataField.get(cpiEntry);
+
+                if (cpiDataValue instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<Object> cpiDataArray = (List<Object>) cpiDataValue;
+
+                    for (Object cpiDataItem : cpiDataArray) {
+                        Map<String, Object> cpiDataMap = convertToMap(cpiDataItem);
+                        if (cpiDataMap != null) {
+                            String studyId = extractStringValue(cpiDataMap, "repository_of_synonym_id");
+                            String participantId = extractStringValue(cpiDataMap, "associated_id");
+
+                            if (studyId != null && participantId != null) {
+                                studyToParticipantsMap.computeIfAbsent(studyId, k -> new HashSet<>()).add(participantId);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error building study-to-participants map for CPI entry: " + e.getMessage(), e);
+            }
+        }
+
+        return studyToParticipantsMap;
+    }
+
+    /**
+     * Converts an object to a Map representation
+     */
+    private Map<String, Object> convertToMap(Object obj) {
+        if (obj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) obj;
+            return map;
+        } else {
+            try {
+                String jsonString = gson.toJson(obj);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = gson.fromJson(jsonString, Map.class);
+                return map;
+            } catch (Exception e) {
+                logger.debug("Error converting object to Map: " + e.getMessage());
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Extracts string value from a map, handling both single values and arrays
+     */
+    private String extractStringValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        
+        if (value instanceof List) {
+            List<?> list = (List<?>) value;
+            if (!list.isEmpty() && list.get(0) != null) {
+                return list.get(0).toString();
+            }
+        } else {
+            return value.toString();
+        }
+        return null;
+    }
+
 
     private Map<String, Object> studyDetails(Map<String, Object> params) throws IOException {
         Map<String, Object> study;
@@ -1699,5 +1898,246 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // System.out.println(keys.toString());
             return keys.toString();
         }
+    }
+
+    /**
+     * Executes batch OpenSearch query for all study/participant combinations
+     */
+    private List<Map<String, Object>> executeBatchQuery(Map<String, Set<String>> studyToParticipantsMap) throws IOException {
+        if (studyToParticipantsMap.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Build the batch query
+        Map<String, Object> query = buildBatchQuery(studyToParticipantsMap);
+        
+        System.out.println("Executing batch query: " + gson.toJson(query));
+
+        // Execute the query
+        Request request = new Request("GET", PARTICIPANTS_END_POINT);
+        request.setJsonEntity(gson.toJson(query));
+        
+        JsonObject response = inventoryESService.send(request);
+        JsonArray hits = response.getAsJsonObject("hits").getAsJsonArray("hits");
+        
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (JsonElement hit : hits) {
+            JsonObject source = hit.getAsJsonObject().getAsJsonObject("_source");
+            Map<String, Object> result = new HashMap<>();
+            
+            if (source.has("id")) {
+                result.put("id", source.get("id").getAsString());
+            }
+            if (source.has("participant_id")) {
+                result.put("participant_id", source.get("participant_id").getAsString());
+            }
+            if (source.has("study_id")) {
+                result.put("study_id", source.get("study_id").getAsString());
+            }
+            
+            results.add(result);
+        }
+
+        return results;
+    }
+
+    /**
+     * Builds the batch OpenSearch query based on the study-to-participants mapping
+     */
+    private Map<String, Object> buildBatchQuery(Map<String, Set<String>> studyToParticipantsMap) {
+        List<Object> shouldClauses = new ArrayList<>();
+
+        for (Map.Entry<String, Set<String>> entry : studyToParticipantsMap.entrySet()) {
+            String studyId = entry.getKey();
+            Set<String> participantIds = entry.getValue();
+
+            Map<String, Object> boolFilter = Map.of(
+                "bool", Map.of(
+                    "filter", List.of(
+                        Map.of("term", Map.of("study_id", studyId)),
+                        Map.of("terms", Map.of("participant_id", new ArrayList<>(participantIds)))
+                    )
+                )
+            );
+
+            shouldClauses.add(boolFilter);
+        }
+
+        Map<String, Object> query = Map.of(
+            "query", Map.of(
+                "bool", Map.of(
+                    "should", shouldClauses
+                )
+            ),
+            "size", 10000, // Adjust size as needed
+            "_source", List.of("id", "participant_id", "study_id")
+        );
+
+        return query;
+    }
+
+    /**
+     * Enriches CPI data with the results from the batch query
+     */
+    private void enrichCpiDataWithBatchResults(List<FormattedCPIResponse> recordsWithCpiData, List<Map<String, Object>> batchQueryResults) {
+        // Create lookup map for quick access to query results
+        Map<String, String> participantStudyToPidMap = new HashMap<>();
+        
+        for (Map<String, Object> result : batchQueryResults) {
+            String participantId = (String) result.get("participant_id");
+            String studyId = (String) result.get("study_id");
+            String pId = (String) result.get("id");
+            
+            if (participantId != null && studyId != null && pId != null) {
+                String key = participantId + "_" + studyId;
+                participantStudyToPidMap.put(key, pId);
+            }
+        }
+
+        System.out.println("Created lookup map with " + participantStudyToPidMap.size() + " participant/study combinations");
+
+        // Enrich each CPI data record
+        for (FormattedCPIResponse cpiEntry : recordsWithCpiData) {
+            enrichSingleCpiEntry(cpiEntry, participantStudyToPidMap);
+        }
+    }
+
+
+    /**
+     * Enriches a single CPI entry with p_id and data_type
+     */
+    private void enrichSingleCpiEntry(FormattedCPIResponse cpiEntry, Map<String, String> participantStudyToPidMap) {
+        try {
+            java.lang.reflect.Field cpiDataField = cpiEntry.getClass().getDeclaredField("cpiData");
+            cpiDataField.setAccessible(true);
+            Object cpiDataValue = cpiDataField.get(cpiEntry);
+
+            if (cpiDataValue instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Object> cpiDataArray = (List<Object>) cpiDataValue;
+
+                for (int i = 0; i < cpiDataArray.size(); i++) {
+                    Object cpiDataItem = cpiDataArray.get(i);
+                    Map<String, Object> cpiDataMap = convertToMap(cpiDataItem);
+                    
+                    if (cpiDataMap != null) {
+                        String participantId = extractStringValue(cpiDataMap, "associated_id");
+                        String studyId = extractStringValue(cpiDataMap, "repository_of_synonym_id");
+                        
+                        if (participantId != null && studyId != null) {
+                            String lookupKey = participantId + "_" + studyId;
+                            
+                            if (participantStudyToPidMap.containsKey(lookupKey)) {
+                                // Found match in OpenSearch - set internal data
+                                cpiDataMap.put("p_id", participantStudyToPidMap.get(lookupKey));
+                                cpiDataMap.put("data_type", "internal");
+                                System.out.println("Enriched CPI data: participant=" + participantId + ", study=" + studyId + ", p_id=" + participantStudyToPidMap.get(lookupKey) + ", data_type=internal");
+                            } else {
+                                // No match found - set external data
+                                cpiDataMap.put("p_id", null);
+                                cpiDataMap.put("data_type", "external");
+                                System.out.println("Enriched CPI data: participant=" + participantId + ", study=" + studyId + ", p_id=null, data_type=external");
+                            }
+                            
+                            // If we converted to a new Map, replace the original item
+                            if (!(cpiDataItem instanceof Map)) {
+                                cpiDataArray.set(i, cpiDataMap);
+                            }
+                        }
+                    }
+                }
+                
+                // Update the cpiData field with enriched array
+                cpiDataField.set(cpiEntry, cpiDataArray);
+            }
+        } catch (Exception e) {
+            logger.error("Error enriching single CPI entry: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Updates the participant_list with enriched CPI data by matching participant_id and study_id
+     */
+    private void updateParticipantListWithEnrichedCPIData(List<Map<String, Object>> participant_list, List<FormattedCPIResponse> enriched_cpi_data) {
+        if (participant_list == null || participant_list.isEmpty() || enriched_cpi_data == null || enriched_cpi_data.isEmpty()) {
+            return;
+        }
+
+        // Create a map for quick lookup of enriched CPI data by participant_id + study_id combination
+        Map<String, Object> enrichedCPILookup = new HashMap<>();
+        
+        for (FormattedCPIResponse cpiResponse : enriched_cpi_data) {
+            try {
+                // Extract participant_id and study_id from the CPI response
+                Object participantIdObj = getFieldValue(cpiResponse, "participantId");
+                Object studyIdObj = getFieldValue(cpiResponse, "studyId");
+                
+                String participantId = participantIdObj != null ? participantIdObj.toString() : null;
+                String studyId = studyIdObj != null ? studyIdObj.toString() : null;
+                
+                if (participantId != null && studyId != null) {
+                    String lookupKey = participantId + "_" + studyId;
+                    
+                    // Extract the enriched cpiData array from the response (this is the array with enriched objects)
+                    Object enrichedCpiDataArray = getFieldValue(cpiResponse, "cpiData");
+                    if (enrichedCpiDataArray != null) {
+                        enrichedCPILookup.put(lookupKey, enrichedCpiDataArray);
+                        System.out.println("Added enriched CPI data array for participant: " + participantId + ", study: " + studyId);
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error processing CPI response for lookup map: " + e.getMessage(), e);
+            }
+        }
+
+        // Update each participant in the participant_list with enriched CPI data
+        for (Map<String, Object> participant : participant_list) {
+            try {
+                String participantId = getStringValue(participant, "participant_id");
+                String studyId = getStringValue(participant, "study_id");
+                
+                if (participantId != null && studyId != null) {
+                    String lookupKey = participantId + "_" + studyId;
+                    
+                    // Check if we have enriched CPI data for this participant
+                    if (enrichedCPILookup.containsKey(lookupKey)) {
+                        Object enrichedCpiDataArray = enrichedCPILookup.get(lookupKey);
+                        
+                        // Update the cpi_data field in the participant record with the enriched array
+                        participant.put("cpi_data", enrichedCpiDataArray);
+                        System.out.println("Updated participant " + participantId + " with enriched CPI data array");
+                    } else {
+                        System.out.println("No enriched CPI data found for participant: " + participantId + ", study: " + studyId);
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error updating participant with enriched CPI data: " + e.getMessage(), e);
+            }
+        }
+        
+        System.out.println("Completed updating participant_list with enriched CPI data");
+    }
+
+    /**
+     * Helper method to extract field values from FormattedCPIResponse objects using reflection
+     */
+    private Object getFieldValue(FormattedCPIResponse obj, String fieldName) {
+        try {
+            java.lang.reflect.Field field = obj.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Object value = field.get(obj);
+            return value;
+        } catch (Exception e) {
+            logger.debug("Could not access field '" + fieldName + "' from FormattedCPIResponse: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Helper method to safely extract string values from maps
+     */
+    private String getStringValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        return value != null ? value.toString() : null;
     }
 }

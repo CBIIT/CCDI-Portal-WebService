@@ -53,69 +53,69 @@ public class FormattedCPIResponse {
      */
     public static class CPIDataItem {
         @JsonProperty("associated_id")
-        private String associatedId;
+        private String associated_id;
         
         @JsonProperty("repository_of_synonym_id")
-        private String repositoryOfSynonymId;
-        
+        private String repository_of_synonym_id;
+
         @JsonProperty("domain_description")
-        private String domainDescription;
-        
+        private String domain_description;
+
         @JsonProperty("domain_category")
-        private String domainCategory;
+        private String domain_category;
         
         @JsonProperty("data_location")
-        private String dataLocation;
+        private String data_location;
 
         public CPIDataItem() {}
 
-        public CPIDataItem(String associatedId, String repositoryOfSynonymId, String domainDescription, 
-                          String domainCategory, String dataLocation) {
-            this.associatedId = associatedId;
-            this.repositoryOfSynonymId = repositoryOfSynonymId;
-            this.domainDescription = domainDescription;
-            this.domainCategory = domainCategory;
-            this.dataLocation = dataLocation;
+        public CPIDataItem(String associated_id, String repository_of_synonym_id, String domain_description,
+                          String domain_category, String data_location) {
+            this.associated_id = associated_id;
+            this.repository_of_synonym_id = repository_of_synonym_id;
+            this.domain_description = domain_description;
+            this.domain_category = domain_category;
+            this.data_location = data_location;
         }
 
         public String getAssociatedId() {
-            return associatedId;
+            return associated_id;
         }
 
         public void setAssociatedId(String associatedId) {
-            this.associatedId = associatedId;
+            this.associated_id = associatedId;
         }
 
         public String getRepositoryOfSynonymId() {
-            return repositoryOfSynonymId;
+            return repository_of_synonym_id;
         }
 
         public void setRepositoryOfSynonymId(String repositoryOfSynonymId) {
-            this.repositoryOfSynonymId = repositoryOfSynonymId;
+            this.repository_of_synonym_id = repositoryOfSynonymId;
         }
 
         public String getDomainDescription() {
-            return domainDescription;
+            return domain_description;
         }
 
         public void setDomainDescription(String domainDescription) {
-            this.domainDescription = domainDescription;
+            this.domain_description = domainDescription;
         }
 
         public String getDomainCategory() {
-            return domainCategory;
+            return domain_category;
         }
 
         public void setDomainCategory(String domainCategory) {
-            this.domainCategory = domainCategory;
+            this.domain_category = domainCategory;
         }
 
         public String getDataLocation() {
-            return dataLocation;
+            return data_location;
         }
 
         public void setDataLocation(String dataLocation) {
-            this.dataLocation = dataLocation;
+            this.data_location = dataLocation;
         }
     }
 }
