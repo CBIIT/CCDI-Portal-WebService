@@ -1110,31 +1110,31 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         } else {
             try {
                 List<FormattedCPIResponse> cpi_data = cpiFetcherService.fetchAssociatedParticipantIds(extracted_ids);
-                System.out.println("CPI data received: " + cpi_data.size() + " records");
+                logger.info("CPI data received: " + cpi_data.size() + " records");
                 
                 // Print the first value as JSON
                 if (cpi_data != null && !cpi_data.isEmpty()) {
-                   System.out.println("First CPI data value BEFORE enrichment: " + gson.toJson(cpi_data.get(0)));
+                    // System.out.println("First CPI data value BEFORE enrichment: " + gson.toJson(cpi_data.get(0)));
                     
                     // Enrich CPI data with additional participant information
                     enrichCPIDataWithParticipantInfo(cpi_data);
                     
                     // Print the first enriched CPI data value
-                    System.out.println("First enriched CPI data value AFTER enrichment: " + gson.toJson(cpi_data.get(0)));
+                    // System.out.println("First enriched CPI data value AFTER enrichment: " + gson.toJson(cpi_data.get(0)));
                     
                     // Update the participant_list with the enriched CPI data
                     updateParticipantListWithEnrichedCPIData(participant_list, cpi_data);
                     
                 } else {
-                    System.out.println("CPI data is empty or null");
+                    // System.out.println("CPI data is empty or null");
                 }
             } catch (Exception e) {
-                System.err.println("Error fetching CPI data: " + e.getMessage());
+                // System.err.println("Error fetching CPI data: " + e.getMessage());
                 logger.error("Error fetching CPI data", e);
             }   
         }
 
-        System.out.println("Participant list size after enrichment: " + gson.toJson(participant_list));
+        // System.out.println("Participant list size after enrichment: " + gson.toJson(participant_list));
         return participant_list;
     }
     
@@ -1171,7 +1171,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             return;
         }
 
-        System.out.println("Starting CPI data enrichment for " + cpiData.size() + " records");
+        // System.out.println("Starting CPI data enrichment for " + cpiData.size() + " records");
 
         // Step 1: Filter out records that don't have cpiData and collect those that do
         List<FormattedCPIResponse> recordsWithCpiData = new ArrayList<>();
@@ -1181,25 +1181,25 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             }
         }
 
-        System.out.println("Found " + recordsWithCpiData.size() + " records with cpiData to enrich");
+        // System.out.println("Found " + recordsWithCpiData.size() + " records with cpiData to enrich");
 
         if (recordsWithCpiData.isEmpty()) {
-            System.out.println("No records with cpiData to enrich, skipping enrichment");
+            // System.out.println("No records with cpiData to enrich, skipping enrichment");
             return;
         }
 
         // Step 2: Build HashMap mapping study_id to participant_ids
         Map<String, Set<String>> studyToParticipantsMap = buildStudyToParticipantsMap(recordsWithCpiData);
-        System.out.println("Built study-to-participants mapping with " + studyToParticipantsMap.size() + " studies");
+        // System.out.println("Built study-to-participants mapping with " + studyToParticipantsMap.size() + " studies");
 
         // Step 3: Generate and execute batch OpenSearch query
         List<Map<String, Object>> batchQueryResults = executeBatchQuery(studyToParticipantsMap);
-        System.out.println("Batch query returned " + batchQueryResults.size() + " results");
+        // System.out.println("Batch query returned " + batchQueryResults.size() + " results");
 
         // Step 4: Enrich CPI data with batch query results
         enrichCpiDataWithBatchResults(recordsWithCpiData, batchQueryResults);
 
-        System.out.println("CPI data enrichment completed");
+        // System.out.println("CPI data enrichment completed");
     }
 
     /**
@@ -1911,7 +1911,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         // Build the batch query
         Map<String, Object> query = buildBatchQuery(studyToParticipantsMap);
         
-        System.out.println("Executing batch query: " + gson.toJson(query));
+        // System.out.println("Executing batch query: " + gson.toJson(query));
 
         // Execute the query
         Request request = new Request("GET", PARTICIPANTS_END_POINT);
@@ -1994,7 +1994,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             }
         }
 
-        System.out.println("Created lookup map with " + participantStudyToPidMap.size() + " participant/study combinations");
+        // System.out.println("Created lookup map with " + participantStudyToPidMap.size() + " participant/study combinations");
 
         // Enrich each CPI data record
         for (FormattedCPIResponse cpiEntry : recordsWithCpiData) {
@@ -2031,12 +2031,12 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                                 // Found match in OpenSearch - set internal data
                                 cpiDataMap.put("p_id", participantStudyToPidMap.get(lookupKey));
                                 cpiDataMap.put("data_type", "internal");
-                                System.out.println("Enriched CPI data: participant=" + participantId + ", study=" + studyId + ", p_id=" + participantStudyToPidMap.get(lookupKey) + ", data_type=internal");
+                                // System.out.println("Enriched CPI data: participant=" + participantId + ", study=" + studyId + ", p_id=" + participantStudyToPidMap.get(lookupKey) + ", data_type=internal");
                             } else {
                                 // No match found - set external data
                                 cpiDataMap.put("p_id", null);
                                 cpiDataMap.put("data_type", "external");
-                                System.out.println("Enriched CPI data: participant=" + participantId + ", study=" + studyId + ", p_id=null, data_type=external");
+                                // System.out.println("Enriched CPI data: participant=" + participantId + ", study=" + studyId + ", p_id=null, data_type=external");
                             }
                             
                             // If we converted to a new Map, replace the original item
@@ -2082,7 +2082,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     Object enrichedCpiDataArray = getFieldValue(cpiResponse, "cpiData");
                     if (enrichedCpiDataArray != null) {
                         enrichedCPILookup.put(lookupKey, enrichedCpiDataArray);
-                        System.out.println("Added enriched CPI data array for participant: " + participantId + ", study: " + studyId);
+                        // System.out.println("Added enriched CPI data array for participant: " + participantId + ", study: " + studyId);
                     }
                 }
             } catch (Exception e) {
@@ -2105,9 +2105,9 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         
                         // Update the cpi_data field in the participant record with the enriched array
                         participant.put("cpi_data", enrichedCpiDataArray);
-                        System.out.println("Updated participant " + participantId + " with enriched CPI data array");
+                        // System.out.println("Updated participant " + participantId + " with enriched CPI data array");
                     } else {
-                        System.out.println("No enriched CPI data found for participant: " + participantId + ", study: " + studyId);
+                        // System.out.println("No enriched CPI data found for participant: " + participantId + ", study: " + studyId);
                     }
                 }
             } catch (Exception e) {
@@ -2115,7 +2115,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             }
         }
         
-        System.out.println("Completed updating participant_list with enriched CPI data");
+        // System.out.println("Completed updating participant_list with enriched CPI data");
     }
 
     /**
