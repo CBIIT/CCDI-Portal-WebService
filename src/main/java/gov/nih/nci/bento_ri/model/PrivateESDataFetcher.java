@@ -776,7 +776,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_basis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
-                    ADDITIONAL_UPDATE, Map.of("Clinical", 3500),
+                    ADDITIONAL_UPDATE, Map.of("Clinical", 3500, "Not Reported", 2000),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -813,6 +813,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "last_known_survival_status",
                 FILTER_COUNT_QUERY, "filterParticipantCountBySurvivalStatus",
+                ADDITIONAL_UPDATE, Map.of("Alive", 3500),
                 AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -862,7 +863,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "tumor_classification",
                     FILTER_COUNT_QUERY, "filterParticipantCountByTumorClassification",
-                    ADDITIONAL_UPDATE, Map.of("Primary", 1000, "Not Applicable", 4000),
+                    ADDITIONAL_UPDATE, Map.of("Primary", 1000, "Not Applicable", 4000, "Not Reported", 1500),
                     AGG_ENDPOINT, SAMPLES_END_POINT
             ));
             //data_category mapped to data_category
@@ -871,14 +872,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "data_category",
                     WIDGET_QUERY, "participantCountByDataCategory",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDataCategory",
-                    ADDITIONAL_UPDATE, Map.of("Sequencing", 500),
+                    ADDITIONAL_UPDATE, Map.of("Sequencing", 500, "Clinical", 1500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "file_type",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFileType",
-                    ADDITIONAL_UPDATE, Map.of("bam", 3500, "crai", 3600, "cram", 4000, "fastq", 2000, "html", 3000, "pdf", 3000, "txt", 3500, "vcf" , 3500),
+                    ADDITIONAL_UPDATE, Map.of("bai", 1500, "bam", 3500, "crai", 3600, "cram", 4000, "fastq", 2000, "html", 3000,"json", 2000, "pdf", 3000, "txt", 3500, "vcf" , 3500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -908,7 +909,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_source_material",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySourceMaterial",
-                    ADDITIONAL_UPDATE, Map.of("Bulk Cells", 3000),
+                    ADDITIONAL_UPDATE, Map.of("Bulk Cells", 3000, "Not Reported", 2000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -922,6 +923,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_strategy",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
+                    ADDITIONAL_UPDATE, Map.of("WXS", 2000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
