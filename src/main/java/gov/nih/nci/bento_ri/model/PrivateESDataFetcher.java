@@ -696,7 +696,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         List<String> importData = (List<String>) params.get("import_data");
         String cacheKey = "no_cache";
         Map<String, Object> data = null;
-        if (importData == null || importData.size() == 0) {
+        if (importData == null || importData.size() == 0 || importData.get(0).equals("")) {
             cacheKey = generateCacheKey(params);
             data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
         }
