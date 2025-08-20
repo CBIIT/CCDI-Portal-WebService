@@ -284,7 +284,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         new String[]{"age_at_diagnosis_str", "age_at_diagnosis_str"},
                         new String[]{"treatment_agent_str", "treatment_agent_str"},
                         new String[]{"treatment_type_str", "treatment_type_str"},
-                        new String[]{"cpi_data", "cpi_data"},
                         new String[]{"study_id", "study_id"},
                         new String[]{"race_str", "race_str"},
                         new String[]{"sex_at_birth", "sex_at_birth"},
@@ -444,6 +443,36 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             for (var object: objects) {
                 object.put(GS_CATEGORY_TYPE, category.get(GS_CATEGORY_TYPE));
+            }
+
+            // Add CPI data enrichment for participants
+            if (resultFieldName.equals("participants") && objects != null && !objects.isEmpty()) {
+                // Check if CPIFetcherService is properly injected
+                if (cpiFetcherService != null) {
+                    try {
+                        // Extract IDs from the participant objects for CPI fetching
+                        List<ParticipantRequest> extracted_ids = extractIDs(objects);
+                        
+                        // Fetch CPI data
+                        List<FormattedCPIResponse> cpi_data = cpiFetcherService.fetchAssociatedParticipantIds(extracted_ids);
+                        logger.info("GlobalSearch CPI data received: " + cpi_data.size() + " records");
+                        
+                        if (cpi_data != null && !cpi_data.isEmpty()) {
+                            // Enrich CPI data with additional participant information
+                            enrichCPIDataWithParticipantInfo(cpi_data);
+                            
+                            // Update the participant objects with enriched CPI data
+                            updateParticipantListWithEnrichedCPIData(objects, cpi_data);
+                            
+                            logger.info("GlobalSearch participants enriched with CPI data");
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error enriching GlobalSearch participants with CPI data", e);
+                        // Continue processing even if CPI enrichment fails
+                    }
+                } else {
+                    logger.warn("CPIFetcherService is not properly injected. CPI integration will be skipped for GlobalSearch.");
+                }
             }
 
             List<Map<String, Object>> existingObjects = (List<Map<String, Object>>)result.getOrDefault(resultFieldName, null);
