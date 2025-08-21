@@ -1043,7 +1043,17 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     if (facetValues_need_update.size() > 0) {
                         Map<String, Object> query_4_update = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(field), REGULAR_PARAMS, "nested_filters", "participants");
                         String prop = field;
-                        query_4_update = inventoryESService.addCustomAggregations(query_4_update, "facetAgg", prop, "sample_diagnosis_file_filters");
+                        String nestedProperty = "sample_diagnosis_file_filters";
+                        if (indexType.equals("survivals")) {
+                            nestedProperty = "survival_filters";
+                        } else if (indexType.equals("treatments")) {
+                            nestedProperty = "treatment_filters";
+                        } else if (indexType.equals("treatment_responses")) {
+                            nestedProperty = "treatment_response_filters";
+                        } else {
+                            nestedProperty = "sample_diagnosis_file_filters";
+                        }
+                        query_4_update = inventoryESService.addCustomAggregations(query_4_update, "facetAgg", prop, nestedProperty);
                         Request request = new Request("GET", PARTICIPANTS_END_POINT);
                         request.setJsonEntity(gson.toJson(query_4_update));
                         JsonObject jsonObject = inventoryESService.send(request);
