@@ -872,14 +872,26 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "data_category",
                     WIDGET_QUERY, "participantCountByDataCategory",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDataCategory",
-                    ADDITIONAL_UPDATE, Map.of("Sequencing", 500, "Clinical", 1500),
+                    ADDITIONAL_UPDATE, Map.of("Pathology Imaging", 1000, "Sequencing", 500, "Clinical", 1500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "file_type",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFileType",
-                    ADDITIONAL_UPDATE, Map.of("bai", 1500, "bam", 3500, "crai", 3600, "cram", 4000, "fastq", 2000, "html", 3000,"json", 2000, "pdf", 3000, "txt", 3500, "vcf" , 3500),
+                    ADDITIONAL_UPDATE, new HashMap<String, Integer>() {{
+                        put("bai", 1500);
+                        put("bam", 3500);
+                        put("crai", 3600);
+                        put("cram", 4000);
+                        put("fastq", 2000);
+                        put("html", 3000);
+                        put("json", 2000);
+                        put("pdf", 3000);
+                        put("txt", 3500);
+                        put("dicom", 500);
+                        put("vcf", 3500);
+                    }},
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -923,7 +935,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_strategy",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
-                    ADDITIONAL_UPDATE, Map.of("WXS", 2000),
+                    ADDITIONAL_UPDATE, Map.of("WXS", 2000, "Other", 500, "RNA-Seq", 1000, "WGS", 1500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -1408,7 +1420,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "data_category",
                 FILTER_COUNT_QUERY, "data_categories",
-                ADDITIONAL_UPDATE, Map.of("Sequencing", 500),
+                ADDITIONAL_UPDATE, Map.of("Pathology Imaging", 1000, "Sequencing", 500, "Clinical", 1500),
                 AGG_ENDPOINT, FILES_END_POINT
         ));
         for (var agg: PARTICIPANT_TERM_AGGS) {
