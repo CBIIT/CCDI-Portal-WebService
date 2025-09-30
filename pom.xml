@@ -278,16 +278,11 @@
             <artifactId>annotations</artifactId>
             <version>13.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.opensearch</groupId>
-            <artifactId>opensearch-core</artifactId>
-            <version>2.11.1</version>  <!-- match your HLRC line -->
-        </dependency>
-        <!-- OpenSearch Java REST API (upgrade to 2.11.1) -->
+
         <dependency>
             <groupId>org.opensearch.client</groupId>
             <artifactId>opensearch-rest-client</artifactId>
-            <version>2.11.1</version>
+            <version>2.5.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.httpcomponents</groupId>
@@ -330,11 +325,11 @@
             <version>4.4.16</version>
         </dependency>
 
-        <!-- OpenSearch High Level Client (upgrade to 2.11.1) -->
+ 
         <dependency>
             <groupId>org.opensearch.client</groupId>
             <artifactId>opensearch-rest-high-level-client</artifactId>
-            <version>2.11.1</version>
+            <version>2.5.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>joda-time</groupId>
