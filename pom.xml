@@ -14,7 +14,7 @@
         The Bento Backend is meant to be used in conjunction with the Bento Frontend Framework and a Neo4j database.
     </description>
 
-    <!-- Upgrade Spring Boot parent so it manages Spring Framework 6.2.10 (fixes CVEs) -->
+    <!-- Spring Boot parent aligned to Spring Framework 6.2.11 -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -23,11 +23,12 @@
 
     <properties>
         <java.version>17</java.version>
-        <!-- Removed spring.version property to avoid conflicts; Spring is managed by Boot's BOM -->
         <snakeyaml.version>2.3</snakeyaml.version>
-        <kotlin.version>1.8.0</kotlin.version>
         <spring.restdocs.version>3.0.5</spring.restdocs.version>
+        <netty.version>4.1.127.Final</netty.version>
     </properties>
+
+    <!-- Use dependencyManagement to enforce patched protobuf across transitive pulls -->
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -56,6 +57,8 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -69,7 +72,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-log4j2</artifactId>
-            <!-- version inherited from Boot parent -->
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.logging.log4j</groupId>
@@ -85,7 +87,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
@@ -101,7 +102,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Spring Framework (versions inherited from Boot parent: 6.2.10) -->
+        <!-- Spring Framework (versions inherited from Boot parent) -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
@@ -164,14 +165,14 @@
             <version>21.5</version>
         </dependency>
 
-        <!-- GSON (managed by Boot BOM) -->
+        <!-- GSON -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <scope>compile</scope>
         </dependency>
 
-        <!-- Caffeine (managed by Boot BOM) -->
+        <!-- Caffeine -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
@@ -197,7 +198,7 @@
             <version>3.3.0</version>
         </dependency>
 
-        <!-- Apache Tomcat (explicit) -->
+        <!-- Apache Tomcat -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
@@ -236,13 +237,13 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Align Jackson to Boot-managed version (remove hard pin) -->
+        <!-- Jackson (inherit version from BOM) -->
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
         </dependency>
 
-        <!-- Neo4j Graphql -->
+        <!-- Neo4j GraphQL (exclude Kotlin stdlib variants to avoid duplicates) -->
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-graphql-java</artifactId>
@@ -252,14 +253,26 @@
                     <groupId>com.graphql-java</groupId>
                     <artifactId>graphql-java</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-stdlib-jdk8</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-stdlib-jdk7</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-stdlib</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
-        <!-- Netty: unify to the patched line -->
+        <!-- Netty unified -->
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-handler</artifactId>
-            <version>4.1.125.Final</version>
+            <version>${netty.version}</version>
         </dependency>
 
         <!-- Neo4j Java Driver -->
@@ -287,11 +300,14 @@
             <artifactId>annotations</artifactId>
             <version>13.0</version>
         </dependency>
+
+        <!-- OpenSearch core + clients -->
         <dependency>
             <groupId>org.opensearch</groupId>
             <artifactId>opensearch-core</artifactId>
-            <version>2.11.1</version>  <!-- match your HLRC line -->
+            <version>2.11.1</version>
         </dependency>
+
         <dependency>
             <groupId>org.opensearch.client</groupId>
             <artifactId>opensearch-rest-client</artifactId>
@@ -338,7 +354,6 @@
             <version>4.4.16</version>
         </dependency>
 
- 
         <dependency>
             <groupId>org.opensearch.client</groupId>
             <artifactId>opensearch-rest-high-level-client</artifactId>
@@ -395,6 +410,13 @@
             <artifactId>json</artifactId>
             <version>20231013</version>
         </dependency>
+
+        <!-- Explicit patched Kotlin stdlib (prevents older transitive copies) -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>2.1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -406,6 +428,8 @@
                     <jvmArguments>-Xms1g -Xmx2g</jvmArguments>
                 </configuration>
             </plugin>
+
+            <!-- Enforce dependency convergence -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
@@ -421,6 +445,24 @@
                         <goals>
                             <goal>enforce</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Optional: fail the build if duplicate Kotlin jars sneak in -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>fail-on-duplicates</id>
+                        <goals>
+                            <goal>analyze-duplicate</goal>
+                        </goals>
+                        <configuration>
+                            <failBuild>true</failBuild>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
