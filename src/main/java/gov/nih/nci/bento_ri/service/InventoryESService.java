@@ -184,41 +184,181 @@ public class InventoryESService extends ESService {
                             range.put("lte", higher);
                         }
                         if (key.equals("age_at_diagnosis")) {
-                            sample_diagnosis_filters.add(Map.of(
-                                "range", Map.of("sample_diagnosis_filters."+key, range)
-                            ));
-                            combined_filters.add(Map.of(
-                                "range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                sample_diagnosis_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("sample_diagnosis_filters."+key, range)),
+                                        Map.of("term", Map.of("sample_diagnosis_filters."+key, -999))
+                                    ))
+                                ));
+                                combined_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)),
+                                        Map.of("term", Map.of("combined_filters.sample_diagnosis_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                sample_diagnosis_filters.add(Map.of(
+                                    "range", Map.of("sample_diagnosis_filters."+key, range)
+                                ));
+                                combined_filters.add(Map.of(
+                                    "range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)
+                                ));
+                            }
                         } else if (key.equals("participant_age_at_collection")) {
-                            sample_diagnosis_filters.add(Map.of(
-                                "range", Map.of("sample_diagnosis_filters."+key, range)
-                            ));
-                            combined_filters.add(Map.of(
-                                "range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                sample_diagnosis_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("sample_diagnosis_filters."+key, range)),
+                                        Map.of("term", Map.of("sample_diagnosis_filters."+key, -999))
+                                    ))
+                                ));
+                                combined_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)),
+                                        Map.of("term", Map.of("combined_filters.sample_diagnosis_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                sample_diagnosis_filters.add(Map.of(
+                                    "range", Map.of("sample_diagnosis_filters."+key, range)
+                                ));
+                                combined_filters.add(Map.of(
+                                    "range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)
+                                ));
+                            }
                         
                         } else if (key.equals("age_at_treatment_start")) {
-                            treatment_filters.add(Map.of(
-                                "range", Map.of("treatment_filters."+key, range)
-                            ));
-                            combined_filters.add(Map.of(
-                                "range", Map.of("combined_filters.treatment_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                treatment_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("treatment_filters."+key, range)),
+                                        Map.of("term", Map.of("treatment_filters."+key, -999))
+                                    ))
+                                ));
+                                combined_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("combined_filters.treatment_filters."+key, range)),
+                                        Map.of("term", Map.of("combined_filters.treatment_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                treatment_filters.add(Map.of(
+                                    "range", Map.of("treatment_filters."+key, range)
+                                ));
+                                combined_filters.add(Map.of(
+                                    "range", Map.of("combined_filters.treatment_filters."+key, range)
+                                ));
+                            }
                         } else if (key.equals("age_at_response")) {
-                            treatment_response_filters.add(Map.of(
-                                "range", Map.of("treatment_response_filters."+key, range)
-                            ));
-                            combined_filters.add(Map.of(
-                                "range", Map.of("combined_filters.treatment_response_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                treatment_response_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("treatment_response_filters."+key, range)),
+                                        Map.of("term", Map.of("treatment_response_filters."+key, -999))
+                                    ))
+                                ));
+                                combined_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("combined_filters.treatment_response_filters."+key, range)),
+                                        Map.of("term", Map.of("combined_filters.treatment_response_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                treatment_response_filters.add(Map.of(
+                                    "range", Map.of("treatment_response_filters."+key, range)
+                                ));
+                                combined_filters.add(Map.of(
+                                    "range", Map.of("combined_filters.treatment_response_filters."+key, range)
+                                ));
+                            }
                         } else if (key.equals("age_at_last_known_survival_status")) {
-                            survival_filters.add(Map.of(
-                                "range", Map.of("survival_filters."+key, range)
-                            ));
-                            combined_filters.add(Map.of(
-                                "range", Map.of("combined_filters.survival_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                survival_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("survival_filters."+key, range)),
+                                        Map.of("term", Map.of("survival_filters."+key, -999))
+                                    ))
+                                ));
+                                combined_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("combined_filters.survival_filters."+key, range)),
+                                        Map.of("term", Map.of("combined_filters.survival_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                survival_filters.add(Map.of(
+                                    "range", Map.of("survival_filters."+key, range)
+                                ));
+                                combined_filters.add(Map.of(
+                                    "range", Map.of("combined_filters.survival_filters."+key, range)
+                                ));
+                            }
                         
                         } else {
                             filter_1.add(Map.of(
@@ -529,29 +669,161 @@ public class InventoryESService extends ESService {
                             range.put("lte", higher);
                         }
                         if(indexType.endsWith("participants") && (key.equals("age_at_diagnosis") || key.equals("participant_age_at_collection"))){
-                            sample_diagnosis_file_filters.add(Map.of(
-                                "range", Map.of("sample_diagnosis_file_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                sample_diagnosis_file_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("sample_diagnosis_file_filters."+key, range)),
+                                        Map.of("term", Map.of("sample_diagnosis_file_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                sample_diagnosis_file_filters.add(Map.of(
+                                    "range", Map.of("sample_diagnosis_file_filters."+key, range)
+                                ));
+                            }
                         } else if (indexType.equals("samples") && key.equals("age_at_diagnosis")) {
-                            diagnosis_filters.add(Map.of(
-                                "range", Map.of("diagnosis_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                diagnosis_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("diagnosis_filters."+key, range)),
+                                        Map.of("term", Map.of("diagnosis_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                diagnosis_filters.add(Map.of(
+                                    "range", Map.of("diagnosis_filters."+key, range)
+                                ));
+                            }
                         } else if (indexType.equals("diagnosis") && key.equals("participant_age_at_collection")) {
-                            sample_file_filters.add(Map.of(
-                                "range", Map.of("sample_file_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                sample_file_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("sample_file_filters."+key, range)),
+                                        Map.of("term", Map.of("sample_file_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                sample_file_filters.add(Map.of(
+                                    "range", Map.of("sample_file_filters."+key, range)
+                                ));
+                            }
                         } else if (!indexType.equals("treatments") && key.equals("age_at_treatment_start")) {
-                            treatment_filters.add(Map.of(
-                                "range", Map.of("treatment_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                treatment_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("treatment_filters."+key, range)),
+                                        Map.of("term", Map.of("treatment_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                treatment_filters.add(Map.of(
+                                    "range", Map.of("treatment_filters."+key, range)
+                                ));
+                            }
                         } else if (!indexType.equals("treatment_responses") && key.equals("age_at_response")) {
-                            treatment_response_filters.add(Map.of(
-                                "range", Map.of("treatment_response_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                treatment_response_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("treatment_response_filters."+key, range)),
+                                        Map.of("term", Map.of("treatment_response_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                treatment_response_filters.add(Map.of(
+                                    "range", Map.of("treatment_response_filters."+key, range)
+                                ));
+                            }
                         } else if (!indexType.equals("survivals") && key.equals("age_at_last_known_survival_status")) {
-                            survival_filters.add(Map.of(
-                                "range", Map.of("survival_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                survival_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("survival_filters."+key, range)),
+                                        Map.of("term", Map.of("survival_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                survival_filters.add(Map.of(
+                                    "range", Map.of("survival_filters."+key, range)
+                                ));
+                            }
                         } else {
                             filter.add(Map.of(
                                 "range", Map.of(key, range)
