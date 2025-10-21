@@ -132,6 +132,14 @@ public class InventoryESService extends ESService {
 
     public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, Set<String> regular_fields, String nestedProperty, String indexType) throws IOException {
         Map<String, Object> result = new HashMap<>();
+        
+        // Add unknownAges parameters to excluded parameters to prevent them from being processed as regular filters
+        Set<String> localExcludedParams = new HashSet<>(excludedParams);
+        for (String key : params.keySet()) {
+            if (key.endsWith("_unknownAges")) {
+                localExcludedParams.add(key);
+            }
+        }
 
         if (indexType.startsWith("files")) {
             //regular files query
@@ -154,7 +162,7 @@ public class InventoryESService extends ESService {
                 if (key.equals("data_category")) {
                         finalKey = "data_category";
                 }
-                if (excludedParams.contains(finalKey)) {
+                if (localExcludedParams.contains(finalKey)) {
                     continue;
                 }
 
@@ -219,6 +227,93 @@ public class InventoryESService extends ESService {
                             filter_2.add(Map.of(
                                 "range", Map.of(key, range)
                             ));
+                        }
+                    }
+                    
+                    // Handle unknownAges parameter for age fields
+                    String unknownAgesKey = key + "_unknownAges";
+                    if (params.containsKey(unknownAgesKey) && (key.equals("age_at_diagnosis") || key.equals("participant_age_at_collection") || key.equals("age_at_treatment_start") || key.equals("age_at_response") || key.equals("age_at_last_known_survival_status"))) {
+                        List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                        if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                            String unknownAgesValue = unknownAgesValues.get(0);
+                            if ("exclude".equals(unknownAgesValue)) {
+                                // Exclude records with unknown values (-999)
+                                if (key.equals("age_at_diagnosis")) {
+                                    sample_diagnosis_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("sample_diagnosis_filters."+key, List.of(-999))))
+                                    ));
+                                    combined_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("combined_filters.sample_diagnosis_filters."+key, List.of(-999))))
+                                    ));
+                                } else if (key.equals("participant_age_at_collection")) {
+                                    sample_diagnosis_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("sample_diagnosis_filters."+key, List.of(-999))))
+                                    ));
+                                    combined_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("combined_filters.sample_diagnosis_filters."+key, List.of(-999))))
+                                    ));
+                                } else if (key.equals("age_at_treatment_start")) {
+                                    treatment_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("treatment_filters."+key, List.of(-999))))
+                                    ));
+                                    combined_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("combined_filters.treatment_filters."+key, List.of(-999))))
+                                    ));
+                                } else if (key.equals("age_at_response")) {
+                                    treatment_response_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("treatment_response_filters."+key, List.of(-999))))
+                                    ));
+                                    combined_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("combined_filters.treatment_response_filters."+key, List.of(-999))))
+                                    ));
+                                } else if (key.equals("age_at_last_known_survival_status")) {
+                                    survival_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("survival_filters."+key, List.of(-999))))
+                                    ));
+                                    combined_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("combined_filters.survival_filters."+key, List.of(-999))))
+                                    ));
+                                }
+                            } else if ("only".equals(unknownAgesValue)) {
+                                // Only include records with unknown values (-999)
+                                if (key.equals("age_at_diagnosis")) {
+                                    sample_diagnosis_filters.add(Map.of(
+                                        "terms", Map.of("sample_diagnosis_filters."+key, List.of(-999))
+                                    ));
+                                    combined_filters.add(Map.of(
+                                        "terms", Map.of("combined_filters.sample_diagnosis_filters."+key, List.of(-999))
+                                    ));
+                                } else if (key.equals("participant_age_at_collection")) {
+                                    sample_diagnosis_filters.add(Map.of(
+                                        "terms", Map.of("sample_diagnosis_filters."+key, List.of(-999))
+                                    ));
+                                    combined_filters.add(Map.of(
+                                        "terms", Map.of("combined_filters.sample_diagnosis_filters."+key, List.of(-999))
+                                    ));
+                                } else if (key.equals("age_at_treatment_start")) {
+                                    treatment_filters.add(Map.of(
+                                        "terms", Map.of("treatment_filters."+key, List.of(-999))
+                                    ));
+                                    combined_filters.add(Map.of(
+                                        "terms", Map.of("combined_filters.treatment_filters."+key, List.of(-999))
+                                    ));
+                                } else if (key.equals("age_at_response")) {
+                                    treatment_response_filters.add(Map.of(
+                                        "terms", Map.of("treatment_response_filters."+key, List.of(-999))
+                                    ));
+                                    combined_filters.add(Map.of(
+                                        "terms", Map.of("combined_filters.treatment_response_filters."+key, List.of(-999))
+                                    ));
+                                } else if (key.equals("age_at_last_known_survival_status")) {
+                                    survival_filters.add(Map.of(
+                                        "terms", Map.of("survival_filters."+key, List.of(-999))
+                                    ));
+                                    combined_filters.add(Map.of(
+                                        "terms", Map.of("combined_filters.survival_filters."+key, List.of(-999))
+                                    ));
+                                }
+                            }
+                            // "include" is default behavior, no changes needed
                         }
                     }
                 } else {
@@ -412,7 +507,7 @@ public class InventoryESService extends ESService {
             List<Object> sample_diagnosis_file_filters = new ArrayList<>();
             
             for (String key: params.keySet()) {
-                if (excludedParams.contains(key)) {
+                if (localExcludedParams.contains(key)) {
                     continue;
                 }
 
@@ -461,6 +556,80 @@ public class InventoryESService extends ESService {
                             filter.add(Map.of(
                                 "range", Map.of(key, range)
                             ));
+                        }
+                    }
+                    
+                    // Handle unknownAges parameter for age fields
+                    String unknownAgesKey = key + "_unknownAges";
+                    if (params.containsKey(unknownAgesKey) && (key.equals("age_at_diagnosis") || key.equals("participant_age_at_collection") || key.equals("age_at_treatment_start") || key.equals("age_at_response") || key.equals("age_at_last_known_survival_status"))) {
+                        List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                        if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                            String unknownAgesValue = unknownAgesValues.get(0);
+                            
+                            if ("exclude".equals(unknownAgesValue)) {
+                                // Exclude records with unknown values (-999)
+                                if(indexType.endsWith("participants") && (key.equals("age_at_diagnosis") || key.equals("participant_age_at_collection"))){
+                                    sample_diagnosis_file_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("sample_diagnosis_file_filters."+key, List.of(-999))))
+                                    ));
+                                } else if (indexType.equals("samples") && key.equals("age_at_diagnosis")) {
+                                    diagnosis_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("diagnosis_filters."+key, List.of(-999))))
+                                    ));
+                                } else if (indexType.equals("diagnosis") && key.equals("participant_age_at_collection")) {
+                                    sample_file_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("sample_file_filters."+key, List.of(-999))))
+                                    ));
+                                } else if (!indexType.equals("treatments") && key.equals("age_at_treatment_start")) {
+                                    treatment_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("treatment_filters."+key, List.of(-999))))
+                                    ));
+                                } else if (!indexType.equals("treatment_responses") && key.equals("age_at_response")) {
+                                    treatment_response_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("treatment_response_filters."+key, List.of(-999))))
+                                    ));
+                                } else if (!indexType.equals("survivals") && key.equals("age_at_last_known_survival_status")) {
+                                    survival_filters.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of("survival_filters."+key, List.of(-999))))
+                                    ));
+                                } else {
+                                    filter.add(Map.of(
+                                        "bool", Map.of("must_not", Map.of("terms", Map.of(key, List.of(-999))))
+                                    ));
+                                }
+                            } else if ("only".equals(unknownAgesValue)) {
+                                // Only include records with unknown values (-999)
+                                if(indexType.endsWith("participants") && (key.equals("age_at_diagnosis") || key.equals("participant_age_at_collection"))){
+                                    sample_diagnosis_file_filters.add(Map.of(
+                                        "terms", Map.of("sample_diagnosis_file_filters."+key, List.of(-999))
+                                    ));
+                                } else if (indexType.equals("samples") && key.equals("age_at_diagnosis")) {
+                                    diagnosis_filters.add(Map.of(
+                                        "terms", Map.of("diagnosis_filters."+key, List.of(-999))
+                                    ));
+                                } else if (indexType.equals("diagnosis") && key.equals("participant_age_at_collection")) {
+                                    sample_file_filters.add(Map.of(
+                                        "terms", Map.of("sample_file_filters."+key, List.of(-999))
+                                    ));
+                                } else if (!indexType.equals("treatments") && key.equals("age_at_treatment_start")) {
+                                    treatment_filters.add(Map.of(
+                                        "terms", Map.of("treatment_filters."+key, List.of(-999))
+                                    ));
+                                } else if (!indexType.equals("treatment_responses") && key.equals("age_at_response")) {
+                                    treatment_response_filters.add(Map.of(
+                                        "terms", Map.of("treatment_response_filters."+key, List.of(-999))
+                                    ));
+                                } else if (!indexType.equals("survivals") && key.equals("age_at_last_known_survival_status")) {
+                                    survival_filters.add(Map.of(
+                                        "terms", Map.of("survival_filters."+key, List.of(-999))
+                                    ));
+                                } else {
+                                    filter.add(Map.of(
+                                        "terms", Map.of(key, List.of(-999))
+                                    ));
+                                }
+                            }
+                            // "include" is default behavior, no changes needed
                         }
                     }
                 } else {
