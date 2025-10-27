@@ -357,6 +357,11 @@ type FileManifestDetail {
     md5sum: String
 }
 
+type SupportingDataReturnObject {
+    data_category: String
+    data_object: String
+}
+
 type StudyDetailsResult {
     study_id: String
     study_name: String
@@ -369,6 +374,7 @@ type StudyDetailsResult {
     data_categories: [SearchParticipantsReturnObject]
     diagnoses: [SearchParticipantsReturnObject]
     anatomic_sites: [SearchParticipantsReturnObject]
+    supporting_data: [SupportingDataReturnObject]
 }
 
 type StudiesListingResult {

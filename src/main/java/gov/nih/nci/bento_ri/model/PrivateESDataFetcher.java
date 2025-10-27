@@ -100,6 +100,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "dbgap_accession", "study_acronym", "study_name", "study_status");
     final Set<String> FILE_REGULAR_PARAMS = Set.of("data_category", "dbgap_accession", "study_acronym", "study_name", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy", "file_mapping_level");
 
+    //default supporting data
+    final Map<String, String> DEFAULT_IDC_DATA = Map.of(
+        "phs002790", "{'collection_id': 'ccdi_mci', 'cancer_type': 'Various', 'date_updated': '2025-09-12', 'description': 'The Molecular Characterization Initiative (MCI) is a component of the National Cancer Institute’s (NCI) Childhood Cancer Data Initiative (CCDI). It offers state-of-the-art molecular testing at no cost to newly diagnosed children, adolescents, and young adults (AYAs) with central nervous system (CNS) tumors, soft tissue sarcomas (STS), certain rare childhood cancers (RAR), and certain neuroblastomas (NBL) treated at a Children’s Oncology Group (COG)–affiliated hospital. The goal of MCI is to enhance the understanding of genetic factors in pediatric cancers and to provide timely, clinically relevant findings to doctors and families to aid in treatment decisions and determine eligibility for certain planned COG clinical trials.</p>\n<p>\nPlease see the <a href=\"\" url=\"https://doi.org/10.5281/zenodo.11099086\" data-toggle=\"modal\" data-target=\"#external-web-warning\" class=\"external-link\" data-toggle=\"modal\" data-target=\"#external-web-warning\">DICOM converted whole slide hematoxylin and eosin stained images from the Molecular Characterization Initiative of the National Cancer Institute's Childhood Cancer Data Initiative\n <i class=\"fa-solid fa-external-link external-link-icon\" aria-hidden=\"true\"></i></a> information page to learn more about the images and any supporting metadata for this collection, and to learn about attribution/citation requirements.</p>\n', 'doi': '10.5281/zenodo.11099086', 'image_types': 'SM', 'location': 'Various', 'species': 'Human', 'subject_count': '4055', 'supporting_data': ''}"
+    );
+    final Map<String, String> DEFAULT_TCIA_DATA = Map.of();
     public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
         inventoryESService = esService;
@@ -1479,6 +1484,23 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             }
         }
 
+        // todo: querying idc_tcia index for the supporting data
+        // if error, return default idc, tcia data
+        String idcData = DEFAULT_IDC_DATA.get(studyId);
+        String tciaData = DEFAULT_TCIA_DATA.get(studyId);
+        if (idcData == null && tciaData == null) {
+            study.put("supporting_data", new ArrayList<>());
+        } else {
+            //formatting the following code please:
+            ArrayList<Map<String, Object>> supportingData = new ArrayList<>();
+            if (idcData != null) {
+                supportingData.add(Map.of("data_category", "IDC", "data_object", idcData));
+            }
+            if (tciaData != null) {
+                supportingData.add(Map.of("data_category", "TCIA", "data_object", tciaData));
+            }
+            study.put("supporting_data", supportingData);
+        }
         return study;
     }
 
