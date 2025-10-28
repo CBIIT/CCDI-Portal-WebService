@@ -466,7 +466,10 @@ public class InventoryESService extends ESService {
                 }
             } else {
                 if (combinedParticipantFilterLen > 0) {
-                    combined_filters.add(Map.of("nested", Map.of("path", "combined_filters", "query", Map.of("bool", Map.of("filter", combined_participant_filters)))));
+                    //add each element of combined_participant_filters to combined_filters
+                    for (Object filter : combined_participant_filters) {
+                        combined_filters.add(filter);
+                    }
                 }
                 if (combinedSampleDiagnosisFilterLen > 0) {
                     combined_filters.add(Map.of("nested", Map.of("path", "combined_filters.sample_diagnosis_filters", "query", Map.of("bool", Map.of("filter", combined_sample_diagnosis_filters)))));
