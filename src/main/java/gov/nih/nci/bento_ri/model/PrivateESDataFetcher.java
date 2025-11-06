@@ -186,6 +186,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             Map<String, Object> args = env.getArguments();
                             return globalSearch(args);
                         })
+                        .dataFetcher("getFilenames", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return getFilenames(args);
+                        })
                 )
                 .build();
     }
@@ -1801,6 +1805,213 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         return overview(FILES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "files");
+    }
+
+    private Map<String, Object> getFilenames(Map<String, Object> params) throws IOException {
+        try {
+            final String[][] PROPERTIES = new String[][]{
+                    new String[]{"id", "id"},
+                new String[]{"file_id", "file_id"},
+                new String[]{"guid", "guid"},
+                new String[]{"file_name", "file_name"},
+                new String[]{"data_category", "data_category"},
+                new String[]{"file_description", "file_description"},
+                new String[]{"file_type", "file_type"},
+                new String[]{"file_size", "file_size"},
+                new String[]{"library_selection", "library_selection"},
+                new String[]{"library_source_material", "library_source_material"},
+                new String[]{"library_source_molecule", "library_source_molecule"},
+                new String[]{"library_strategy", "library_strategy"},
+                new String[]{"file_mapping_level", "file_mapping_level"},
+                new String[]{"file_access", "file_access"},
+                new String[]{"study_id", "study_id"},
+                new String[]{"participant_id", "participant_id"},
+                new String[]{"sample_id", "sample_id"},
+                new String[]{"md5sum", "md5sum"},
+                    new String[]{"files", "files"}
+            };
+
+            String defaultSort = "file_id"; // Default sort order
+
+            Map<String, String> mapping = Map.ofEntries(
+                Map.entry("file_id", "file_id"),
+                Map.entry("guid", "guid"),
+                Map.entry("file_name", "file_name"),
+                Map.entry("data_category", "data_category"),
+                Map.entry("file_description", "file_description"),
+                Map.entry("file_type", "file_type"),
+                Map.entry("file_size", "file_size"),
+                Map.entry("study_id", "study_id"),
+                Map.entry("library_selection", "library_selection.sort"),
+                Map.entry("library_source_material", "library_source_material.sort"),
+                Map.entry("library_source_molecule", "library_source_molecule.sort"),
+                Map.entry("library_strategy", "library_strategy.sort"),
+                Map.entry("file_mapping_level", "file_mapping_level"),
+                Map.entry("file_access", "file_access"),
+                Map.entry("participant_id", "participant_id"),
+                Map.entry("sample_id", "sample_id"),
+                Map.entry("md5sum", "md5sum")
+            );
+
+            String filename = (String) params.get("filename");
+            String order_by = (String) params.get(ORDER_BY);
+            if (order_by == null) {
+                order_by = "file_id";
+            }
+            String sortDirectionParam = (String) params.get(SORT_DIRECTION);
+            String direction = (sortDirectionParam != null) ? sortDirectionParam.toLowerCase() : "asc";
+            Object pageSizeObj = params.get(PAGE_SIZE);
+            Object offsetObj = params.get(OFFSET);
+            int pageSize = (pageSizeObj != null) ? (int) pageSizeObj : 10;
+            int offset = (offsetObj != null) ? (int) offsetObj : 0;
+
+            // Build query with facet filters (same as fileOverview)
+            // Exclude "filename" since it's a String, not a List, and we handle it separately with wildcard
+            Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION, "filename"), REGULAR_PARAMS, "nested_filters", "files");
+            // Create mutable copy since buildFacetFilterQuery may return immutable collections
+            query = new HashMap<>(query);
+            if (filename != null && !filename.isEmpty()) {
+                // Navigate to the appropriate location to add wildcard based on query structure
+                // When there ARE facet filters: {"query": {"bool": {"should": [{"bool": {"must": {...}, "filter": [...]}}]}}}
+                // When there are NO facet filters: {"query": {"bool": {"must": {"exists": {"field": "file_id"}}}}}
+                
+                try {
+                    Map<String, Object> queryMap = (Map<String, Object>) query.get("query");
+                    Map<String, Object> boolQuery = (Map<String, Object>) queryMap.get("bool");
+                    
+                    // Create multi-field wildcard search
+                    // Search across: file_name, data_category, file_description, file_type, file_access,
+                    // study_id, participant_id, sample_id, guid, md5sum, library_selection, 
+                    // library_source_material, library_strategy, library_source_molecule, file_mapping_level
+                    List<String> searchFields = List.of(
+                        "file_name", "data_category", "file_description", "file_type", "file_access",
+                        "study_id", "participant_id", "sample_id", "guid", "md5sum", 
+                        "library_selection", "library_source_material", "library_strategy", 
+                        "library_source_molecule", "file_mapping_level"
+                    );
+                    
+                    List<Map<String, Object>> shouldClauses = new ArrayList<>();
+                    for (String field : searchFields) {
+                        Map<String, Object> wildcardParams = new HashMap<>();
+                        wildcardParams.put("value", "*" + filename + "*");
+                        wildcardParams.put("case_insensitive", true);
+                        
+                        Map<String, Object> fieldClause = new HashMap<>();
+                        fieldClause.put(field, wildcardParams);
+                        
+                        Map<String, Object> wildcardClause = new HashMap<>();
+                        wildcardClause.put("wildcard", fieldClause);
+                        
+                        shouldClauses.add(wildcardClause);
+                    }
+                    
+                    // Wrap the should clauses in a bool query (matches if ANY field contains the search text)
+                    Map<String, Object> multiFieldSearch = new HashMap<>();
+                    multiFieldSearch.put("bool", Map.of("should", shouldClauses, "minimum_should_match", 1));
+                    
+                    // Check if query has "should" structure (with facet filters)
+                    if (boolQuery.containsKey("should")) {
+                        List<Object> shouldList = (List<Object>) boolQuery.get("should");
+                        if (shouldList != null && !shouldList.isEmpty()) {
+                            // Get the first (and only) element in should array
+                            Map<String, Object> shouldBool = (Map<String, Object>) shouldList.get(0);
+                            Map<String, Object> innerBool = (Map<String, Object>) shouldBool.get("bool");
+                            List<Object> filterList = (List<Object>) innerBool.get("filter");
+                            
+                            if (filterList != null) {
+                                // Create mutable copy of filter list and add multi-field search
+                                List<Object> mutableFilterList = new ArrayList<>(filterList);
+                                mutableFilterList.add(0, multiFieldSearch);
+                                
+                                // Rebuild the query structure
+                                Map<String, Object> mutableInnerBool = new HashMap<>(innerBool);
+                                mutableInnerBool.put("filter", mutableFilterList);
+                                
+                                Map<String, Object> mutableShouldBool = new HashMap<>(shouldBool);
+                                mutableShouldBool.put("bool", mutableInnerBool);
+                                
+                                List<Object> mutableShouldList = new ArrayList<>();
+                                mutableShouldList.add(mutableShouldBool);
+                                
+                                Map<String, Object> mutableBoolQuery = new HashMap<>(boolQuery);
+                                mutableBoolQuery.put("should", mutableShouldList);
+                                
+                                Map<String, Object> mutableQueryMap = new HashMap<>(queryMap);
+                                mutableQueryMap.put("bool", mutableBoolQuery);
+                                
+                                query.put("query", mutableQueryMap);
+                            }
+                        }
+                    } else {
+                        // No facet filters - simpler structure with just "must"
+                        // Add multi-field search to must clause
+                        Object mustObj = boolQuery.get("must");
+                        List<Object> mustList = new ArrayList<>();
+                        
+                        if (mustObj != null) {
+                            if (mustObj instanceof List) {
+                                mustList.addAll((List<Object>) mustObj);
+                            } else {
+                                mustList.add(mustObj);
+                            }
+                        }
+                        
+                        mustList.add(multiFieldSearch);
+                        
+                        Map<String, Object> mutableBoolQuery = new HashMap<>(boolQuery);
+                        mutableBoolQuery.put("must", mustList);
+                        
+                        Map<String, Object> mutableQueryMap = new HashMap<>(queryMap);
+                        mutableQueryMap.put("bool", mutableBoolQuery);
+                        
+                        query.put("query", mutableQueryMap);
+                    }
+                } catch (Exception e) {
+                    logger.error("Error adding wildcard search: " + e.getMessage(), e);
+                }
+            }
+
+            query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
+            query.put("_source", Map.of("includes", Set.of("id","file_id","guid","file_name","data_category","file_description","file_type","file_size","library_selection","library_source_material","library_source_molecule","library_strategy","file_mapping_level","file_access","study_id","participant_id","sample_id","md5sum","files")));
+
+            Request request = new Request("GET", FILES_END_POINT);
+            
+            // Get total count with the same query but without pagination
+            Map<String, Object> countQuery = new HashMap<>(query);
+            countQuery.remove("size");
+            countQuery.remove("from");
+            countQuery.put("size", 0);
+            countQuery.put("track_total_hits", true);
+            
+            Request countRequest = new Request("GET", FILES_END_POINT);
+            countRequest.setJsonEntity(gson.toJson(countQuery));
+            JsonObject countResult = inventoryESService.send(countRequest);
+            
+            int totalCount = 0;
+            if (countResult != null && countResult.has("hits")) {
+                JsonObject hits = countResult.getAsJsonObject("hits");
+                if (hits.has("total")) {
+                    JsonObject total = hits.getAsJsonObject("total");
+                    if (total.has("value")) {
+                        totalCount = total.get("value").getAsInt();
+                    }
+                }
+            }
+            System.out.println(gson.toJson(query));
+            
+            // Get paginated results
+            List<Map<String, Object>> page = inventoryESService.collectPage(request, query, PROPERTIES, pageSize, offset);
+        
+            // Return FilenamesResult structure
+            Map<String, Object> result = new HashMap<>();
+            result.put("files", page);
+            result.put("totalCount", totalCount);
+            
+            return result;
+        } catch (Exception e) {
+            logger.error("Error in getFilenames: " + e.getMessage(), e);
+            throw new IOException("Error in getFilenames: " + e.getMessage(), e);
+        }
     }
 
     // if the nestedProperty is set, this will filter based upon the params against the nested property for the endpoint's index.
