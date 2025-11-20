@@ -783,20 +783,21 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_classification_system",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
-                    ADDITIONAL_UPDATE, Map.of("ICD-O-3.2", 5000),
+                    ADDITIONAL_UPDATE, Map.of("ICD-O-3.2", 5000, "Indication for Study", 1000),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_basis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
-                    ADDITIONAL_UPDATE, Map.of("Clinical", 3500, "Not Reported", 2000),
+                    ADDITIONAL_UPDATE, Map.of("Clinical", 3500, "Not Reported", 2000, "Unknown", 4000),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                 CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "treatment_type",
                 FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentType",
+                ADDITIONAL_UPDATE, Map.of("Chemotherapy", 3000, "Radiation Therapy", 1500, "Surgical Procedure", 2000),
                 AGG_ENDPOINT, TREATMENT_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -827,7 +828,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "last_known_survival_status",
                 FILTER_COUNT_QUERY, "filterParticipantCountBySurvivalStatus",
-                ADDITIONAL_UPDATE, Map.of("Alive", 3500),
+                ADDITIONAL_UPDATE, Map.of("Alive", 3500, "Unknown", 5000),
                 AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -886,7 +887,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "data_category",
                     WIDGET_QUERY, "participantCountByDataCategory",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDataCategory",
-                    ADDITIONAL_UPDATE, Map.of("Pathology Imaging", 1000, "Sequencing", 500, "Clinical", 1500),
+                    ADDITIONAL_UPDATE, Map.of("Genomics", 1000, "Pathology Imaging", 1000, "Sequencing", 2000, "Clinical", 1500, "Copy Number Variation", 1000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -900,8 +901,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         put("cram", 4000);
                         put("fastq", 2000);
                         put("html", 3000);
+                        put("idat", 1000);
                         put("json", 2000);
                         put("pdf", 3000);
+                        put("tsv", 1000);
                         put("txt", 3500);
                         put("dicom", 500);
                         put("vcf", 3500);
@@ -909,10 +912,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
+                    // CARDINALITY_AGG_NAME, "pid",
+                    // AGG_NAME, "study_name",
+                    // FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
+                    // ADDITIONAL_UPDATE, Map.of("Childhood Cancer Survivor Study (CCSS)", 2000, "Molecular Characterization Initiative", 1000),
+                    // AGG_ENDPOINT, STUDIES_FACET_END_POINT
                     AGG_NAME, "study_name",
                     FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     // CARDINALITY_AGG_NAME, "pid",
@@ -928,7 +935,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_selection",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySelection",
-                    ADDITIONAL_UPDATE, Map.of("Hybrid Selection", 4500),
+                    ADDITIONAL_UPDATE, Map.of("Hybrid Selection", 4500, "Other", 1000, "Unspecified", 1000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -942,7 +949,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_source_molecule",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySourceMolecule",
-                    ADDITIONAL_UPDATE, Map.of("Genomic", 5000, "Transcriptomic", 3500),
+                    ADDITIONAL_UPDATE, Map.of("Genomic", 5000, "Transcriptomic", 3500, "Not Reported", 1000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
