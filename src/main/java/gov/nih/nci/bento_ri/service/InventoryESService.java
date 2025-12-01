@@ -1236,4 +1236,44 @@ public class InventoryESService extends ESService {
         return value;
     }
 
+    /**
+     * Retrieves all unique bucket names for a property aggregation
+     * Used for cohort charts to determine which groups to display
+     * @param property The property to aggregate on (e.g., "treatment_type", "race")
+     * @param params Filter parameters (including participant IDs)
+     * @param rangeParams Set of parameters that are ranges (not used in bucket names)
+     * @param cardinalityAggName Field name for cardinality aggregation (e.g., "pid" for participant id)
+     * @param index The index type (e.g., "participants", "treatments")
+     * @param endpoint The OpenSearch endpoint to query
+     * @return List of bucket names (unique values) for the property
+     * @throws IOException
+     */
+    public List<String> getBucketNames(String property, Map<String, Object> params, Set<String> rangeParams, String cardinalityAggName, String index, String endpoint) throws IOException {
+        List<String> bucketNames = new ArrayList<String>();
+        Map<String, Object> query = buildFacetFilterQuery(params, rangeParams, Set.of(), Set.of(), "", index);
+
+        // Add aggs clause to Opensearch query
+        String[] aggNames = new String[] {property};
+        query = addAggregations(query, aggNames, cardinalityAggName, List.of());
+
+        // Send Opensearch request and retrieve list of buckets
+        Request request = new Request("GET", endpoint);
+        String jsonizedRequest = gson.toJson(query);
+        request.setJsonEntity(jsonizedRequest);
+        JsonObject jsonObject = send(request);
+        Map<String, JsonArray> aggs = collectTermAggs(jsonObject, aggNames);
+        JsonArray buckets = aggs.get(property);
+
+        if (buckets != null) {
+            for (JsonElement bucket : buckets) {
+                JsonObject bucketObj = bucket.getAsJsonObject();
+                if (bucketObj.has("key")) {
+                    bucketNames.add(bucketObj.get("key").getAsString());
+                }
+            }
+        }
+
+        return bucketNames;
+    }
+
 }

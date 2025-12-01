@@ -97,6 +97,31 @@ type SearchParticipantsReturnObject {
     subjects: Int
 }
 
+input CohortChartConfigChart {
+    property: String
+    type: CohortChartType
+}
+
+enum CohortChartType {
+    count
+    percentage
+}
+
+type CohortChartsResult {
+    property: String
+    cohorts: [CohortChartReturnObject]
+}
+
+type CohortChartReturnObject {
+    cohort: String
+    participantsByGroup: [CohortChartParticipantGroup]
+}
+
+type CohortChartParticipantGroup {
+    group: String
+    subjects: Float
+}
+
 type CohortMetadataReturnObject {
     id: String
     participant_id: String
@@ -407,6 +432,13 @@ type QueryType {
     cohortManifest(id: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [CohortManifestResult]
 
     cohortMetadata(id: [String] = [""], offset: Int = 0, first: Int = 10, order_by: String = "", sort_direction: String = ""): [CohortMetadataResult]
+
+    cohortCharts(
+        c1: [String],
+        c2: [String],
+        c3: [String],
+        charts: [CohortChartConfigChart]
+    ): [CohortChartsResult]
 
     studyDetails(study_id: String): StudyDetailsResult
     
