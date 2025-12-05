@@ -79,6 +79,26 @@ public class InventoryESService extends ESService {
         return jsonObject;
     }
 
+    /**
+     * Queries the /_count Opensearch endpoint and returns the number of hits
+     * @param query Opensearch query
+     * @param index Name of the index to query
+     * @return
+     * @throws IOException
+     */
+    public int getCount(Map<String, Object> query, String index) throws IOException {
+        Request request = new Request("GET", String.format("/%s/_count", index));
+        String queryJson = gson.toJson(query);
+        JsonObject recountResult;
+        int newCount;
+
+        request.setJsonEntity(queryJson);
+        recountResult = send(request);
+        newCount = recountResult.get("count").getAsInt();
+
+        return newCount;
+    }
+
     // This function build queries with following rules:
     //  - If a list is empty, query will return empty dataset
     //  - If a list has only one element which is empty string, query will return all data available
