@@ -1709,6 +1709,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             }
 
             String cardinalityAggName = propertyConfig.get("cardinalityAggName");
+            //if cardinalityAggName is "", set it to null
+            if (cardinalityAggName.equals("")) {
+                cardinalityAggName = null;
+            }
             String endpoint = propertyConfig.get("endpoint");
             String indexName = propertyConfig.get("index");
 
