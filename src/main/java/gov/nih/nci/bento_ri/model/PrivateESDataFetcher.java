@@ -94,6 +94,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final Set<String> INCLUDE_PARAMS  = Set.of("race", "data_category");
 
+    // Cohort Chart bucket limits
+    final int COHORT_CHART_BUCKET_LIMIT_HIGH = 20;
+    final int COHORT_CHART_BUCKET_LIMIT_LOW = 5;
+
     final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "diagnosis_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_category", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status", "first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
     final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "diagnosis_category", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status","first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "sample_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis");
@@ -133,6 +137,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("cohortMetadata", env -> {
                             Map<String, Object> args = env.getArguments();
                             return cohortMetadata(args);
+                        })
+                        .dataFetcher("cohortCharts", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return cohortCharts(args);
                         })
                         .dataFetcher("studyDetails", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -1626,6 +1634,188 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return listOfParticipantsByStudy;
     }
 
+    /**
+     * Generates chart data for cohort comparison
+     * @param params Contains c1, c2, c3 (cohort participant IDs) and charts (properties to chart)
+     * @return List of chart results, one per property
+     * @throws IOException
+     */
+    private List<Map<String, Object>> cohortCharts(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> chartConfigs = null;
+        List<Map<String, Object>> charts = new ArrayList<Map<String, Object>>();
+        Map<String, Object> cohorts = new HashMap<String, Object>();
+        List<String> cohortsCombined = new ArrayList<String>();
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+
+        if (params == null || !params.containsKey("charts")) {
+            return List.of(); // No charts specified
+        }
+
+        if (!(params.containsKey("c1") || params.containsKey("c2") || params.containsKey("c3"))) {
+            return List.of(); // No cohorts specified
+        }
+
+        // Combine cohorts from c1, c2, c3 into a single list
+        for (String key : List.of("c1", "c2", "c3")) {
+            if (!params.containsKey(key)) {
+                continue;
+            }
+
+            Object cohortRaw = params.get(key);
+            if (cohortRaw instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> cohort = (List<String>) cohortRaw;
+
+                if (!cohort.isEmpty()) {
+                    // Add cohort to combined list
+                    cohortsCombined.addAll(cohort);
+                    cohorts.put(key, cohort);
+                }
+            }
+        }
+
+        if (cohortsCombined.isEmpty()) {
+            return result;
+        }
+
+        Object chartConfigsRaw = params.get("charts");
+        if (chartConfigsRaw instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> castedChartConfigs = (List<Map<String, Object>>) chartConfigsRaw;
+            chartConfigs = castedChartConfigs;
+        }
+
+        if (chartConfigs == null || chartConfigs.isEmpty()) {
+            return result;
+        }
+
+        // Generate charts for each configuration
+        for (Map<String, Object> chartConfig : chartConfigs) {
+            // Prepare map that represents the entire chart
+            String property = (String) chartConfig.get("property");
+            String type = (String) chartConfig.get("type");
+            Map<String, Object> chartData = new HashMap<String, Object>();
+            chartData.put("property", property);
+            int totalNumberOfParticipants = 0;
+            List<String> bucketNames;
+            List<String> bucketNamesTopFew;
+            List<String> bucketNamesTopMany;
+
+            // Obtain details for querying Opensearch
+            Map<String, String> propertyConfig = getPropertyConfig(property);
+            if (propertyConfig == null) {
+                logger.warn("Skipping unknown property: " + property);
+                continue;
+            }
+
+            String cardinalityAggName = propertyConfig.get("cardinalityAggName");
+            //if cardinalityAggName is "", set it to null
+            if (cardinalityAggName.equals("")) {
+                cardinalityAggName = null;
+            }
+            String endpoint = propertyConfig.get("endpoint");
+            String indexName = propertyConfig.get("index");
+
+            // Determine most populous buckets
+            Map<String, Object> combinedCohortParams = Map.of("id", cohortsCombined);  // Changed from participant_pk to id
+            bucketNames = inventoryESService.getBucketNames(property, combinedCohortParams, RANGE_PARAMS, cardinalityAggName, indexName, endpoint);
+
+            if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_LOW) {
+                bucketNamesTopFew = new ArrayList<>(bucketNames.subList(0, COHORT_CHART_BUCKET_LIMIT_LOW));
+            } else {
+                bucketNamesTopFew = new ArrayList<>(bucketNames);
+            }
+
+            if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_HIGH) {
+                bucketNamesTopMany = new ArrayList<>(bucketNames.subList(0, COHORT_CHART_BUCKET_LIMIT_HIGH));
+            } else {
+                bucketNamesTopMany = new ArrayList<>(bucketNames);
+            }
+
+            // If chart type is percentage, then count the total number of participants
+            if ("percentage".equals(type)) {
+                Map<String, Object> combinedCohortsQuery = inventoryESService.buildFacetFilterQuery(combinedCohortParams, RANGE_PARAMS, Set.of(), Set.of(), "", "participants");
+                totalNumberOfParticipants = inventoryESService.getCount(combinedCohortsQuery, "participants");
+            }
+
+            // Prepare list of data for each cohort
+            List<Map<String, Object>> cohortsData = new ArrayList<Map<String, Object>>();
+
+            // Retrieve data for each cohort
+            for (String cohortName : cohorts.keySet()) {
+                // Prepare map of data for the cohort
+                Map<String, Object> cohortData = new HashMap<String, Object>();
+                Map<String, Object> cohortParams = Map.of("id", cohorts.get(cohortName));  // Changed from participant_pk to id
+                cohortData.put("cohort", cohortName);
+
+                // Retrieve data for the cohort
+                List<Map<String, Object>> cohortGroupCounts = filterSubjectCountBy(property, cohortParams, endpoint, cardinalityAggName, indexName);
+                List<Map<String, Object>> cohortGroupCountsTruncated = new ArrayList<Map<String, Object>>();
+                int otherMany = 0;
+                int otherFew = 0;
+
+                // Format for efficient retrieval
+                Map<String, Object> groupsToSubjects = new HashMap<>();
+                for (Map<String, Object> groupCount : cohortGroupCounts) {
+                    String group = (String) groupCount.get("group");
+                    Object subjects = groupCount.get("subjects");
+                    groupsToSubjects.put(group, subjects);
+                }
+
+                // Add buckets and their counts to a truncated list of results
+                for (String bucketName : bucketNames) {
+                    Integer subjects = (Integer) groupsToSubjects.getOrDefault(bucketName, 0);
+
+                    if (bucketNamesTopMany.contains(bucketName)) {
+                        cohortGroupCountsTruncated.add(Map.of("group", bucketName, "subjects", (double) subjects));
+                    } else {
+                        otherMany += subjects;
+                    }
+
+                    if (!bucketNamesTopFew.contains(bucketName)) {
+                        otherFew += subjects;
+                    }
+                }
+
+                if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_LOW) {
+                    cohortGroupCountsTruncated.add(Map.of("group", "OtherFew", "subjects", (double) otherFew));
+                }
+
+                if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_HIGH) {
+                    cohortGroupCountsTruncated.add(Map.of("group", "OtherMany", "subjects", (double) otherMany));
+                }
+
+                // If chart type is percentage, then replace counts with percentages
+                if ("percentage".equals(type)) {
+                    List<Map<String, Object>> cohortGroupPercentages = new ArrayList<Map<String, Object>>();
+
+                    for (Map<String, Object> groupCount : cohortGroupCountsTruncated) {
+                        String group = (String) groupCount.get("group");
+                        double count = (Double) groupCount.get("subjects");
+                        double percentage = totalNumberOfParticipants > 0 ? (count / totalNumberOfParticipants) * 100 : 0.0;
+
+                        cohortGroupPercentages.add(Map.of("group", group, "subjects", percentage));
+                    }
+
+                    cohortData.put("participantsByGroup", cohortGroupPercentages);
+                } else if ("count".equals(type)) {
+                    cohortData.put("participantsByGroup", cohortGroupCountsTruncated);
+                }
+
+                // Add cohort data to the list of cohorts
+                cohortsData.add(cohortData);
+            }
+
+            // Add list of all cohorts' data to the chart
+            chartData.put("cohorts", cohortsData);
+
+            // Add chart to the list of charts
+            charts.add(chartData);
+        }
+
+        return charts;
+    }
+
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             new String[]{"d_id", "id"},
@@ -2437,5 +2627,83 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private String getStringValue(Map<String, Object> map, String key) {
         Object value = map.get(key);
         return value != null ? value.toString() : null;
+    }
+
+    /**
+     * Maps property names to their OpenSearch index and aggregation configuration
+     * This replaces the YAML configuration approach used in C3DC
+     * @param propertyName The property to get configuration for
+     * @return Map containing index, endpoint, and cardinalityAggName, or null if not found
+     */
+    private Map<String, String> getPropertyConfig(String propertyName) {
+        // Demographics/Participant properties
+        if ("race".equals(propertyName) || "sex_at_birth".equals(propertyName)) {
+            return Map.of(
+                "index", "participants",
+                "endpoint", PARTICIPANTS_END_POINT,
+                "cardinalityAggName", ""  // No cardinality needed for participant-level fields
+            );
+        }
+        
+        // Treatment properties
+        if ("treatment_type".equals(propertyName) || "treatment_agent".equals(propertyName)) {
+            return Map.of(
+                "index", "treatments",
+                "endpoint", TREATMENT_END_POINT,
+                "cardinalityAggName", "pid"  // Count unique participants
+            );
+        }
+        
+        // Treatment Response properties
+        if ("response".equals(propertyName) || "response_category".equals(propertyName)) {
+            return Map.of(
+                "index", "treatment_responses",
+                "endpoint", TREATMENT_RESPONSE_END_POINT,
+                "cardinalityAggName", "pid"  // Count unique participants
+            );
+        }
+        
+        // Diagnosis properties
+        if ("diagnosis".equals(propertyName) || "diagnosis_anatomic_site".equals(propertyName) || 
+            "disease_phase".equals(propertyName) || "diagnosis_classification_system".equals(propertyName)) {
+            return Map.of(
+                "index", "diagnosis",
+                "endpoint", DIAGNOSIS_END_POINT,
+                "cardinalityAggName", "pid"  // Count unique participants
+            );
+        }
+        
+        // Survival properties
+        if ("last_known_survival_status".equals(propertyName) || "first_event".equals(propertyName)) {
+            return Map.of(
+                "index", "survivals",
+                "endpoint", SURVIVALS_END_POINT,
+                "cardinalityAggName", "pid"  // Count unique participants
+            );
+        }
+        
+        // Sample properties
+        if ("sample_anatomic_site".equals(propertyName) || "sample_tumor_status".equals(propertyName) || 
+            "tumor_classification".equals(propertyName)) {
+            return Map.of(
+                "index", "samples",
+                "endpoint", SAMPLES_END_POINT,
+                "cardinalityAggName", "pid"  // Count unique participants
+            );
+        }
+        
+        // Study properties
+        if ("dbgap_accession".equals(propertyName) || "study_name".equals(propertyName) || 
+            "study_acronym".equals(propertyName)) {
+            return Map.of(
+                "index", "studies",
+                "endpoint", STUDIES_END_POINT,
+                "cardinalityAggName", ""  // No cardinality needed
+            );
+        }
+        
+        // Property not found
+        logger.warn("No configuration found for property: " + propertyName);
+        return null;
     }
 }
