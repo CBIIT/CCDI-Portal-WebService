@@ -17,7 +17,7 @@ import static org.junit.Assert.*;
  * Naming convention: *IntegrationTest.java or *IT.java
  * This will be picked up by maven-failsafe-plugin during 'mvn verify'
  */
-public class InventoryESServiceTest {
+public class InventoryESServiceIntegrationTest {
     
     private RestClient restClient;
     
