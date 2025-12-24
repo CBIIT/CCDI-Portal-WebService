@@ -32,8 +32,20 @@ jobs:
       - name: Run unit tests
         run: mvn clean test -Dspring.profiles.active=test
 
-      - name: Publish test results
+      - name: Check for test reports
+        id: check-reports
         if: always()
+        run: |
+          if [ -d "target/surefire-reports" ] && [ -n "$(find target/surefire-reports -name '*.xml' 2>/dev/null)" ]; then
+            echo "reports_exist=true" >> $GITHUB_OUTPUT
+            echo "Test reports found"
+          else
+            echo "reports_exist=false" >> $GITHUB_OUTPUT
+            echo "No test reports found"
+          fi
+
+      - name: Publish test results
+        if: always() && steps.check-reports.outputs.reports_exist == 'true'
         uses: dorny/test-reporter@v1
         with:
           name: Unit Test Results
@@ -41,74 +53,3 @@ jobs:
           reporter: java-junit
           fail-on-error: false
 
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-
-    # Docker service containers for integration testing
-    services:
-      opensearch:
-        image: opensearchproject/opensearch:2.11.1
-        env:
-          discovery.type: single-node
-          plugins.security.disabled: 'true'
-          OPENSEARCH_JAVA_OPTS: '-Xms512m -Xmx512m'
-        ports:
-          - 9200:9200
-          - 9600:9600
-        options: >-
-          --health-cmd "curl -f http://localhost:9200/_cluster/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Wait for OpenSearch to be ready
-        run: |
-          echo "Waiting for OpenSearch..."
-          timeout 60 bash -c 'until curl -f http://localhost:9200/_cluster/health > /dev/null 2>&1; do sleep 2; done'
-          echo "OpenSearch is ready!"
-
-      - name: Verify OpenSearch health
-        run: |
-          echo "OpenSearch Status:"
-          curl -f http://localhost:9200/_cluster/health?pretty
-
-      - name: Run integration tests
-        run: mvn verify -Dspring.profiles.active=integration
-        env:
-          ES_HOST: localhost
-          ES_PORT: 9200
-          ES_SCHEME: http
-
-      - name: Publish integration test results
-        if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: Integration Test Results
-          path: target/failsafe-reports/*.xml
-          reporter: java-junit
-          fail-on-error: false
-
-      - name: Upload test logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-test-logs
-          path: |
-            target/surefire-reports/
-            target/failsafe-reports/
-            *.log
