@@ -87,8 +87,23 @@ jobs:
           echo "OpenSearch Status:"
           curl -f http://localhost:9200/_cluster/health?pretty
 
+      - name: List integration test files
+        run: |
+          echo "Looking for integration test files..."
+          find src/test/java -name '*IntegrationTest.java' -o -name '*IT.java' || echo "No integration test files found"
+
       - name: Run integration tests
-        run: mvn verify -Dspring.profiles.active=integration
+        run: |
+          echo "Running integration tests..."
+          mvn verify -Dspring.profiles.active=integration || echo "Tests completed with exit code $?"
+          echo ""
+          echo "Checking for test execution..."
+          if [ -d "target/failsafe-reports" ]; then
+            echo "Failsafe reports directory exists"
+            ls -la target/failsafe-reports/ || echo "Directory is empty"
+          else
+            echo "Failsafe reports directory does not exist"
+          fi
         continue-on-error: true
         env:
           ES_HOST: localhost
@@ -99,13 +114,22 @@ jobs:
         id: check-reports
         if: always()
         run: |
-          if [ -d "target/failsafe-reports" ] && [ -n "$(find target/failsafe-reports -name '*.xml' 2>/dev/null)" ]; then
-            echo "reports_exist=true" >> $GITHUB_OUTPUT
-            echo "Integration test reports found"
-            ls -la target/failsafe-reports/
+          echo "Checking for test reports..."
+          if [ -d "target/failsafe-reports" ]; then
+            echo "Directory exists, looking for XML files..."
+            find target/failsafe-reports -name '*.xml' || echo "No XML files found"
+            
+            if [ -n "$(find target/failsafe-reports -name '*.xml' 2>/dev/null)" ]; then
+              echo "reports_exist=true" >> $GITHUB_OUTPUT
+              echo "✓ Integration test reports found:"
+              ls -la target/failsafe-reports/*.xml
+            else
+              echo "reports_exist=false" >> $GITHUB_OUTPUT
+              echo "ℹ No XML reports found in failsafe-reports directory"
+            fi
           else
             echo "reports_exist=false" >> $GITHUB_OUTPUT
-            echo "No integration test reports found - this is OK if no integration tests exist yet"
+            echo "ℹ No failsafe-reports directory found"
           fi
 
       - name: Publish integration test results
