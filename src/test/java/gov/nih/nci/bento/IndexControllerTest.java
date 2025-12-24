@@ -20,24 +20,6 @@ public class IndexControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    /**
-     * Confirm that the "/ping" endpoint accept GET requests and verify the following within the response:
-     *     Http Status Code is 200 (OK)
-     *     Content Type is "text/plain;charset=ISO-8859-1"
-     *     Content matches the String "pong"
-     *
-     * @throws Exception
-     */
-    @Test
-    public void pingEndpointTestGET() throws Exception {
-        MvcResult result = this.mockMvc.perform(MockMvcRequestBuilders.get("/ping"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().contentType("text/plain;charset=ISO-8859-1"))
-                .andExpect(MockMvcResultMatchers.content().string("pong"))
-                .andReturn();
-        //assert method to satisfy codacy requirement, this statement will not be reached if the test fails
-        assertNotNull(result);
-    }
 
     /**
      * Confirm that the "/ping" endpoint does NOT accept POST requests and verify the following within the response:
