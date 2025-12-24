@@ -1,4 +1,4 @@
-name: Run Unit Tests
+name: Run Tests
 
 on:
   pull_request:
@@ -11,8 +11,8 @@ on:
       - '*.*.*'
 
 jobs:
-  test:
-    name: Run Tests
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -29,47 +29,86 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Verify Maven and Java setup
-        run: |
-          mvn --version
-          java -version
-          echo "JAVA_HOME=$JAVA_HOME"
-
-      - name: List source files
-        run: |
-          echo "Java source files count:"
-          find src/main/java -name "*.java" | wc -l
-          echo ""
-          echo "Source structure:"
-          find src/main/java -name "*.java" | head -20
-
-      - name: Clean and compile
-        run: mvn clean compile -e -X 2>&1 | tail -200
-        continue-on-error: true
-
-      - name: Run tests with Maven
-        run: mvn test -Dmaven.test.failure.ignore=true
-        continue-on-error: true
+      - name: Run unit tests
+        run: mvn clean test -Dspring.profiles.active=test
 
       - name: Publish test results
         if: always()
-        run: |
-          if [ -d "target/surefire-reports" ]; then
-            echo "Test reports found:"
-            ls -la target/surefire-reports/
-            echo ""
-            echo "Test Summary:"
-            cat target/surefire-reports/*.txt 2>/dev/null || echo "No text reports"
-          else
-            echo "No test reports directory found"
-          fi
+        uses: dorny/test-reporter@v1
+        with:
+          name: Unit Test Results
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: false
 
-      - name: Check compilation output
-        if: always()
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    # Docker service containers for integration testing
+    services:
+      opensearch:
+        image: opensearchproject/opensearch:2.11.1
+        env:
+          discovery.type: single-node
+          plugins.security.disabled: 'true'
+          OPENSEARCH_JAVA_OPTS: '-Xms512m -Xmx512m'
+        ports:
+          - 9200:9200
+          - 9600:9600
+        options: >-
+          --health-cmd "curl -f http://localhost:9200/_cluster/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Wait for OpenSearch to be ready
         run: |
-          if [ -d "target/classes/gov/nih/nci/bento" ]; then
-            echo "Compiled classes found:"
-            find target/classes -name "*.class" | wc -l
-          else
-            echo "No compiled classes found"
-          fi
+          echo "Waiting for OpenSearch..."
+          timeout 60 bash -c 'until curl -f http://localhost:9200/_cluster/health > /dev/null 2>&1; do sleep 2; done'
+          echo "OpenSearch is ready!"
+
+      - name: Verify OpenSearch health
+        run: |
+          echo "OpenSearch Status:"
+          curl -f http://localhost:9200/_cluster/health?pretty
+
+      - name: Run integration tests
+        run: mvn verify -Dspring.profiles.active=integration
+        env:
+          ES_HOST: localhost
+          ES_PORT: 9200
+          ES_SCHEME: http
+
+      - name: Publish integration test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Integration Test Results
+          path: target/failsafe-reports/*.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-logs
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+            *.log
