@@ -119,10 +119,15 @@ jobs:
             echo "Directory exists, looking for XML files..."
             find target/failsafe-reports -name '*.xml' || echo "No XML files found"
             
-            if [ -n "$(find target/failsafe-reports -name '*.xml' 2>/dev/null)" ]; then
+            if [ -n "$(find target/failsafe-reports -name 'TEST-*.xml' 2>/dev/null)" ]; then
               echo "reports_exist=true" >> $GITHUB_OUTPUT
               echo "✓ Integration test reports found:"
-              ls -la target/failsafe-reports/*.xml
+              ls -la target/failsafe-reports/TEST-*.xml
+              
+              # Create a clean directory with only test reports (exclude summary)
+              mkdir -p target/test-reports
+              cp target/failsafe-reports/TEST-*.xml target/test-reports/ || true
+              echo "Copied test reports to target/test-reports/"
             else
               echo "reports_exist=false" >> $GITHUB_OUTPUT
               echo "ℹ No XML reports found in failsafe-reports directory"
@@ -137,7 +142,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Integration Test Results
-          path: target/failsafe-reports/*.xml
+          path: target/test-reports/*.xml
           reporter: java-junit
           fail-on-error: false
 
