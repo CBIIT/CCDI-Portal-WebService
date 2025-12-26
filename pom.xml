@@ -115,20 +115,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Spring REST Docs MockMvc -->
-        <dependency>
-            <groupId>org.springframework.restdocs</groupId>
-            <artifactId>spring-restdocs-mockmvc</artifactId>
-            <version>${spring.restdocs.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework</groupId>
-                    <artifactId>spring-web</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
         <!-- Spring Framework (versions inherited from Boot parent) -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -158,6 +144,18 @@
             <groupId>org.springframework.restdocs</groupId>
             <artifactId>spring-restdocs-core</artifactId>
             <version>${spring.restdocs.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring-web</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.restdocs</groupId>
+            <artifactId>spring-restdocs-mockmvc</artifactId>
+            <version>${spring.restdocs.version}</version>
+            <scope>test</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework</groupId>
@@ -199,13 +197,6 @@
             </exclusions>
         </dependency>
 
-        <!-- Guava (for TypeToken in tests) -->
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>33.1.0-jre</version>
-        </dependency>
-
         <!-- Unirest Java -->
         <dependency>
             <groupId>com.konghq</groupId>
@@ -235,6 +226,14 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Java Annotations API -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Mockito -->
         <dependency>
             <groupId>org.mockito</groupId>
@@ -257,14 +256,6 @@
             <artifactId>hamcrest</artifactId>
             <version>3.0</version>
             <scope>test</scope>
-        </dependency>
-
-        <!-- Java Annotations API -->
-        <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
-            <version>1.3.2</version>
-            <scope>provided</scope>
         </dependency>
 
         <!-- Jackson (inherit version from BOM) -->
