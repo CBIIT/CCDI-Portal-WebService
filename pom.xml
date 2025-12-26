@@ -37,18 +37,6 @@
                 <artifactId>protobuf-java</artifactId>
                 <version>4.28.2</version>
             </dependency>
-            <!-- Force error_prone_annotations to 2.27.0 to resolve convergence issues -->
-            <dependency>
-                <groupId>com.google.errorprone</groupId>
-                <artifactId>error_prone_annotations</artifactId>
-                <version>2.27.0</version>
-            </dependency>
-            <!-- Force checker-qual to 3.42.0 (used by Guava) -->
-            <dependency>
-                <groupId>org.checkerframework</groupId>
-                <artifactId>checker-qual</artifactId>
-                <version>3.42.0</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -238,7 +226,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.14.2</version>
+            <version>3.8.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -246,15 +234,7 @@
         <dependency>
             <groupId>org.skyscreamer</groupId>
             <artifactId>jsonassert</artifactId>
-            <version>1.5.3</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Hamcrest - for better test assertions -->
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest</artifactId>
-            <version>3.0</version>
+            <version>1.5.1</version>
             <scope>test</scope>
         </dependency>
 
