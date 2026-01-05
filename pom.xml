@@ -206,11 +206,11 @@
             <version>11.0.12</version>
         </dependency>
 
-        <!-- JUnit -->
+        <!-- JUnit 5 (Jupiter) -->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.13.2</version>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.1</version>
             <scope>test</scope>
         </dependency>
 
@@ -222,11 +222,17 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Mockito -->
+        <!-- Mockito for JUnit 5 -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.8.0</version>
+            <version>5.8.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>5.8.0</version>
             <scope>test</scope>
         </dependency>
 
