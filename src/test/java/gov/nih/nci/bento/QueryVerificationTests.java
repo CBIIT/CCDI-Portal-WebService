@@ -4,13 +4,12 @@ import gov.nih.nci.bento.controller.GraphQLController;
 import gov.nih.nci.bento.model.ConfigurationDAO;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -22,7 +21,9 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
-@RunWith(SpringRunner.class)
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+@ExtendWith(SpringExtension.class)
 @WebMvcTest(GraphQLController.class)
 public class QueryVerificationTests {
 
@@ -36,7 +37,7 @@ public class QueryVerificationTests {
     @Autowired
     private ConfigurationDAO configurationDAO;
 
-    @Before
+    @BeforeEach
     public void init(){
         String testQueriesFile = configurationDAO.getTestQueriesFile();
         Yaml yaml = new Yaml();
@@ -56,7 +57,7 @@ public class QueryVerificationTests {
 
     @Test
     public void runTestQueries() throws Exception {
-        Assert.assertNotNull(testQueries);
+        assertNotNull(testQueries);
         for(Map<String, String> query: testQueries){
             logger.info("Testing: " + query.get("name"));
             this.mockMvc.perform(MockMvcRequestBuilders

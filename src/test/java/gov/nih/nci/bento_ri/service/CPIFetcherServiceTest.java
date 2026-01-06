@@ -1,8 +1,10 @@
+// java
 package gov.nih.nci.bento_ri.service;
 
-import org.junit.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 /**
  * Example test for CPIFetcherService
@@ -10,11 +12,11 @@ import org.springframework.test.context.TestPropertySource;
  */
 @SpringBootTest
 @TestPropertySource(properties = {
-    "cpi.oauth2.client.id=${OAUTH2_CLIENT_ID:test_client_id}",
-    "cpi.oauth2.client.secret=${OAUTH2_CLIENT_SECRET:test_client_secret}",
-    "cpi.oauth2.token.uri=${OAUTH2_TOKEN_URI:https://example.com/token}",
-    "cpi.api.url=https://participantindex.ccdi.cancer.gov/v1/associated_participant_ids",
-    "cpi.oauth2.scope=custom"
+        "cpi.oauth2.client.id=${OAUTH2_CLIENT_ID:test_client_id}",
+        "cpi.oauth2.client.secret=${OAUTH2_CLIENT_SECRET:test_client_secret}",
+        "cpi.oauth2.token.uri=${OAUTH2_TOKEN_URI:https://example.com/token}",
+        "cpi.api.url=https://participantindex.ccdi.cancer.gov/v1/associated_participant_ids",
+        "cpi.oauth2.scope=custom"
 })
 public class CPIFetcherServiceTest {
 
@@ -22,6 +24,7 @@ public class CPIFetcherServiceTest {
      * Example test showing how to use the CPI Fetcher Service
      * This test is disabled by default as it requires actual credentials
      */
+    @Disabled("Requires real OAuth2 credentials")
     @Test
     public void testFetchAssociatedParticipantIds_Example() {
         // Example usage - uncomment and provide real credentials to test
@@ -30,14 +33,14 @@ public class CPIFetcherServiceTest {
         import java.util.Arrays;
         import java.util.List;
         import java.util.Map;
-        
+
         CPIFetcherService service = new CPIFetcherService();
-        
+
         List<ParticipantRequest> requests = Arrays.asList(
             new ParticipantRequest("COG_PAMUPE", "pcdc"),
             new ParticipantRequest("PARTICIPANT_123", "study_abc")
         );
-        
+
         try {
             Map<String, Object> response = service.fetchAssociatedParticipantIds(requests);
             System.out.println("API Response: " + response);
