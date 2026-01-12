@@ -1611,6 +1611,31 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "cohorts");
+        
+        // Sort survivals array by age_at_last_known_survival_status for each participant
+        participants.forEach((Map<String, Object> participant) -> {
+            Object survivalsObj = participant.get("survivals");
+            if (survivalsObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> survivals = (List<Map<String, Object>>) survivalsObj;
+                survivals.sort((a, b) -> {
+                    Object aAgeObj = a.get("age_at_last_known_survival_status");
+                    Object bAgeObj = b.get("age_at_last_known_survival_status");
+                    
+                    // Handle null values - put them at the end
+                    if (aAgeObj == null && bAgeObj == null) return 0;
+                    if (aAgeObj == null) return 1;
+                    if (bAgeObj == null) return -1;
+                    
+                    // Convert to double for comparison
+                    double aAge = aAgeObj instanceof Number ? ((Number) aAgeObj).doubleValue() : Double.parseDouble(aAgeObj.toString());
+                    double bAge = bAgeObj instanceof Number ? ((Number) bAgeObj).doubleValue() : Double.parseDouble(bAgeObj.toString());
+                    
+                    return Double.compare(aAge, bAge);
+                });
+            }
+        });
+        
         // Restructure the data to a map, keyed by dbgap_accession
         participants.forEach((Map<String, Object> participant) -> {
             String dbgapAccession = (String) participant.get("dbgap_accession");
