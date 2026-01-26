@@ -29,8 +29,16 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Run unit tests
-        run: mvn clean test -Dspring.profiles.active=test
+      - name: Run unit tests with coverage
+        run: mvn clean test jacoco:report -Dspring.profiles.active=test
+
+      - name: Coveralls GitHub Action
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: unit-tests
+          parallel: false
+        continue-on-error: true
 
       - name: Publish test results
         if: always()
