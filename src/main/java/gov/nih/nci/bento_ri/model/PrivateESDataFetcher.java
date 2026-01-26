@@ -2,11 +2,11 @@ package gov.nih.nci.bento_ri.model;
 
 import gov.nih.nci.bento.constants.Const;
 import gov.nih.nci.bento.model.AbstractPrivateESDataFetcher;
-import gov.nih.nci.bento.model.search.mapper.TypeMapperImpl;
-import gov.nih.nci.bento.model.search.mapper.TypeMapperService;
 import gov.nih.nci.bento.model.search.yaml.YamlQueryFactory;
 import gov.nih.nci.bento.service.ESService;
 import gov.nih.nci.bento_ri.service.InventoryESService;
+import gov.nih.nci.bento_ri.service.CPIFetcherService;
+import gov.nih.nci.bento_ri.model.FormattedCPIResponse;
 import graphql.schema.idl.RuntimeWiring;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,6 +18,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +31,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     private static final Logger logger = LogManager.getLogger(PrivateESDataFetcher.class);
     private final YamlQueryFactory yamlQueryFactory;
     private InventoryESService inventoryESService;
+    @Autowired
+    private CPIFetcherService cpiFetcherService;
     @Autowired
     private Cache<String, Object> caffeineCache;
 
@@ -91,13 +94,26 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
     final Set<String> INCLUDE_PARAMS  = Set.of("race", "data_category");
 
-    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "diagnosis_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status", "first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
-    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status","first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
+    // Cohort Chart bucket limits
+    final int COHORT_CHART_BUCKET_LIMIT_HIGH = 20;
+    final int COHORT_CHART_BUCKET_LIMIT_LOW = 5;
+
+    final Set<String> REGULAR_PARAMS = Set.of("study_id", "participant_id", "diagnosis_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_category", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status", "first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
+    final Set<String> PARTICIPANT_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "diagnosis_category", "age_at_diagnosis", "last_known_survival_status", "age_at_last_known_survival_status","first_event", "treatment_type", "treatment_agent", "age_at_treatment_start", "response_category", "age_at_response", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "dbgap_accession", "study_acronym", "study_short_title", "library_selection", "library_source_material", "library_source_molecule", "library_strategy");
     final Set<String> DIAGNOSIS_REGULAR_PARAMS = Set.of("participant_id", "sample_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis");
-    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
+    final Set<String> SAMPLE_REGULAR_PARAMS = Set.of("participant_id", "race", "sex_at_birth", "dbgap_accession", "study_acronym", "study_name", "sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "diagnosis_category");
     final Set<String> STUDY_REGULAR_PARAMS = Set.of("study_id", "dbgap_accession", "study_acronym", "study_name", "study_status");
     final Set<String> FILE_REGULAR_PARAMS = Set.of("data_category", "dbgap_accession", "study_acronym", "study_name", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy", "file_mapping_level");
 
+    //default supporting data
+    final Map<String, String> DEFAULT_IDC_DATA = Map.of(
+        "phs002790", new Gson().toJson(Map.of("collection_id", "ccdi_mci",
+        "cancer_type", "Various", 
+        "date_updated", "2025-09-12", 
+        "description", "The Molecular Characterization Initiative (MCI) is a component of the National Cancer Institute’s (NCI) Childhood Cancer Data Initiative (CCDI). It offers state-of-the-art molecular testing at no cost to newly diagnosed children, adolescents, and young adults (AYAs) with central nervous system (CNS) tumors, soft tissue sarcomas (STS), certain rare childhood cancers (RAR), and certain neuroblastomas (NBL) treated at a Children’s Oncology Group (COG)–affiliated hospital. The goal of MCI is to enhance the understanding of genetic factors in pediatric cancers and to provide timely, clinically relevant findings to doctors and families to aid in treatment decisions and determine eligibility for certain planned COG clinical trials.</p>\n<p>\nPlease see the <a target=\"_blank\" href=\"https://doi.org/10.5281/zenodo.11099086\" data-toggle=\"modal\" data-target=\"#external-web-warning\" class=\"external-link\" data-toggle=\"modal\" data-target=\"#external-web-warning\">DICOM converted whole slide hematoxylin and eosin stained images from the Molecular Characterization Initiative of the National Cancer Institute's Childhood Cancer Data Initiative\n <i class=\"fa-solid fa-external-link external-link-icon\" aria-hidden=\"true\"></i></a> information page to learn more about the images and any supporting metadata for this collection, and to learn about attribution/citation requirements.</p>\n", 
+        "doi", "10.5281/zenodo.11099086", "image_types", "SM", "location", "Various", "species", "Human", "subject_count", "4055", "supporting_data", ""))
+    );
+    final Map<String, String> DEFAULT_TCIA_DATA = Map.of();
     public PrivateESDataFetcher(InventoryESService esService) {
         super(esService);
         inventoryESService = esService;
@@ -121,6 +137,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("cohortMetadata", env -> {
                             Map<String, Object> args = env.getArguments();
                             return cohortMetadata(args);
+                        })
+                        .dataFetcher("cohortCharts", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return cohortCharts(args);
                         })
                         .dataFetcher("studyDetails", env -> {
                             Map<String, Object> args = env.getArguments();
@@ -173,6 +193,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         .dataFetcher("globalSearch", env -> {
                             Map<String, Object> args = env.getArguments();
                             return globalSearch(args);
+                        })
+                        .dataFetcher("getFilenames", env -> {
+                            Map<String, Object> args = env.getArguments();
+                            return getFilenames(args);
                         })
                 )
                 .build();
@@ -272,15 +296,16 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 GS_COUNT_ENDPOINT, PARTICIPANTS_COUNT_END_POINT,
                 GS_COUNT_RESULT_FIELD, "participant_count",
                 GS_RESULT_FIELD, "participants",
-                GS_SEARCH_FIELD, List.of("participant_id_gs","diagnosis_str_gs", "study_id_gs", "age_at_diagnosis_str_gs", "treatment_type_str_gs", "sex_at_birth_gs", "treatment_agent_str_gs", "race_str_gs", "last_known_survival_status_str_gs"),
+                GS_SEARCH_FIELD, List.of("participant_id_gs","diagnosis_str_gs", "diagnosis_category_str_gs", "study_id_gs", "age_at_diagnosis_str_gs", "treatment_type_str_gs", "sex_at_birth_gs", "treatment_agent_str_gs", "race_str_gs", "last_known_survival_status_str_gs"),
                 GS_SORT_FIELD, "participant_id",
                 GS_COLLECT_FIELDS, new String[][]{
+                        new String[]{"id", "id"},
                         new String[]{"participant_id", "participant_id"},
                         new String[]{"diagnosis_str", "diagnosis_str"},
+                        new String[]{"diagnosis_category_str", "diagnosis_category_str"},
                         new String[]{"age_at_diagnosis_str", "age_at_diagnosis_str"},
                         new String[]{"treatment_agent_str", "treatment_agent_str"},
                         new String[]{"treatment_type_str", "treatment_type_str"},
-                        new String[]{"cpi_data", "cpi_data"},
                         new String[]{"study_id", "study_id"},
                         new String[]{"race_str", "race_str"},
                         new String[]{"sex_at_birth", "sex_at_birth"},
@@ -310,7 +335,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 GS_COUNT_ENDPOINT, SAMPLES_COUNT_END_POINT,
                 GS_COUNT_RESULT_FIELD, "sample_count",
                 GS_RESULT_FIELD, "samples",
-                GS_SEARCH_FIELD, List.of("sample_id_gs", "participant_id_gs", "study_id_gs", "sample_anatomic_site_str_gs", "sample_tumor_status_gs", "diagnosis_str_gs", "tumor_classification_gs"),
+                GS_SEARCH_FIELD, List.of("sample_id_gs", "participant_id_gs", "study_id_gs", "sample_anatomic_site_str_gs", "diagnosis_category_str_gs", "sample_tumor_status_gs", "diagnosis_str_gs", "tumor_classification_gs"),
                 GS_SORT_FIELD, "sample_id",
                 GS_COLLECT_FIELDS, new String[][]{
                         new String[]{"sample_id", "sample_id"},
@@ -319,6 +344,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         new String[]{"sample_anatomic_site_str", "sample_anatomic_site_str"},
                         new String[]{"sample_tumor_status", "sample_tumor_status"},
                         new String[]{"diagnosis_str", "diagnosis_str"},
+                        new String[]{"diagnosis_category_str", "diagnosis_category_str"},
                         new String[]{"tumor_classification", "tumor_classification"}
                 },
                 GS_CATEGORY_TYPE, "sample"
@@ -439,6 +465,36 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             for (var object: objects) {
                 object.put(GS_CATEGORY_TYPE, category.get(GS_CATEGORY_TYPE));
+            }
+
+            // Add CPI data enrichment for participants
+            if (resultFieldName.equals("participants") && objects != null && !objects.isEmpty()) {
+                // Check if CPIFetcherService is properly injected
+                if (cpiFetcherService != null) {
+                    try {
+                        // Extract IDs from the participant objects for CPI fetching
+                        List<ParticipantRequest> extracted_ids = extractIDs(objects);
+                        
+                        // Fetch CPI data
+                        List<FormattedCPIResponse> cpi_data = cpiFetcherService.fetchAssociatedParticipantIds(extracted_ids);
+                        logger.info("GlobalSearch CPI data received: " + cpi_data.size() + " records");
+                        
+                        if (cpi_data != null && !cpi_data.isEmpty()) {
+                            // Enrich CPI data with additional participant information
+                            enrichCPIDataWithParticipantInfo(cpi_data);
+                            
+                            // Update the participant objects with enriched CPI data
+                            updateParticipantListWithEnrichedCPIData(objects, cpi_data);
+                            
+                            logger.info("GlobalSearch participants enriched with CPI data");
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error enriching GlobalSearch participants with CPI data", e);
+                        // Continue processing even if CPI enrichment fails
+                    }
+                } else {
+                    logger.warn("CPIFetcherService is not properly injected. CPI integration will be skipped for GlobalSearch.");
+                }
             }
 
             List<Map<String, Object>> existingObjects = (List<Map<String, Object>>)result.getOrDefault(resultFieldName, null);
@@ -659,8 +715,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
     }
 
     private Map<String, Object> searchParticipants(Map<String, Object> params) throws IOException {
-        String cacheKey = generateCacheKey(params);
-        Map<String, Object> data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
+        List<String> importData = (List<String>) params.get("import_data");
+        String cacheKey = "no_cache";
+        Map<String, Object> data = null;
+        if (importData == null || importData.size() == 0 || importData.get(0).equals("")) {
+            cacheKey = generateCacheKey(params);
+            data = (Map<String, Object>)caffeineCache.asMap().get(cacheKey);
+        }
+        
         if (data != null) {
             logger.info("hit cache!");
             return data;
@@ -714,29 +776,36 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
+                    AGG_NAME, "diagnosis_category",
+                    FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisCategory",
+                    AGG_ENDPOINT, DIAGNOSIS_END_POINT
+            ));
+            PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "disease_phase",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiseasePhase",
-                    ADDITIONAL_UPDATE, Map.of("Initial Diagnosis", 2000, "Not Reported", 3500),
+                    ADDITIONAL_UPDATE, Map.of("Initial Diagnosis", 4000, "Not Reported", 3500),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_classification_system",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisClassificationSystem",
-                    ADDITIONAL_UPDATE, Map.of("ICD-O-3.2", 5000),
+                    ADDITIONAL_UPDATE, Map.of("ICD-O-3.2", 5000, "Indication for Study", 1000),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_basis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisBasis",
-                    ADDITIONAL_UPDATE, Map.of("Clinical", 3500),
+                    ADDITIONAL_UPDATE, Map.of("Clinical", 3500, "Not Reported", 2000, "Unknown", 4000),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                 CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "treatment_type",
                 FILTER_COUNT_QUERY, "filterParticipantCountByTreatmentType",
+                ADDITIONAL_UPDATE, Map.of("Chemotherapy", 3000, "Radiation Therapy", 1500, "Surgical Procedure", 2000),
                 AGG_ENDPOINT, TREATMENT_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -767,6 +836,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "last_known_survival_status",
                 FILTER_COUNT_QUERY, "filterParticipantCountBySurvivalStatus",
+                ADDITIONAL_UPDATE, Map.of("Alive", 3500, "Unknown", 5000),
                 AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -816,7 +886,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "tumor_classification",
                     FILTER_COUNT_QUERY, "filterParticipantCountByTumorClassification",
-                    ADDITIONAL_UPDATE, Map.of("Primary", 1000, "Not Applicable", 4000),
+                    ADDITIONAL_UPDATE, Map.of("Primary", 1000, "Not Applicable", 4000, "Not Reported", 1500),
                     AGG_ENDPOINT, SAMPLES_END_POINT
             ));
             //data_category mapped to data_category
@@ -825,21 +895,39 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "data_category",
                     WIDGET_QUERY, "participantCountByDataCategory",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDataCategory",
-                    ADDITIONAL_UPDATE, Map.of("Sequencing", 500),
+                    ADDITIONAL_UPDATE, Map.of("Genomics", 1000, "Pathology Imaging", 1000, "Sequencing", 2000, "Clinical", 1500, "Copy Number Variation", 1000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "file_type",
                     FILTER_COUNT_QUERY, "filterParticipantCountByFileType",
-                    ADDITIONAL_UPDATE, Map.of("bam", 3500, "crai", 3600, "cram", 4000, "fastq", 2000, "html", 3000, "pdf", 3000, "txt", 3500, "vcf" , 3500),
+                    ADDITIONAL_UPDATE, new HashMap<String, Integer>() {{
+                        put("bai", 1500);
+                        put("bam", 3500);
+                        put("crai", 3600);
+                        put("cram", 4000);
+                        put("fastq", 2000);
+                        put("html", 3000);
+                        put("idat", 1000);
+                        put("json", 2000);
+                        put("pdf", 3000);
+                        put("tsv", 1000);
+                        put("txt", 3500);
+                        put("dicom", 500);
+                        put("vcf", 3500);
+                    }},
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    CARDINALITY_AGG_NAME, "pid",
+                    // CARDINALITY_AGG_NAME, "pid",
+                    // AGG_NAME, "study_name",
+                    // FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
+                    // ADDITIONAL_UPDATE, Map.of("Childhood Cancer Survivor Study (CCSS)", 2000, "Molecular Characterization Initiative", 1000),
+                    // AGG_ENDPOINT, STUDIES_FACET_END_POINT
                     AGG_NAME, "study_name",
                     FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
-                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
+                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     // CARDINALITY_AGG_NAME, "pid",
@@ -855,27 +943,28 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_selection",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySelection",
-                    ADDITIONAL_UPDATE, Map.of("Hybrid Selection", 4500),
+                    ADDITIONAL_UPDATE, Map.of("Hybrid Selection", 4500, "Other", 1000, "Unspecified", 1000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_source_material",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySourceMaterial",
-                    ADDITIONAL_UPDATE, Map.of("Bulk Cells", 3000),
+                    ADDITIONAL_UPDATE, Map.of("Bulk Cells", 3000, "Not Reported", 2000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_source_molecule",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibrarySourceMolecule",
-                    ADDITIONAL_UPDATE, Map.of("Genomic", 5000, "Transcriptomic", 3500),
+                    ADDITIONAL_UPDATE, Map.of("Genomic", 5000, "Transcriptomic", 3500, "Not Reported", 1000),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "library_strategy",
                     FILTER_COUNT_QUERY, "filterParticipantCountByLibraryStrategy",
+                    ADDITIONAL_UPDATE, Map.of("WXS", 2000, "Other", 500, "RNA-Seq", 1000, "WGS", 1500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -926,6 +1015,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
 
             Request filesCountRequest = new Request("GET", FILES_COUNT_END_POINT);
             Map<String, Object> query_files_valid_records = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(), REGULAR_PARAMS, "nested_filters", "files");
+            // System.out.println(gson.toJson(query_files_valid_records));
             filesCountRequest.setJsonEntity(gson.toJson(query_files_valid_records));
             JsonObject filesCountResult = inventoryESService.send(filesCountRequest);
             int numberOfFiles = filesCountResult.get("count").getAsInt();
@@ -994,7 +1084,17 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     if (facetValues_need_update.size() > 0) {
                         Map<String, Object> query_4_update = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(field), REGULAR_PARAMS, "nested_filters", "participants");
                         String prop = field;
-                        query_4_update = inventoryESService.addCustomAggregations(query_4_update, "facetAgg", prop, "sample_diagnosis_file_filters");
+                        String nestedProperty = "sample_diagnosis_file_filters";
+                        if (indexType.equals("survivals")) {
+                            nestedProperty = "survival_filters";
+                        } else if (indexType.equals("treatments")) {
+                            nestedProperty = "treatment_filters";
+                        } else if (indexType.equals("treatment_responses")) {
+                            nestedProperty = "treatment_response_filters";
+                        } else {
+                            nestedProperty = "sample_diagnosis_file_filters";
+                        }
+                        query_4_update = inventoryESService.addCustomAggregations(query_4_update, "facetAgg", prop, nestedProperty);
                         Request request = new Request("GET", PARTICIPANTS_END_POINT);
                         request.setJsonEntity(gson.toJson(query_4_update));
                         JsonObject jsonObject = inventoryESService.send(request);
@@ -1028,13 +1128,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     }
                 }
             }
-            caffeineCache.put(cacheKey, data);
+            if (!cacheKey.equals("no_cache")) {
+                caffeineCache.put(cacheKey, data);
+            }
             return data;
         }
-
     }
 
     private List<Map<String, Object>> participantOverview(Map<String, Object> params) throws IOException {
+        // System.out.println(params);
         final String[][] PROPERTIES = new String[][]{
             new String[]{"id", "id"},
             new String[]{"participant_id", "participant_id"},
@@ -1046,6 +1148,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"files", "files"},
             new String[]{"diagnosis", "diagnosis_str"},
             new String[]{"anatomic_site", "diagnosis_anatomic_site_str"},
+            new String[]{"diagnosis_category", "diagnosis_category_str"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis_str"},
             new String[]{"treatment_agent", "treatment_agent_str"},
             new String[]{"treatment_type", "treatment_type_str"},
@@ -1053,7 +1156,6 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"first_event", "first_event_str"},
             new String[]{"last_known_survival_status", "last_known_survival_status_str"},
             new String[]{"age_at_last_known_survival_status", "age_at_last_known_survival_status_str"},
-            new String[]{"cpi_data", "cpi_data"}
         };
 
         String defaultSort = "participant_id"; // Default sort order
@@ -1067,6 +1169,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("sex_at_birth", "sex_at_birth"),
                 Map.entry("synonym_id", "alternate_participant_id"),
                 Map.entry("diagnosis", "diagnosis_str"),
+                Map.entry("diagnosis_category", "diagnosis_category_str"),
                 Map.entry("anatomic_site", "diagnosis_anatomic_site_str"),
                 Map.entry("age_at_diagnosis", "age_at_diagnosis_str"),
                 Map.entry("treatment_agent", "treatment_agent_str"),
@@ -1074,12 +1177,210 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("age_at_treatment_start", "age_at_treatment_start_str"),
                 Map.entry("first_event", "first_event_str"),
                 Map.entry("last_known_survival_status", "last_known_survival_status_str"),
-                Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status_str"),
-                Map.entry("cpi_data","cpi_data")
+                Map.entry("age_at_last_known_survival_status", "age_at_last_known_survival_status_str")
         );
+        
+        // Get the participant list from overview
+        List<Map<String, Object>> participant_list = overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, PARTICIPANT_REGULAR_PARAMS, "nested_filters", "participants");
+        
+        // Extract IDs using helper function
+        List<ParticipantRequest> extracted_ids = extractIDs(participant_list);
+        
+        // Check if CPIFetcherService is properly injected
+        if (cpiFetcherService == null) {
+            logger.warn("CPIFetcherService is not properly injected. CPI integration will be skipped.");
+        } else {
+            try {
+                List<FormattedCPIResponse> cpi_data = cpiFetcherService.fetchAssociatedParticipantIds(extracted_ids);
+                logger.info("CPI data received: " + cpi_data.size() + " records");
+                
+                // Print the first value as JSON
+                if (cpi_data != null && !cpi_data.isEmpty()) {
+                    // System.out.println("First CPI data value BEFORE enrichment: " + gson.toJson(cpi_data.get(0)));
+                    
+                    // Enrich CPI data with additional participant information
+                    enrichCPIDataWithParticipantInfo(cpi_data);
+                    
+                    // Print the first enriched CPI data value
+                    // System.out.println("First enriched CPI data value AFTER enrichment: " + gson.toJson(cpi_data.get(0)));
+                    
+                    // Update the participant_list with the enriched CPI data
+                    updateParticipantListWithEnrichedCPIData(participant_list, cpi_data);
+                    
+                } else {
+                    // System.out.println("CPI data is empty or null");
+                }
+            } catch (Exception e) {
+                // System.err.println("Error fetching CPI data: " + e.getMessage());
+                logger.error("Error fetching CPI data", e);
+            }   
+        }
 
-        return overview(PARTICIPANTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "participants");
+        // System.out.println("Participant list size after enrichment: " + gson.toJson(participant_list));
+        return participant_list;
     }
+    
+    /**
+     * Helper function to extract participant_id and study_id from participant list
+     * @param participant_list List of participant objects
+     * @return List of ParticipantRequest objects containing participant_id and study_id
+     */
+    private List<ParticipantRequest> extractIDs(List<Map<String, Object>> participant_list) {
+        List<ParticipantRequest> ids = new ArrayList<>();
+        
+        for (Map<String, Object> participant : participant_list) {
+            // Extract participant_id
+            Object participantId = participant.get("participant_id");
+            String participantIdStr = participantId != null ? participantId.toString() : "";
+            
+            // Extract study_id
+            Object studyId = participant.get("study_id");
+            String studyIdStr = studyId != null ? studyId.toString() : "";
+            
+            // Create ParticipantRequest object
+            ParticipantRequest participantRequest = new ParticipantRequest(participantIdStr, studyIdStr);
+            ids.add(participantRequest);
+        }
+        
+        return ids;
+    }
+
+    /**
+     * Enriches CPI data with additional participant information using batch queries for improved performance
+     */
+    private void enrichCPIDataWithParticipantInfo(List<FormattedCPIResponse> cpiData) throws IOException {
+        if (cpiData == null || cpiData.isEmpty()) {
+            return;
+        }
+
+        // System.out.println("Starting CPI data enrichment for " + cpiData.size() + " records");
+
+        // Step 1: Filter out records that don't have cpiData and collect those that do
+        List<FormattedCPIResponse> recordsWithCpiData = new ArrayList<>();
+        for (FormattedCPIResponse cpiEntry : cpiData) {
+            if (hasCpiData(cpiEntry)) {
+                recordsWithCpiData.add(cpiEntry);
+            }
+        }
+
+        // System.out.println("Found " + recordsWithCpiData.size() + " records with cpiData to enrich");
+
+        if (recordsWithCpiData.isEmpty()) {
+            // System.out.println("No records with cpiData to enrich, skipping enrichment");
+            return;
+        }
+
+        // Step 2: Build HashMap mapping study_id to participant_ids
+        Map<String, Set<String>> studyToParticipantsMap = buildStudyToParticipantsMap(recordsWithCpiData);
+        // System.out.println("Built study-to-participants mapping with " + studyToParticipantsMap.size() + " studies");
+
+        // Step 3: Generate and execute batch OpenSearch query
+        List<Map<String, Object>> batchQueryResults = executeBatchQuery(studyToParticipantsMap);
+        // System.out.println("Batch query returned " + batchQueryResults.size() + " results");
+
+        // Step 4: Enrich CPI data with batch query results
+        enrichCpiDataWithBatchResults(recordsWithCpiData, batchQueryResults);
+
+        // System.out.println("CPI data enrichment completed");
+    }
+
+    /**
+     * Checks if a FormattedCPIResponse has cpiData
+     */
+    private boolean hasCpiData(FormattedCPIResponse cpiEntry) {
+        try {
+            java.lang.reflect.Field cpiDataField = cpiEntry.getClass().getDeclaredField("cpiData");
+            cpiDataField.setAccessible(true);
+            Object cpiDataValue = cpiDataField.get(cpiEntry);
+            
+            if (cpiDataValue instanceof List) {
+                List<?> cpiDataList = (List<?>) cpiDataValue;
+                return !cpiDataList.isEmpty();
+            }
+            return false;
+        } catch (Exception e) {
+            logger.debug("Error checking if record has cpiData: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Builds a HashMap mapping study_id (repository_of_synonym_id) to participant_ids (associated_id)
+     */
+    private Map<String, Set<String>> buildStudyToParticipantsMap(List<FormattedCPIResponse> recordsWithCpiData) {
+        Map<String, Set<String>> studyToParticipantsMap = new HashMap<>();
+
+        for (FormattedCPIResponse cpiEntry : recordsWithCpiData) {
+            try {
+                java.lang.reflect.Field cpiDataField = cpiEntry.getClass().getDeclaredField("cpiData");
+                cpiDataField.setAccessible(true);
+                Object cpiDataValue = cpiDataField.get(cpiEntry);
+
+                if (cpiDataValue instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<Object> cpiDataArray = (List<Object>) cpiDataValue;
+
+                    for (Object cpiDataItem : cpiDataArray) {
+                        Map<String, Object> cpiDataMap = convertToMap(cpiDataItem);
+                        if (cpiDataMap != null) {
+                            String studyId = extractStringValue(cpiDataMap, "repository_of_synonym_id");
+                            String participantId = extractStringValue(cpiDataMap, "associated_id");
+
+                            if (studyId != null && participantId != null) {
+                                studyToParticipantsMap.computeIfAbsent(studyId, k -> new HashSet<>()).add(participantId);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error building study-to-participants map for CPI entry: " + e.getMessage(), e);
+            }
+        }
+
+        return studyToParticipantsMap;
+    }
+
+    /**
+     * Converts an object to a Map representation
+     */
+    private Map<String, Object> convertToMap(Object obj) {
+        if (obj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) obj;
+            return map;
+        } else {
+            try {
+                String jsonString = gson.toJson(obj);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = gson.fromJson(jsonString, Map.class);
+                return map;
+            } catch (Exception e) {
+                logger.debug("Error converting object to Map: " + e.getMessage());
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Extracts string value from a map, handling both single values and arrays
+     */
+    private String extractStringValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        
+        if (value instanceof List) {
+            List<?> list = (List<?>) value;
+            if (!list.isEmpty() && list.get(0) != null) {
+                return list.get(0).toString();
+            }
+        } else {
+            return value.toString();
+        }
+        return null;
+    }
+
 
     private Map<String, Object> studyDetails(Map<String, Object> params) throws IOException {
         Map<String, Object> study;
@@ -1148,7 +1449,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "data_category",
                 FILTER_COUNT_QUERY, "data_categories",
-                ADDITIONAL_UPDATE, Map.of("Sequencing", 500),
+                ADDITIONAL_UPDATE, Map.of("Pathology Imaging", 1000, "Sequencing", 500, "Clinical", 1500),
                 AGG_ENDPOINT, FILES_END_POINT
         ));
         for (var agg: PARTICIPANT_TERM_AGGS) {
@@ -1207,6 +1508,23 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             }
         }
 
+        // todo: querying idc_tcia index for the supporting data
+        // if error, return default idc, tcia data
+        String idcData = DEFAULT_IDC_DATA.get(studyId);
+        String tciaData = DEFAULT_TCIA_DATA.get(studyId);
+        if (idcData == null && tciaData == null) {
+            study.put("supporting_data", new ArrayList<>());
+        } else {
+            //formatting the following code please:
+            ArrayList<Map<String, Object>> supportingData = new ArrayList<>();
+            if (idcData != null) {
+                supportingData.add(Map.of("data_category", "IDC", "data_object", idcData));
+            }
+            if (tciaData != null) {
+                supportingData.add(Map.of("data_category", "TCIA", "data_object", tciaData));
+            }
+            study.put("supporting_data", supportingData);
+        }
         return study;
     }
 
@@ -1293,6 +1611,31 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         );
 
         participants = overview(COHORTS_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "cohorts");
+        
+        // Sort survivals array by age_at_last_known_survival_status for each participant
+        participants.forEach((Map<String, Object> participant) -> {
+            Object survivalsObj = participant.get("survivals");
+            if (survivalsObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> survivals = (List<Map<String, Object>>) survivalsObj;
+                survivals.sort((a, b) -> {
+                    Object aAgeObj = a.get("age_at_last_known_survival_status");
+                    Object bAgeObj = b.get("age_at_last_known_survival_status");
+                    
+                    // Handle null values - put them at the end
+                    if (aAgeObj == null && bAgeObj == null) return 0;
+                    if (aAgeObj == null) return 1;
+                    if (bAgeObj == null) return -1;
+                    
+                    // Convert to double for comparison
+                    double aAge = aAgeObj instanceof Number ? ((Number) aAgeObj).doubleValue() : Double.parseDouble(aAgeObj.toString());
+                    double bAge = bAgeObj instanceof Number ? ((Number) bAgeObj).doubleValue() : Double.parseDouble(bAgeObj.toString());
+                    
+                    return Double.compare(aAge, bAge);
+                });
+            }
+        });
+        
         // Restructure the data to a map, keyed by dbgap_accession
         participants.forEach((Map<String, Object> participant) -> {
             String dbgapAccession = (String) participant.get("dbgap_accession");
@@ -1316,6 +1659,188 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return listOfParticipantsByStudy;
     }
 
+    /**
+     * Generates chart data for cohort comparison
+     * @param params Contains c1, c2, c3 (cohort participant IDs) and charts (properties to chart)
+     * @return List of chart results, one per property
+     * @throws IOException
+     */
+    private List<Map<String, Object>> cohortCharts(Map<String, Object> params) throws IOException {
+        List<Map<String, Object>> chartConfigs = null;
+        List<Map<String, Object>> charts = new ArrayList<Map<String, Object>>();
+        Map<String, Object> cohorts = new HashMap<String, Object>();
+        List<String> cohortsCombined = new ArrayList<String>();
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+
+        if (params == null || !params.containsKey("charts")) {
+            return List.of(); // No charts specified
+        }
+
+        if (!(params.containsKey("c1") || params.containsKey("c2") || params.containsKey("c3"))) {
+            return List.of(); // No cohorts specified
+        }
+
+        // Combine cohorts from c1, c2, c3 into a single list
+        for (String key : List.of("c1", "c2", "c3")) {
+            if (!params.containsKey(key)) {
+                continue;
+            }
+
+            Object cohortRaw = params.get(key);
+            if (cohortRaw instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> cohort = (List<String>) cohortRaw;
+
+                if (!cohort.isEmpty()) {
+                    // Add cohort to combined list
+                    cohortsCombined.addAll(cohort);
+                    cohorts.put(key, cohort);
+                }
+            }
+        }
+
+        if (cohortsCombined.isEmpty()) {
+            return result;
+        }
+
+        Object chartConfigsRaw = params.get("charts");
+        if (chartConfigsRaw instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> castedChartConfigs = (List<Map<String, Object>>) chartConfigsRaw;
+            chartConfigs = castedChartConfigs;
+        }
+
+        if (chartConfigs == null || chartConfigs.isEmpty()) {
+            return result;
+        }
+
+        // Generate charts for each configuration
+        for (Map<String, Object> chartConfig : chartConfigs) {
+            // Prepare map that represents the entire chart
+            String property = (String) chartConfig.get("property");
+            String type = (String) chartConfig.get("type");
+            Map<String, Object> chartData = new HashMap<String, Object>();
+            chartData.put("property", property);
+            int totalNumberOfParticipants = 0;
+            List<String> bucketNames;
+            List<String> bucketNamesTopFew;
+            List<String> bucketNamesTopMany;
+
+            // Obtain details for querying Opensearch
+            Map<String, String> propertyConfig = getPropertyConfig(property);
+            if (propertyConfig == null) {
+                logger.warn("Skipping unknown property: " + property);
+                continue;
+            }
+
+            String cardinalityAggName = propertyConfig.get("cardinalityAggName");
+            //if cardinalityAggName is "", set it to null
+            if (cardinalityAggName.equals("")) {
+                cardinalityAggName = null;
+            }
+            String endpoint = propertyConfig.get("endpoint");
+            String indexName = propertyConfig.get("index");
+
+            // Determine most populous buckets
+            Map<String, Object> combinedCohortParams = Map.of("id", cohortsCombined);  // Changed from participant_pk to id
+            bucketNames = inventoryESService.getBucketNames(property, combinedCohortParams, RANGE_PARAMS, cardinalityAggName, indexName, endpoint);
+
+            if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_LOW) {
+                bucketNamesTopFew = new ArrayList<>(bucketNames.subList(0, COHORT_CHART_BUCKET_LIMIT_LOW));
+            } else {
+                bucketNamesTopFew = new ArrayList<>(bucketNames);
+            }
+
+            if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_HIGH) {
+                bucketNamesTopMany = new ArrayList<>(bucketNames.subList(0, COHORT_CHART_BUCKET_LIMIT_HIGH));
+            } else {
+                bucketNamesTopMany = new ArrayList<>(bucketNames);
+            }
+
+            // If chart type is percentage, then count the total number of participants
+            if ("percentage".equals(type)) {
+                Map<String, Object> combinedCohortsQuery = inventoryESService.buildFacetFilterQuery(combinedCohortParams, RANGE_PARAMS, Set.of(), Set.of(), "", "participants");
+                totalNumberOfParticipants = inventoryESService.getCount(combinedCohortsQuery, "participants");
+            }
+
+            // Prepare list of data for each cohort
+            List<Map<String, Object>> cohortsData = new ArrayList<Map<String, Object>>();
+
+            // Retrieve data for each cohort
+            for (String cohortName : cohorts.keySet()) {
+                // Prepare map of data for the cohort
+                Map<String, Object> cohortData = new HashMap<String, Object>();
+                Map<String, Object> cohortParams = Map.of("id", cohorts.get(cohortName));  // Changed from participant_pk to id
+                cohortData.put("cohort", cohortName);
+
+                // Retrieve data for the cohort
+                List<Map<String, Object>> cohortGroupCounts = filterSubjectCountBy(property, cohortParams, endpoint, cardinalityAggName, indexName);
+                List<Map<String, Object>> cohortGroupCountsTruncated = new ArrayList<Map<String, Object>>();
+                int otherMany = 0;
+                int otherFew = 0;
+
+                // Format for efficient retrieval
+                Map<String, Object> groupsToSubjects = new HashMap<>();
+                for (Map<String, Object> groupCount : cohortGroupCounts) {
+                    String group = (String) groupCount.get("group");
+                    Object subjects = groupCount.get("subjects");
+                    groupsToSubjects.put(group, subjects);
+                }
+
+                // Add buckets and their counts to a truncated list of results
+                for (String bucketName : bucketNames) {
+                    Integer subjects = (Integer) groupsToSubjects.getOrDefault(bucketName, 0);
+
+                    if (bucketNamesTopMany.contains(bucketName)) {
+                        cohortGroupCountsTruncated.add(Map.of("group", bucketName, "subjects", (double) subjects));
+                    } else {
+                        otherMany += subjects;
+                    }
+
+                    if (!bucketNamesTopFew.contains(bucketName)) {
+                        otherFew += subjects;
+                    }
+                }
+
+                if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_LOW) {
+                    cohortGroupCountsTruncated.add(Map.of("group", "OtherFew", "subjects", (double) otherFew));
+                }
+
+                if (bucketNames.size() > COHORT_CHART_BUCKET_LIMIT_HIGH) {
+                    cohortGroupCountsTruncated.add(Map.of("group", "OtherMany", "subjects", (double) otherMany));
+                }
+
+                // If chart type is percentage, then replace counts with percentages
+                if ("percentage".equals(type)) {
+                    List<Map<String, Object>> cohortGroupPercentages = new ArrayList<Map<String, Object>>();
+
+                    for (Map<String, Object> groupCount : cohortGroupCountsTruncated) {
+                        String group = (String) groupCount.get("group");
+                        double count = (Double) groupCount.get("subjects");
+                        double percentage = totalNumberOfParticipants > 0 ? (count / totalNumberOfParticipants) * 100 : 0.0;
+
+                        cohortGroupPercentages.add(Map.of("group", group, "subjects", percentage));
+                    }
+
+                    cohortData.put("participantsByGroup", cohortGroupPercentages);
+                } else if ("count".equals(type)) {
+                    cohortData.put("participantsByGroup", cohortGroupCountsTruncated);
+                }
+
+                // Add cohort data to the list of cohorts
+                cohortsData.add(cohortData);
+            }
+
+            // Add list of all cohorts' data to the chart
+            chartData.put("cohorts", cohortsData);
+
+            // Add chart to the list of charts
+            charts.add(chartData);
+        }
+
+        return charts;
+    }
+
     private List<Map<String, Object>> diagnosisOverview(Map<String, Object> params) throws IOException {
         final String[][] PROPERTIES = new String[][]{
             new String[]{"d_id", "id"},
@@ -1330,6 +1855,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"disease_phase", "disease_phase"},
                 new String[]{"diagnosis_classification_system", "diagnosis_classification_system"},
                 new String[]{"diagnosis_basis", "diagnosis_basis"},
+            new String[]{"diagnosis_category", "diagnosis_category"},
             new String[]{"age_at_diagnosis", "age_at_diagnosis"},
             new String[]{"tumor_grade_source", "tumor_grade_source"},
             new String[]{"tumor_stage_source", "tumor_stage_source"},
@@ -1434,6 +1960,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"sample_tumor_status", "sample_tumor_status"},
             new String[]{"tumor_classification", "tumor_classification"},
             new String[]{"diagnosis", "diagnosis_str"},
+            new String[]{"diagnosis_category", "diagnosis_category_str"},
             new String[]{"files", "files"}
         };
 
@@ -1447,7 +1974,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 Map.entry("participant_age_at_collection", "participant_age_at_collection"),
                 Map.entry("sample_tumor_status", "sample_tumor_status"),
                 Map.entry("tumor_classification", "tumor_classification"),
-                Map.entry("diagnosis", "diagnosis_str")
+                Map.entry("diagnosis", "diagnosis_str"),
+                Map.entry("diagnosis_category", "diagnosis_category_str")
         );
 
         return overview(SAMPLES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "samples");
@@ -1501,12 +2029,220 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
         return overview(FILES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "files");
     }
 
+    private Map<String, Object> getFilenames(Map<String, Object> params) throws IOException {
+        try {
+            final String[][] PROPERTIES = new String[][]{
+                    new String[]{"id", "id"},
+                new String[]{"file_id", "file_id"},
+                new String[]{"guid", "guid"},
+                new String[]{"file_name", "file_name"},
+                new String[]{"data_category", "data_category"},
+                new String[]{"file_description", "file_description"},
+                new String[]{"file_type", "file_type"},
+                new String[]{"file_size", "file_size"},
+                new String[]{"library_selection", "library_selection"},
+                new String[]{"library_source_material", "library_source_material"},
+                new String[]{"library_source_molecule", "library_source_molecule"},
+                new String[]{"library_strategy", "library_strategy"},
+                new String[]{"file_mapping_level", "file_mapping_level"},
+                new String[]{"file_access", "file_access"},
+                new String[]{"study_id", "study_id"},
+                new String[]{"participant_id", "participant_id"},
+                new String[]{"sample_id", "sample_id"},
+                new String[]{"md5sum", "md5sum"},
+                    new String[]{"files", "files"}
+            };
+
+            String defaultSort = "file_id"; // Default sort order
+
+            Map<String, String> mapping = Map.ofEntries(
+                Map.entry("file_id", "file_id"),
+                Map.entry("guid", "guid"),
+                Map.entry("file_name", "file_name"),
+                Map.entry("data_category", "data_category"),
+                Map.entry("file_description", "file_description"),
+                Map.entry("file_type", "file_type"),
+                Map.entry("file_size", "file_size"),
+                Map.entry("study_id", "study_id"),
+                Map.entry("library_selection", "library_selection.sort"),
+                Map.entry("library_source_material", "library_source_material.sort"),
+                Map.entry("library_source_molecule", "library_source_molecule.sort"),
+                Map.entry("library_strategy", "library_strategy.sort"),
+                Map.entry("file_mapping_level", "file_mapping_level"),
+                Map.entry("file_access", "file_access"),
+                Map.entry("participant_id", "participant_id"),
+                Map.entry("sample_id", "sample_id"),
+                Map.entry("md5sum", "md5sum")
+            );
+
+            String filename = (String) params.get("filename");
+            String order_by = (String) params.get(ORDER_BY);
+            if (order_by == null) {
+                order_by = "file_id";
+            }
+            String sortDirectionParam = (String) params.get(SORT_DIRECTION);
+            String direction = (sortDirectionParam != null) ? sortDirectionParam.toLowerCase() : "asc";
+            Object pageSizeObj = params.get(PAGE_SIZE);
+            Object offsetObj = params.get(OFFSET);
+            int pageSize = (pageSizeObj != null) ? (int) pageSizeObj : 10;
+            int offset = (offsetObj != null) ? (int) offsetObj : 0;
+
+            // Build query with facet filters (same as fileOverview)
+            // Exclude "filename" since it's a String, not a List, and we handle it separately with wildcard
+            Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION, "filename"), REGULAR_PARAMS, "nested_filters", "files");
+            // Create mutable copy since buildFacetFilterQuery may return immutable collections
+            query = new HashMap<>(query);
+            if (filename != null && !filename.isEmpty()) {
+                // Navigate to the appropriate location to add wildcard based on query structure
+                // When there ARE facet filters: {"query": {"bool": {"should": [{"bool": {"must": {...}, "filter": [...]}}]}}}
+                // When there are NO facet filters: {"query": {"bool": {"must": {"exists": {"field": "file_id"}}}}}
+                
+                try {
+                    Map<String, Object> queryMap = (Map<String, Object>) query.get("query");
+                    Map<String, Object> boolQuery = (Map<String, Object>) queryMap.get("bool");
+                    
+                    // Create multi-field wildcard search
+                    // Search across: file_name, data_category, file_description, file_type, file_access,
+                    // study_id, participant_id, sample_id, guid, md5sum, library_selection, 
+                    // library_source_material, library_strategy, library_source_molecule, file_mapping_level
+                    List<String> searchFields = List.of(
+                        "file_name", "data_category", "file_description", "file_type", "file_access",
+                        "study_id", "participant_id", "sample_id", "guid", "md5sum", 
+                        "library_selection", "library_source_material", "library_strategy", 
+                        "library_source_molecule", "file_mapping_level"
+                    );
+                    
+                    List<Map<String, Object>> shouldClauses = new ArrayList<>();
+                    for (String field : searchFields) {
+                        Map<String, Object> wildcardParams = new HashMap<>();
+                        wildcardParams.put("value", "*" + filename + "*");
+                        wildcardParams.put("case_insensitive", true);
+                        
+                        Map<String, Object> fieldClause = new HashMap<>();
+                        fieldClause.put(field, wildcardParams);
+                        
+                        Map<String, Object> wildcardClause = new HashMap<>();
+                        wildcardClause.put("wildcard", fieldClause);
+                        
+                        shouldClauses.add(wildcardClause);
+                    }
+                    
+                    // Wrap the should clauses in a bool query (matches if ANY field contains the search text)
+                    Map<String, Object> multiFieldSearch = new HashMap<>();
+                    multiFieldSearch.put("bool", Map.of("should", shouldClauses, "minimum_should_match", 1));
+                    
+                    // Check if query has "should" structure (with facet filters)
+                    if (boolQuery.containsKey("should")) {
+                        List<Object> shouldList = (List<Object>) boolQuery.get("should");
+                        if (shouldList != null && !shouldList.isEmpty()) {
+                            // Get the first (and only) element in should array
+                            Map<String, Object> shouldBool = (Map<String, Object>) shouldList.get(0);
+                            Map<String, Object> innerBool = (Map<String, Object>) shouldBool.get("bool");
+                            List<Object> filterList = (List<Object>) innerBool.get("filter");
+                            
+                            if (filterList != null) {
+                                // Create mutable copy of filter list and add multi-field search
+                                List<Object> mutableFilterList = new ArrayList<>(filterList);
+                                mutableFilterList.add(0, multiFieldSearch);
+                                
+                                // Rebuild the query structure
+                                Map<String, Object> mutableInnerBool = new HashMap<>(innerBool);
+                                mutableInnerBool.put("filter", mutableFilterList);
+                                
+                                Map<String, Object> mutableShouldBool = new HashMap<>(shouldBool);
+                                mutableShouldBool.put("bool", mutableInnerBool);
+                                
+                                List<Object> mutableShouldList = new ArrayList<>();
+                                mutableShouldList.add(mutableShouldBool);
+                                
+                                Map<String, Object> mutableBoolQuery = new HashMap<>(boolQuery);
+                                mutableBoolQuery.put("should", mutableShouldList);
+                                
+                                Map<String, Object> mutableQueryMap = new HashMap<>(queryMap);
+                                mutableQueryMap.put("bool", mutableBoolQuery);
+                                
+                                query.put("query", mutableQueryMap);
+                            }
+                        }
+                    } else {
+                        // No facet filters - simpler structure with just "must"
+                        // Add multi-field search to must clause
+                        Object mustObj = boolQuery.get("must");
+                        List<Object> mustList = new ArrayList<>();
+                        
+                        if (mustObj != null) {
+                            if (mustObj instanceof List) {
+                                mustList.addAll((List<Object>) mustObj);
+                            } else {
+                                mustList.add(mustObj);
+                            }
+                        }
+                        
+                        mustList.add(multiFieldSearch);
+                        
+                        Map<String, Object> mutableBoolQuery = new HashMap<>(boolQuery);
+                        mutableBoolQuery.put("must", mustList);
+                        
+                        Map<String, Object> mutableQueryMap = new HashMap<>(queryMap);
+                        mutableQueryMap.put("bool", mutableBoolQuery);
+                        
+                        query.put("query", mutableQueryMap);
+                    }
+                } catch (Exception e) {
+                    logger.error("Error adding wildcard search: " + e.getMessage(), e);
+                }
+            }
+
+            query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
+            query.put("_source", Map.of("includes", Set.of("id","file_id","guid","file_name","data_category","file_description","file_type","file_size","library_selection","library_source_material","library_source_molecule","library_strategy","file_mapping_level","file_access","study_id","participant_id","sample_id","md5sum","files")));
+
+            Request request = new Request("GET", FILES_END_POINT);
+            
+            // Get total count with the same query but without pagination
+            Map<String, Object> countQuery = new HashMap<>(query);
+            countQuery.remove("size");
+            countQuery.remove("from");
+            countQuery.put("size", 0);
+            countQuery.put("track_total_hits", true);
+            
+            Request countRequest = new Request("GET", FILES_END_POINT);
+            countRequest.setJsonEntity(gson.toJson(countQuery));
+            JsonObject countResult = inventoryESService.send(countRequest);
+            
+            int totalCount = 0;
+            if (countResult != null && countResult.has("hits")) {
+                JsonObject hits = countResult.getAsJsonObject("hits");
+                if (hits.has("total")) {
+                    JsonObject total = hits.getAsJsonObject("total");
+                    if (total.has("value")) {
+                        totalCount = total.get("value").getAsInt();
+                    }
+                }
+            }
+            System.out.println(gson.toJson(query));
+            
+            // Get paginated results
+            List<Map<String, Object>> page = inventoryESService.collectPage(request, query, PROPERTIES, pageSize, offset);
+        
+            // Return FilenamesResult structure
+            Map<String, Object> result = new HashMap<>();
+            result.put("files", page);
+            result.put("totalCount", totalCount);
+            
+            return result;
+        } catch (Exception e) {
+            logger.error("Error in getFilenames: " + e.getMessage(), e);
+            throw new IOException("Error in getFilenames: " + e.getMessage(), e);
+        }
+    }
+
     // if the nestedProperty is set, this will filter based upon the params against the nested property for the endpoint's index.
     // otherwise, this will filter based upon the params against the top level properties for the index
     private List<Map<String, Object>> overview(String endpoint, Map<String, Object> params, String[][] properties, String defaultSort, Map<String, String> mapping, Set<String> regular_fields, String nestedProperty, String overviewType) throws IOException {
         
         Request request = new Request("GET", endpoint);
         Map<String, Object> query = inventoryESService.buildFacetFilterQuery(params, RANGE_PARAMS, Set.of(PAGE_SIZE, OFFSET, ORDER_BY, SORT_DIRECTION), regular_fields, nestedProperty, overviewType);
+        // System.out.println(query);
         String order_by = (String)params.get(ORDER_BY);
         String direction = ((String)params.get(SORT_DIRECTION)).toLowerCase();
         query.put("sort", mapSortOrder(order_by, direction, defaultSort, mapping));
@@ -1675,5 +2411,324 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             // System.out.println(keys.toString());
             return keys.toString();
         }
+    }
+
+    /**
+     * Executes batch OpenSearch query for all study/participant combinations
+     */
+    private List<Map<String, Object>> executeBatchQuery(Map<String, Set<String>> studyToParticipantsMap) throws IOException {
+        if (studyToParticipantsMap.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Build the batch query
+        Map<String, Object> query = buildBatchQuery(studyToParticipantsMap);
+        
+        // System.out.println("Executing batch query: " + gson.toJson(query));
+
+        // Execute the query
+        Request request = new Request("GET", PARTICIPANTS_END_POINT);
+        request.setJsonEntity(gson.toJson(query));
+        
+        JsonObject response = inventoryESService.send(request);
+        JsonArray hits = response.getAsJsonObject("hits").getAsJsonArray("hits");
+        
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (JsonElement hit : hits) {
+            JsonObject source = hit.getAsJsonObject().getAsJsonObject("_source");
+            Map<String, Object> result = new HashMap<>();
+            
+            if (source.has("id")) {
+                result.put("id", source.get("id").getAsString());
+            }
+            if (source.has("participant_id")) {
+                result.put("participant_id", source.get("participant_id").getAsString());
+            }
+            if (source.has("study_id")) {
+                result.put("study_id", source.get("study_id").getAsString());
+            }
+            
+            results.add(result);
+        }
+
+        return results;
+    }
+
+    /**
+     * Builds the batch OpenSearch query based on the study-to-participants mapping
+     */
+    private Map<String, Object> buildBatchQuery(Map<String, Set<String>> studyToParticipantsMap) {
+        List<Object> shouldClauses = new ArrayList<>();
+
+        for (Map.Entry<String, Set<String>> entry : studyToParticipantsMap.entrySet()) {
+            String studyId = entry.getKey();
+            Set<String> participantIds = entry.getValue();
+
+            Map<String, Object> boolFilter = Map.of(
+                "bool", Map.of(
+                    "filter", List.of(
+                        Map.of("term", Map.of("study_id", studyId)),
+                        Map.of("terms", Map.of("participant_id", new ArrayList<>(participantIds)))
+                    )
+                )
+            );
+
+            shouldClauses.add(boolFilter);
+        }
+
+        Map<String, Object> query = Map.of(
+            "query", Map.of(
+                "bool", Map.of(
+                    "should", shouldClauses
+                )
+            ),
+            "size", 10000, // Adjust size as needed
+            "_source", List.of("id", "participant_id", "study_id")
+        );
+
+        return query;
+    }
+
+    /**
+     * Enriches CPI data with the results from the batch query
+     */
+    private void enrichCpiDataWithBatchResults(List<FormattedCPIResponse> recordsWithCpiData, List<Map<String, Object>> batchQueryResults) {
+        // Create lookup map for quick access to query results
+        Map<String, String> participantStudyToPidMap = new HashMap<>();
+        
+        for (Map<String, Object> result : batchQueryResults) {
+            String participantId = (String) result.get("participant_id");
+            String studyId = (String) result.get("study_id");
+            String pId = (String) result.get("id");
+            
+            if (participantId != null && studyId != null && pId != null) {
+                String key = participantId + "_" + studyId;
+                participantStudyToPidMap.put(key, pId);
+            }
+        }
+
+        // System.out.println("Created lookup map with " + participantStudyToPidMap.size() + " participant/study combinations");
+
+        // Enrich each CPI data record
+        for (FormattedCPIResponse cpiEntry : recordsWithCpiData) {
+            enrichSingleCpiEntry(cpiEntry, participantStudyToPidMap);
+        }
+    }
+
+
+    /**
+     * Enriches a single CPI entry with p_id and data_type
+     */
+    private void enrichSingleCpiEntry(FormattedCPIResponse cpiEntry, Map<String, String> participantStudyToPidMap) {
+        try {
+            java.lang.reflect.Field cpiDataField = cpiEntry.getClass().getDeclaredField("cpiData");
+            cpiDataField.setAccessible(true);
+            Object cpiDataValue = cpiDataField.get(cpiEntry);
+
+            if (cpiDataValue instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Object> cpiDataArray = (List<Object>) cpiDataValue;
+
+                for (int i = 0; i < cpiDataArray.size(); i++) {
+                    Object cpiDataItem = cpiDataArray.get(i);
+                    Map<String, Object> cpiDataMap = convertToMap(cpiDataItem);
+                    
+                    if (cpiDataMap != null) {
+                        String participantId = extractStringValue(cpiDataMap, "associated_id");
+                        String studyId = extractStringValue(cpiDataMap, "repository_of_synonym_id");
+                        
+                        if (participantId != null && studyId != null) {
+                            String lookupKey = participantId + "_" + studyId;
+                            
+                            if (participantStudyToPidMap.containsKey(lookupKey)) {
+                                // Found match in OpenSearch - set internal data
+                                cpiDataMap.put("p_id", participantStudyToPidMap.get(lookupKey));
+                                cpiDataMap.put("data_type", "internal");
+                                // System.out.println("Enriched CPI data: participant=" + participantId + ", study=" + studyId + ", p_id=" + participantStudyToPidMap.get(lookupKey) + ", data_type=internal");
+                            } else {
+                                // No match found - set external data
+                                cpiDataMap.put("p_id", null);
+                                cpiDataMap.put("data_type", "external");
+                                // System.out.println("Enriched CPI data: participant=" + participantId + ", study=" + studyId + ", p_id=null, data_type=external");
+                            }
+                            
+                            // If we converted to a new Map, replace the original item
+                            if (!(cpiDataItem instanceof Map)) {
+                                cpiDataArray.set(i, cpiDataMap);
+                            }
+                        }
+                    }
+                }
+                
+                // Update the cpiData field with enriched array
+                cpiDataField.set(cpiEntry, cpiDataArray);
+            }
+        } catch (Exception e) {
+            logger.error("Error enriching single CPI entry: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Updates the participant_list with enriched CPI data by matching participant_id and study_id
+     */
+    private void updateParticipantListWithEnrichedCPIData(List<Map<String, Object>> participant_list, List<FormattedCPIResponse> enriched_cpi_data) {
+        if (participant_list == null || participant_list.isEmpty() || enriched_cpi_data == null || enriched_cpi_data.isEmpty()) {
+            return;
+        }
+
+        // Create a map for quick lookup of enriched CPI data by participant_id + study_id combination
+        Map<String, Object> enrichedCPILookup = new HashMap<>();
+        
+        for (FormattedCPIResponse cpiResponse : enriched_cpi_data) {
+            try {
+                // Extract participant_id and study_id from the CPI response
+                Object participantIdObj = getFieldValue(cpiResponse, "participantId");
+                Object studyIdObj = getFieldValue(cpiResponse, "studyId");
+                
+                String participantId = participantIdObj != null ? participantIdObj.toString() : null;
+                String studyId = studyIdObj != null ? studyIdObj.toString() : null;
+                
+                if (participantId != null && studyId != null) {
+                    String lookupKey = participantId + "_" + studyId;
+                    
+                    // Extract the enriched cpiData array from the response (this is the array with enriched objects)
+                    Object enrichedCpiDataArray = getFieldValue(cpiResponse, "cpiData");
+                    if (enrichedCpiDataArray != null) {
+                        enrichedCPILookup.put(lookupKey, enrichedCpiDataArray);
+                        // System.out.println("Added enriched CPI data array for participant: " + participantId + ", study: " + studyId);
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error processing CPI response for lookup map: " + e.getMessage(), e);
+            }
+        }
+
+        // Update each participant in the participant_list with enriched CPI data
+        for (Map<String, Object> participant : participant_list) {
+            try {
+                String participantId = getStringValue(participant, "participant_id");
+                String studyId = getStringValue(participant, "study_id");
+                
+                if (participantId != null && studyId != null) {
+                    String lookupKey = participantId + "_" + studyId;
+                    
+                    // Check if we have enriched CPI data for this participant
+                    if (enrichedCPILookup.containsKey(lookupKey)) {
+                        Object enrichedCpiDataArray = enrichedCPILookup.get(lookupKey);
+                        
+                        // Update the cpi_data field in the participant record with the enriched array
+                        participant.put("cpi_data", enrichedCpiDataArray);
+                        // System.out.println("Updated participant " + participantId + " with enriched CPI data array");
+                    } else {
+                        // System.out.println("No enriched CPI data found for participant: " + participantId + ", study: " + studyId);
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error updating participant with enriched CPI data: " + e.getMessage(), e);
+            }
+        }
+        
+        // System.out.println("Completed updating participant_list with enriched CPI data");
+    }
+
+    /**
+     * Helper method to extract field values from FormattedCPIResponse objects using reflection
+     */
+    private Object getFieldValue(FormattedCPIResponse obj, String fieldName) {
+        try {
+            java.lang.reflect.Field field = obj.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Object value = field.get(obj);
+            return value;
+        } catch (Exception e) {
+            logger.debug("Could not access field '" + fieldName + "' from FormattedCPIResponse: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Helper method to safely extract string values from maps
+     */
+    private String getStringValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        return value != null ? value.toString() : null;
+    }
+
+    /**
+     * Maps property names to their OpenSearch index and aggregation configuration
+     * This replaces the YAML configuration approach used in C3DC
+     * @param propertyName The property to get configuration for
+     * @return Map containing index, endpoint, and cardinalityAggName, or null if not found
+     */
+    private Map<String, String> getPropertyConfig(String propertyName) {
+        // Demographics/Participant properties
+        if ("race".equals(propertyName) || "sex_at_birth".equals(propertyName)) {
+            return Map.of(
+                "index", "participants",
+                "endpoint", PARTICIPANTS_END_POINT,
+                "cardinalityAggName", ""  // No cardinality needed for participant-level fields
+            );
+        }
+        
+        // Treatment properties
+        if ("treatment_type".equals(propertyName) || "treatment_agent".equals(propertyName)) {
+            return Map.of(
+                "index", "treatments",
+                "endpoint", TREATMENT_END_POINT,
+                "cardinalityAggName", "pid"  // Count unique participants
+            );
+        }
+        
+        // Treatment Response properties
+        if ("response".equals(propertyName) || "response_category".equals(propertyName)) {
+            return Map.of(
+                "index", "treatment_responses",
+                "endpoint", TREATMENT_RESPONSE_END_POINT,
+                "cardinalityAggName", "pid"  // Count unique participants
+            );
+        }
+        
+        // Diagnosis properties
+        if ("diagnosis".equals(propertyName) || "diagnosis_anatomic_site".equals(propertyName) || 
+            "disease_phase".equals(propertyName) || "diagnosis_classification_system".equals(propertyName)) {
+            return Map.of(
+                "index", "diagnosis",
+                "endpoint", DIAGNOSIS_END_POINT,
+                "cardinalityAggName", "pid"  // Count unique participants
+            );
+        }
+        
+        // Survival properties
+        if ("last_known_survival_status".equals(propertyName) || "first_event".equals(propertyName)) {
+            return Map.of(
+                "index", "survivals",
+                "endpoint", SURVIVALS_END_POINT,
+                "cardinalityAggName", "pid"  // Count unique participants
+            );
+        }
+        
+        // Sample properties
+        if ("sample_anatomic_site".equals(propertyName) || "sample_tumor_status".equals(propertyName) || 
+            "tumor_classification".equals(propertyName)) {
+            return Map.of(
+                "index", "samples",
+                "endpoint", SAMPLES_END_POINT,
+                "cardinalityAggName", "pid"  // Count unique participants
+            );
+        }
+        
+        // Study properties
+        if ("dbgap_accession".equals(propertyName) || "study_name".equals(propertyName) || 
+            "study_acronym".equals(propertyName)) {
+            return Map.of(
+                "index", "studies",
+                "endpoint", STUDIES_END_POINT,
+                "cardinalityAggName", ""  // No cardinality needed
+            );
+        }
+        
+        // Property not found
+        logger.warn("No configuration found for property: " + propertyName);
+        return null;
     }
 }

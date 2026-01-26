@@ -27,11 +27,11 @@ public class InventoryESService extends ESService {
     public static final String JSON_OBJECT = "jsonObject";
     public static final String AGGS = "aggs";
     public static final int MAX_ES_SIZE = 10000;
-    final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth");
+    final Set<String> PARTICIPANT_PARAMS = Set.of("race", "sex_at_birth", "participant_id");
     final Set<String> SURVIVAL_PARAMS = Set.of("last_known_survival_status", "age_at_last_known_survival_status", "first_event");
     final Set<String> TREATMENT_PARAMS = Set.of("treatment_type", "treatment_agent", "age_at_treatment_start");
     final Set<String> TREATMENT_RESPONSE_PARAMS = Set.of("response_category", "age_at_response");
-    final Set<String> DIAGNOSIS_PARAMS = Set.of( "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis");
+    final Set<String> DIAGNOSIS_PARAMS = Set.of( "diagnosis", "disease_phase", "diagnosis_classification_system", "diagnosis_basis", "tumor_grade_source", "tumor_stage_source", "diagnosis_anatomic_site", "age_at_diagnosis", "diagnosis_category");
     final Set<String> SAMPLE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification");
     final Set<String> FILE_PARAMS = Set.of("data_category", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy", "file_mapping_level");
     final Set<String> SAMPLE_FILE_PARAMS = Set.of("sample_anatomic_site", "participant_age_at_collection", "sample_tumor_status", "tumor_classification", "data_category", "file_type", "library_selection", "library_source_material", "library_source_molecule", "library_strategy", "file_mapping_level");
@@ -77,6 +77,26 @@ public class InventoryESService extends ESService {
         String responseBody = EntityUtils.toString(response.getEntity());
         JsonObject jsonObject = gson.fromJson(responseBody, JsonObject.class);
         return jsonObject;
+    }
+
+    /**
+     * Queries the /_count Opensearch endpoint and returns the number of hits
+     * @param query Opensearch query
+     * @param index Name of the index to query
+     * @return
+     * @throws IOException
+     */
+    public int getCount(Map<String, Object> query, String index) throws IOException {
+        Request request = new Request("GET", String.format("/%s/_count", index));
+        String queryJson = gson.toJson(query);
+        JsonObject recountResult;
+        int newCount;
+
+        request.setJsonEntity(queryJson);
+        recountResult = send(request);
+        newCount = recountResult.get("count").getAsInt();
+
+        return newCount;
     }
 
     // This function build queries with following rules:
@@ -132,29 +152,31 @@ public class InventoryESService extends ESService {
 
     public Map<String, Object> buildFacetFilterQuery(Map<String, Object> params, Set<String> rangeParams, Set<String> excludedParams, Set<String> regular_fields, String nestedProperty, String indexType) throws IOException {
         Map<String, Object> result = new HashMap<>();
+        
+        // Add unknownAges parameters to excluded parameters to prevent them from being processed as regular filters
+        Set<String> localExcludedParams = new HashSet<>(excludedParams);
+        for (String key : params.keySet()) {
+            if (key.endsWith("_unknownAges")) {
+                localExcludedParams.add(key);
+            }
+        }
 
         if (indexType.startsWith("files")) {
             //regular files query
             List<Object> filter_1 = new ArrayList<>();
-            //query for files directly linked to study
-            List<Object> filter_2 = new ArrayList<>();
-            List<Object> participant_filters = new ArrayList<>();
-            List<Object> combined_participant_filters = new ArrayList<>();
-            List<Object> sample_diagnosis_filters = new ArrayList<>();
             List<Object> combined_filters = new ArrayList<>();
+            List<Object> combined_participant_filters = new ArrayList<>();
+            List<Object> combined_sample_diagnosis_filters = new ArrayList<>();
             List<Object> combined_survival_filters = new ArrayList<>();
             List<Object> combined_treatment_filters = new ArrayList<>();
             List<Object> combined_treatment_response_filters = new ArrayList<>();
-            List<Object> survival_filters = new ArrayList<>();
-            List<Object> treatment_filters = new ArrayList<>();
-            List<Object> treatment_response_filters = new ArrayList<>();
             
             for (String key: params.keySet()) { 
                 String finalKey = key;
                 if (key.equals("data_category")) {
                         finalKey = "data_category";
                 }
-                if (excludedParams.contains(finalKey)) {
+                if (localExcludedParams.contains(finalKey)) {
                     continue;
                 }
 
@@ -176,54 +198,255 @@ public class InventoryESService extends ESService {
                             range.put("lte", higher);
                         }
                         if (key.equals("age_at_diagnosis")) {
-                            sample_diagnosis_filters.add(Map.of(
-                                "range", Map.of("sample_diagnosis_filters."+key, range)
-                            ));
-                            combined_filters.add(Map.of(
-                                "range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                combined_sample_diagnosis_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)),
+                                        Map.of("term", Map.of("combined_filters.sample_diagnosis_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                combined_sample_diagnosis_filters.add(Map.of(
+                                    "range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)
+                                ));
+                            }
                         } else if (key.equals("participant_age_at_collection")) {
-                            sample_diagnosis_filters.add(Map.of(
-                                "range", Map.of("sample_diagnosis_filters."+key, range)
-                            ));
-                            combined_filters.add(Map.of(
-                                "range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                combined_sample_diagnosis_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)),
+                                        Map.of("term", Map.of("combined_filters.sample_diagnosis_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                combined_sample_diagnosis_filters.add(Map.of(
+                                    "range", Map.of("combined_filters.sample_diagnosis_filters."+key, range)
+                                ));
+                            }
                         
                         } else if (key.equals("age_at_treatment_start")) {
-                            treatment_filters.add(Map.of(
-                                "range", Map.of("treatment_filters."+key, range)
-                            ));
-                            combined_filters.add(Map.of(
-                                "range", Map.of("combined_filters.treatment_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                combined_treatment_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("combined_filters.treatment_filters."+key, range)),
+                                        Map.of("term", Map.of("combined_filters.treatment_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                combined_treatment_filters.add(Map.of(
+                                    "range", Map.of("combined_filters.treatment_filters."+key, range)
+                                ));
+                            }
                         } else if (key.equals("age_at_response")) {
-                            treatment_response_filters.add(Map.of(
-                                "range", Map.of("treatment_response_filters."+key, range)
-                            ));
-                            combined_filters.add(Map.of(
-                                "range", Map.of("combined_filters.treatment_response_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                combined_treatment_response_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("combined_filters.treatment_response_filters."+key, range)),
+                                        Map.of("term", Map.of("combined_filters.treatment_response_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                combined_treatment_response_filters.add(Map.of(
+                                    "range", Map.of("combined_filters.treatment_response_filters."+key, range)
+                                ));
+                            }
                         } else if (key.equals("age_at_last_known_survival_status")) {
-                            survival_filters.add(Map.of(
-                                "range", Map.of("survival_filters."+key, range)
-                            ));
-                            combined_filters.add(Map.of(
-                                "range", Map.of("combined_filters.survival_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                combined_survival_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("combined_filters.survival_filters."+key, range)),
+                                        Map.of("term", Map.of("combined_filters.survival_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                combined_survival_filters.add(Map.of(
+                                    "range", Map.of("combined_filters.survival_filters."+key, range)
+                                ));
+                            }
                         
                         } else {
                             filter_1.add(Map.of(
                                 "range", Map.of(key, range)
                             ));
-                            filter_2.add(Map.of(
-                                "range", Map.of(key, range)
-                            ));
+                        }
+                    }
+                    
+                    // Handle unknownAges parameter for age fields
+                    String unknownAgesKey = key + "_unknownAges";
+                    if (params.containsKey(unknownAgesKey) && (key.equals("age_at_diagnosis") || key.equals("participant_age_at_collection") || key.equals("age_at_treatment_start") || key.equals("age_at_response") || key.equals("age_at_last_known_survival_status"))) {
+                        List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                        if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                            String unknownAgesValue = unknownAgesValues.get(0);
+                            if ("exclude".equals(unknownAgesValue)) {
+                                // Exclude records with unknown values (-999) and null values by checking field exists
+                                if (key.equals("age_at_diagnosis")) {
+                                    combined_sample_diagnosis_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "combined_filters.sample_diagnosis_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("combined_filters.sample_diagnosis_filters."+key, -999)))
+                                        )
+                                    ));
+                                } else if (key.equals("participant_age_at_collection")) {
+                                    combined_sample_diagnosis_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "combined_filters.sample_diagnosis_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("combined_filters.sample_diagnosis_filters."+key, -999)))
+                                        )
+                                    ));
+                                } else if (key.equals("age_at_treatment_start")) {
+                                    combined_treatment_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "combined_filters.treatment_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("combined_filters.treatment_filters."+key, -999)))
+                                        )
+                                    ));
+                                } else if (key.equals("age_at_response")) {
+                                    combined_treatment_response_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "combined_filters.treatment_response_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("combined_filters.treatment_response_filters."+key, -999)))
+                                        )
+                                    ));
+                                } else if (key.equals("age_at_last_known_survival_status")) {
+                                    combined_survival_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "combined_filters.survival_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("combined_filters.survival_filters."+key, -999)))
+                                        )
+                                    ));
+                                }
+                            } else if ("only".equals(unknownAgesValue)) {
+                                // Only include records with unknown values (-999)
+                                if (key.equals("age_at_diagnosis")) {
+                                    combined_sample_diagnosis_filters.add(Map.of(
+                                        "terms", Map.of("combined_filters.sample_diagnosis_filters."+key, List.of(-999))
+                                    ));
+                                } else if (key.equals("participant_age_at_collection")) {
+                                    combined_sample_diagnosis_filters.add(Map.of(
+                                        "terms", Map.of("combined_filters.sample_diagnosis_filters."+key, List.of(-999))
+                                    ));
+                                } else if (key.equals("age_at_treatment_start")) {
+                                    combined_treatment_filters.add(Map.of(
+                                        "terms", Map.of("combined_filters.treatment_filters."+key, List.of(-999))
+                                    ));
+                                } else if (key.equals("age_at_response")) {
+                                    combined_treatment_response_filters.add(Map.of(
+                                        "terms", Map.of("combined_filters.treatment_response_filters."+key, List.of(-999))
+                                    ));
+                                } else if (key.equals("age_at_last_known_survival_status")) {
+                                    combined_survival_filters.add(Map.of(
+                                        "terms", Map.of("combined_filters.survival_filters."+key, List.of(-999))
+                                    ));
+                                }
+                            }
+                            // "include" is default behavior, no changes needed
                         }
                     }
                 } else {
                     // Term parameters (default)
                     List<String> valueSet = (List<String>) params.get(key);
+
+                    if (key.equals("import_data")) {
+                        if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
+                            List<Object> shouldClauses = new ArrayList<>();
+                            for (String obj : valueSet) {
+                                try {
+                                    JsonObject json = JsonParser.parseString(obj).getAsJsonObject();
+                                    String study = json.get("study_id").getAsString();
+                                    JsonArray participants = json.getAsJsonArray("participant_id");
+                                    List<String> participantList = new ArrayList<>();
+                                    for (JsonElement p : participants) {
+                                        participantList.add(p.getAsString());
+                                    }
+                                    shouldClauses.add(
+                                        Map.of(
+                                            "bool", Map.of(
+                                                "filter", List.of(
+                                                    Map.of("term", Map.of("study_id", study)),
+                                                    Map.of("terms", Map.of("participant_id", participantList))
+                                                )
+                                            )
+                                        )
+                                    );
+                                } catch (Exception e) {
+                                    // Handle parse error if needed
+                                }
+                            }
+                            filter_1.add(
+                                Map.of(
+                                    "bool", Map.of(
+                                        "should", shouldClauses
+                                    )
+                                )
+                            );
+                        }
+                        continue;
+                    }
                     
                     if (key.equals("participant_ids")) {
                         key = "participant_id";
@@ -231,129 +454,77 @@ public class InventoryESService extends ESService {
                     // list with only one empty string [""] means return all records
                     if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
                         if (PARTICIPANT_PARAMS.contains(key)) {
-                            participant_filters.add(Map.of(
-                                "terms", Map.of("participant_filters."+key, valueSet)
-                            ));
                             combined_participant_filters.add(Map.of(
                                 "terms", Map.of("combined_filters."+key, valueSet)
                             ));
                         } else if (SURVIVAL_PARAMS.contains(key)) {
-                            survival_filters.add(Map.of(
-                                "terms", Map.of("survival_filters."+key, valueSet)
-                            ));
                             combined_survival_filters.add(Map.of(
                                 "terms", Map.of("combined_filters.survival_filters."+key, valueSet)
                             ));
                         } else if (TREATMENT_PARAMS.contains(key)) {
-                            treatment_filters.add(Map.of(
-                                "terms", Map.of("treatment_filters."+key, valueSet)
-                            ));
                             combined_treatment_filters.add(Map.of(
                                 "terms", Map.of("combined_filters.treatment_filters."+key, valueSet)
                             ));
                         }  else if (TREATMENT_RESPONSE_PARAMS.contains(key)) {
-                            treatment_response_filters.add(Map.of(
-                                "terms", Map.of("treatment_response_filters."+key, valueSet)
-                            ));
                             combined_treatment_response_filters.add(Map.of(
                                 "terms", Map.of("combined_filters.treatment_response_filters."+key, valueSet)
                             ));
                         } else if (DIAGNOSIS_PARAMS.contains(key)) {
-                            sample_diagnosis_filters.add(Map.of(
-                                "terms", Map.of("sample_diagnosis_filters."+key, valueSet)
-                            ));
-                            combined_filters.add(Map.of(
+                            combined_sample_diagnosis_filters.add(Map.of(
                                 "terms", Map.of("combined_filters.sample_diagnosis_filters."+key, valueSet)
                             ));
                         } else if (SAMPLE_PARAMS.contains(key)) {
-                            sample_diagnosis_filters.add(Map.of(
-                                "terms", Map.of("sample_diagnosis_filters."+key, valueSet)
-                            ));
-                            combined_filters.add(Map.of(
+                            combined_sample_diagnosis_filters.add(Map.of(
                                 "terms", Map.of("combined_filters.sample_diagnosis_filters."+key, valueSet)
                             ));
                         } else {
                             filter_1.add(Map.of(
                                 "terms", Map.of(key, valueSet)
                             ));
-                            if (key.equals("participant_id")) {
-                                combined_participant_filters.add(Map.of(
-                                    "terms", Map.of("combined_filters."+key, valueSet)
-                                ));
-                            } else {
-                                filter_2.add(Map.of(
-                                    "terms", Map.of(key, valueSet)
-                                ));
-                            }
                         }
                     }
                 }
             }
 
             int filterLen = filter_1.size();
-            int participantFilterLen = participant_filters.size();
-            int survivalFilterLen = survival_filters.size();
-            int treatmentFilterLen = treatment_filters.size();
-            int treatmentResponseFilterLen = treatment_response_filters.size();
-            int sampleDiagnosisFilterLen = sample_diagnosis_filters.size();
             int combinedParticipantFilterLen = combined_participant_filters.size();
-            int combinedFilterLen = combined_filters.size();
+            int combinedSampleDiagnosisFilterLen = combined_sample_diagnosis_filters.size();
             int combinedSurvivalFilterLen = combined_survival_filters.size();
             int combinedTreatmentFilterLen = combined_treatment_filters.size();
             int combinedTreatmentResponseFilterLen = combined_treatment_response_filters.size();
 
-            if (filterLen + participantFilterLen + survivalFilterLen + treatmentFilterLen + treatmentResponseFilterLen + combinedParticipantFilterLen + sampleDiagnosisFilterLen + combinedFilterLen + combinedSurvivalFilterLen + combinedTreatmentFilterLen + combinedTreatmentResponseFilterLen == 0) {
+            if (filterLen + combinedParticipantFilterLen + combinedSampleDiagnosisFilterLen + combinedSurvivalFilterLen + combinedTreatmentFilterLen + combinedTreatmentResponseFilterLen == 0) {
                 if (indexType.equals("files_overall")) {
                     result.put("query", Map.of("match_all", Map.of()));
                 } else {
                     result.put("query", Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")))));
                 }
             } else {
-                if (participantFilterLen > 0) {
-                    filter_1.add(Map.of("nested", Map.of("path", "participant_filters", "query", Map.of("bool", Map.of("filter", participant_filters)))));
+                if (combinedParticipantFilterLen > 0) {
+                    //add each element of combined_participant_filters to combined_filters
+                    for (Object filter : combined_participant_filters) {
+                        combined_filters.add(filter);
+                    }
                 }
-                if (sampleDiagnosisFilterLen > 0) {
-                    filter_1.add(Map.of("nested", Map.of("path", "sample_diagnosis_filters", "query", Map.of("bool", Map.of("filter", sample_diagnosis_filters)))));
-                }
-                if (survivalFilterLen > 0) {
-                    filter_1.add(Map.of("nested", Map.of("path", "survival_filters", "query", Map.of("bool", Map.of("filter", survival_filters)))));
-                }
-                if (treatmentFilterLen > 0) {
-                    filter_1.add(Map.of("nested", Map.of("path", "treatment_filters", "query", Map.of("bool", Map.of("filter", treatment_filters)))));
-                }
-                if (treatmentResponseFilterLen > 0) {
-                    filter_1.add(Map.of("nested", Map.of("path", "treatment_response_filters", "query", Map.of("bool", Map.of("filter", treatment_response_filters)))));
-                }
-                if (combinedFilterLen > 0) {
-                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.sample_diagnosis_filters", "query", Map.of("bool", Map.of("filter", combined_filters)))));
+                if (combinedSampleDiagnosisFilterLen > 0) {
+                    combined_filters.add(Map.of("nested", Map.of("path", "combined_filters.sample_diagnosis_filters", "query", Map.of("bool", Map.of("filter", combined_sample_diagnosis_filters)))));
                 }
                 if (combinedSurvivalFilterLen > 0) {
-                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.survival_filters", "query", Map.of("bool", Map.of("filter", combined_survival_filters)))));
+                    combined_filters.add(Map.of("nested", Map.of("path", "combined_filters.survival_filters", "query", Map.of("bool", Map.of("filter", combined_survival_filters)))));
                 }
                 if (combinedTreatmentFilterLen > 0) {
-                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.treatment_filters", "query", Map.of("bool", Map.of("filter", combined_treatment_filters)))));
+                    combined_filters.add(Map.of("nested", Map.of("path", "combined_filters.treatment_filters", "query", Map.of("bool", Map.of("filter", combined_treatment_filters)))));
                 }
                 if (combinedTreatmentResponseFilterLen > 0) {
-                    combined_participant_filters.add(Map.of("nested", Map.of("path", "combined_filters.treatment_response_filters", "query", Map.of("bool", Map.of("filter", combined_treatment_response_filters)))));
+                    combined_filters.add(Map.of("nested", Map.of("path", "combined_filters.treatment_response_filters", "query", Map.of("bool", Map.of("filter", combined_treatment_response_filters)))));
                 }
                 // System.out.println(filter_1);
-                filter_2.add(Map.of("nested", Map.of("path", "combined_filters", "query", Map.of("bool", Map.of("filter", combined_participant_filters)))));
+                filter_1.add(Map.of("nested", Map.of("path", "combined_filters", "query", Map.of("bool", Map.of("filter", combined_filters)))));
                 List<Object> overall_filter = new ArrayList<>();
-                List<Object> should_filter = new ArrayList<>();
-                should_filter.add(Map.of("exists", Map.of("field", "pid")));
-                should_filter.add(Map.of("exists", Map.of("field", "sample_id")));
                 if (indexType.equals("files_overall")) {
-                    overall_filter.add(Map.of("bool", Map.of("should", should_filter, "filter", filter_1)));
+                    overall_filter.add(Map.of("bool", Map.of("filter", filter_1)));
                 } else {
-                    overall_filter.add(Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")), "should", should_filter, "filter", filter_1))); 
-                }
-                List<Object> must_not_filter = new ArrayList<>();
-                must_not_filter.add(Map.of("exists", Map.of("field", "pid")));
-                must_not_filter.add(Map.of("exists", Map.of("field", "sample_id")));
-                if (indexType.equals("files_overall")) {
-                    overall_filter.add(Map.of("bool", Map.of("must_not", must_not_filter, "filter", filter_2)));
-                } else {
-                        overall_filter.add(Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")), "must_not", must_not_filter, "filter", filter_2)));
+                    overall_filter.add(Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id")), "filter", filter_1))); 
                 }
                 result.put("query", Map.of("bool", Map.of("should", overall_filter)));
             }
@@ -368,7 +539,7 @@ public class InventoryESService extends ESService {
             List<Object> sample_diagnosis_file_filters = new ArrayList<>();
             
             for (String key: params.keySet()) {
-                if (excludedParams.contains(key)) {
+                if (localExcludedParams.contains(key)) {
                     continue;
                 }
 
@@ -390,38 +561,302 @@ public class InventoryESService extends ESService {
                             range.put("lte", higher);
                         }
                         if(indexType.endsWith("participants") && (key.equals("age_at_diagnosis") || key.equals("participant_age_at_collection"))){
-                            sample_diagnosis_file_filters.add(Map.of(
-                                "range", Map.of("sample_diagnosis_file_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                sample_diagnosis_file_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("sample_diagnosis_file_filters."+key, range)),
+                                        Map.of("term", Map.of("sample_diagnosis_file_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                sample_diagnosis_file_filters.add(Map.of(
+                                    "range", Map.of("sample_diagnosis_file_filters."+key, range)
+                                ));
+                            }
                         } else if (indexType.equals("samples") && key.equals("age_at_diagnosis")) {
-                            diagnosis_filters.add(Map.of(
-                                "range", Map.of("diagnosis_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                diagnosis_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("diagnosis_filters."+key, range)),
+                                        Map.of("term", Map.of("diagnosis_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                diagnosis_filters.add(Map.of(
+                                    "range", Map.of("diagnosis_filters."+key, range)
+                                ));
+                            }
                         } else if (indexType.equals("diagnosis") && key.equals("participant_age_at_collection")) {
-                            sample_file_filters.add(Map.of(
-                                "range", Map.of("sample_file_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                sample_file_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("sample_file_filters."+key, range)),
+                                        Map.of("term", Map.of("sample_file_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                sample_file_filters.add(Map.of(
+                                    "range", Map.of("sample_file_filters."+key, range)
+                                ));
+                            }
                         } else if (!indexType.equals("treatments") && key.equals("age_at_treatment_start")) {
-                            treatment_filters.add(Map.of(
-                                "range", Map.of("treatment_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                treatment_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("treatment_filters."+key, range)),
+                                        Map.of("term", Map.of("treatment_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                treatment_filters.add(Map.of(
+                                    "range", Map.of("treatment_filters."+key, range)
+                                ));
+                            }
                         } else if (!indexType.equals("treatment_responses") && key.equals("age_at_response")) {
-                            treatment_response_filters.add(Map.of(
-                                "range", Map.of("treatment_response_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                treatment_response_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("treatment_response_filters."+key, range)),
+                                        Map.of("term", Map.of("treatment_response_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                treatment_response_filters.add(Map.of(
+                                    "range", Map.of("treatment_response_filters."+key, range)
+                                ));
+                            }
                         } else if (!indexType.equals("survivals") && key.equals("age_at_last_known_survival_status")) {
-                            survival_filters.add(Map.of(
-                                "range", Map.of("survival_filters."+key, range)
-                            ));
+                            // Check if unknownAges parameter exists to determine if we should include unknown values
+                            String unknownAgesKey = key + "_unknownAges";
+                            boolean includeUnknown = true; // Default to including unknown values
+                            if (params.containsKey(unknownAgesKey)) {
+                                List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                                // Only consider unknownAges parameter if it has a meaningful value
+                                if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                                    includeUnknown = false; // Use normal range filtering when unknownAges parameter is specified
+                                }
+                            }
+                            
+                            if (includeUnknown) {
+                                // Include unknown values (-999) by default when no unknownAges parameter is specified
+                                survival_filters.add(Map.of(
+                                    "bool", Map.of("should", List.of(
+                                        Map.of("range", Map.of("survival_filters."+key, range)),
+                                        Map.of("term", Map.of("survival_filters."+key, -999))
+                                    ))
+                                ));
+                            } else {
+                                // Use normal range filter when unknownAges parameter is specified
+                                survival_filters.add(Map.of(
+                                    "range", Map.of("survival_filters."+key, range)
+                                ));
+                            }
                         } else {
                             filter.add(Map.of(
                                 "range", Map.of(key, range)
                             ));
                         }
                     }
+                    
+                    // Handle unknownAges parameter for age fields
+                    String unknownAgesKey = key + "_unknownAges";
+                    if (params.containsKey(unknownAgesKey) && (key.equals("age_at_diagnosis") || key.equals("participant_age_at_collection") || key.equals("age_at_treatment_start") || key.equals("age_at_response") || key.equals("age_at_last_known_survival_status"))) {
+                        List<String> unknownAgesValues = (List<String>) params.get(unknownAgesKey);
+                        if (unknownAgesValues != null && !unknownAgesValues.isEmpty() && !unknownAgesValues.get(0).equals("")) {
+                            String unknownAgesValue = unknownAgesValues.get(0);
+                            
+                            if ("exclude".equals(unknownAgesValue)) {
+                                // Exclude records with unknown values (-999) and null values by checking field exists
+                                if(indexType.endsWith("participants") && (key.equals("age_at_diagnosis") || key.equals("participant_age_at_collection"))){
+                                    sample_diagnosis_file_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "sample_diagnosis_file_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("sample_diagnosis_file_filters."+key, -999)))
+                                        )
+                                    ));
+                                } else if (indexType.equals("samples") && key.equals("age_at_diagnosis")) {
+                                    diagnosis_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "diagnosis_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("diagnosis_filters."+key, -999)))
+                                        )
+                                    ));
+                                } else if (indexType.equals("diagnosis") && key.equals("participant_age_at_collection")) {
+                                    sample_file_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "sample_file_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("sample_file_filters."+key, -999)))
+                                        )
+                                    ));
+                                } else if (!indexType.equals("treatments") && key.equals("age_at_treatment_start")) {
+                                    treatment_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "treatment_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("treatment_filters."+key, -999)))
+                                        )
+                                    ));
+                                } else if (!indexType.equals("treatment_responses") && key.equals("age_at_response")) {
+                                    treatment_response_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "treatment_response_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("treatment_response_filters."+key, -999)))
+                                        )
+                                    ));
+                                } else if (!indexType.equals("survivals") && key.equals("age_at_last_known_survival_status")) {
+                                    survival_filters.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", "survival_filters."+key))),
+                                            "must_not", List.of(Map.of("term", Map.of("survival_filters."+key, -999)))
+                                        )
+                                    ));
+                                } else {
+                                    filter.add(Map.of(
+                                        "bool", Map.of(
+                                            "must", List.of(Map.of("exists", Map.of("field", key))),
+                                            "must_not", List.of(Map.of("term", Map.of(key, -999)))
+                                        )
+                                    ));
+                                }
+                            } else if ("only".equals(unknownAgesValue)) {
+                                // Only include records with unknown values (-999)
+                                if(indexType.endsWith("participants") && (key.equals("age_at_diagnosis") || key.equals("participant_age_at_collection"))){
+                                    sample_diagnosis_file_filters.add(Map.of(
+                                        "terms", Map.of("sample_diagnosis_file_filters."+key, List.of(-999))
+                                    ));
+                                } else if (indexType.equals("samples") && key.equals("age_at_diagnosis")) {
+                                    diagnosis_filters.add(Map.of(
+                                        "terms", Map.of("diagnosis_filters."+key, List.of(-999))
+                                    ));
+                                } else if (indexType.equals("diagnosis") && key.equals("participant_age_at_collection")) {
+                                    sample_file_filters.add(Map.of(
+                                        "terms", Map.of("sample_file_filters."+key, List.of(-999))
+                                    ));
+                                } else if (!indexType.equals("treatments") && key.equals("age_at_treatment_start")) {
+                                    treatment_filters.add(Map.of(
+                                        "terms", Map.of("treatment_filters."+key, List.of(-999))
+                                    ));
+                                } else if (!indexType.equals("treatment_responses") && key.equals("age_at_response")) {
+                                    treatment_response_filters.add(Map.of(
+                                        "terms", Map.of("treatment_response_filters."+key, List.of(-999))
+                                    ));
+                                } else if (!indexType.equals("survivals") && key.equals("age_at_last_known_survival_status")) {
+                                    survival_filters.add(Map.of(
+                                        "terms", Map.of("survival_filters."+key, List.of(-999))
+                                    ));
+                                } else {
+                                    filter.add(Map.of(
+                                        "terms", Map.of(key, List.of(-999))
+                                    ));
+                                }
+                            }
+                            // "include" is default behavior, no changes needed
+                        }
+                    }
                 } else {
                     // Term parameters (default)
                     List<String> valueSet = (List<String>) params.get(key);
+
+                    if (key.equals("import_data")) {
+                        if (valueSet.size() > 0 && !(valueSet.size() == 1 && valueSet.get(0).equals(""))) {
+                            List<Object> shouldClauses = new ArrayList<>();
+                            for (String obj : valueSet) {
+                                try {
+                                    JsonObject json = JsonParser.parseString(obj).getAsJsonObject();
+                                    String study = json.get("study_id").getAsString();
+                                    JsonArray participants = json.getAsJsonArray("participant_id");
+                                    List<String> participantList = new ArrayList<>();
+                                    for (JsonElement p : participants) {
+                                        participantList.add(p.getAsString());
+                                    }
+                                    shouldClauses.add(
+                                        Map.of(
+                                            "bool", Map.of(
+                                                "filter", List.of(
+                                                    Map.of("term", Map.of("study_id", study)),
+                                                    Map.of("terms", Map.of("participant_id", participantList))
+                                                )
+                                            )
+                                        )
+                                    );
+                                } catch (Exception e) {
+                                    // Handle parse error if needed
+                                }
+                            }
+                            filter.add(
+                                Map.of(
+                                    "bool", Map.of(
+                                        "should", shouldClauses
+                                    )
+                                )
+                            );
+                        }
+                        continue;
+                    }
                     
                     if (key.equals("participant_ids")) {
                         key = "participant_id";
@@ -576,8 +1011,34 @@ public class InventoryESService extends ESService {
         Map<String, Object> subField = new HashMap<String, Object>();
         Map<String, Object> subField_ranges = new HashMap<String, Object>();
         subField_ranges.put("field", rangeAggName);
-        subField_ranges.put("ranges", Set.of(Map.of("key", "0 to 4", "from", 0, "to", 4 * 365), Map.of("key", "5 to 9", "from", 4 * 365, "to", 9 * 365), Map.of("key", "10 to 14", "from", 9 * 365, "to", 14 * 365), Map.of("key", "15 to 19", "from", 14 * 365, "to", 19 * 365), Map.of("key", "20 to 29", "from", 19 * 365, "to", 29 * 365), Map.of("key", ">29", "from", 29 * 365)));
-        
+                // Opensearch ranges are [from, to)
+        subField_ranges.put("ranges", Set.of(
+            Map.of(
+                "key", "0 - 4",
+                "from", 0,
+                "to", 5 * 365
+            ), Map.of(
+                "key", "5 - 9",
+                "from", 5 * 365,
+                "to", 10 * 365
+            ), Map.of(
+                "key", "10 - 14",
+                "from", 10 * 365,
+                "to", 15 * 365
+            ), Map.of(
+                "key", "15 - 19",
+                "from", 15 * 365,
+                "to", 20 * 365
+            ), Map.of(
+                "key", "20 - 29",
+                "from", 20 * 365,
+                "to", 30 * 365
+            ), Map.of(
+                "key", "> 29",
+                "from", 30 * 365
+            )
+        ));
+                
         subField.put("range", subField_ranges);
         if (! (cardinalityAggName == null)) {
             subField.put("aggs", Map.of("cardinality_count", Map.of("cardinality", Map.of("field", cardinalityAggName, "precision_threshold", 40000))));
@@ -793,6 +1254,46 @@ public class InventoryESService extends ESService {
             value = element.getAsString();
         }
         return value;
+    }
+
+    /**
+     * Retrieves all unique bucket names for a property aggregation
+     * Used for cohort charts to determine which groups to display
+     * @param property The property to aggregate on (e.g., "treatment_type", "race")
+     * @param params Filter parameters (including participant IDs)
+     * @param rangeParams Set of parameters that are ranges (not used in bucket names)
+     * @param cardinalityAggName Field name for cardinality aggregation (e.g., "pid" for participant id)
+     * @param index The index type (e.g., "participants", "treatments")
+     * @param endpoint The OpenSearch endpoint to query
+     * @return List of bucket names (unique values) for the property
+     * @throws IOException
+     */
+    public List<String> getBucketNames(String property, Map<String, Object> params, Set<String> rangeParams, String cardinalityAggName, String index, String endpoint) throws IOException {
+        List<String> bucketNames = new ArrayList<String>();
+        Map<String, Object> query = buildFacetFilterQuery(params, rangeParams, Set.of(), Set.of(), "", index);
+
+        // Add aggs clause to Opensearch query
+        String[] aggNames = new String[] {property};
+        query = addAggregations(query, aggNames, cardinalityAggName, List.of());
+
+        // Send Opensearch request and retrieve list of buckets
+        Request request = new Request("GET", endpoint);
+        String jsonizedRequest = gson.toJson(query);
+        request.setJsonEntity(jsonizedRequest);
+        JsonObject jsonObject = send(request);
+        Map<String, JsonArray> aggs = collectTermAggs(jsonObject, aggNames);
+        JsonArray buckets = aggs.get(property);
+
+        if (buckets != null) {
+            for (JsonElement bucket : buckets) {
+                JsonObject bucketObj = bucket.getAsJsonObject();
+                if (bucketObj.has("key")) {
+                    bucketNames.add(bucketObj.get("key").getAsString());
+                }
+            }
+        }
+
+        return bucketNames;
     }
 
 }
