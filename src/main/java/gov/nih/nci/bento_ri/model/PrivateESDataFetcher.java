@@ -1539,6 +1539,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"num_of_diagnoses", "num_of_diagnoses"},
             new String[]{"sex_at_birth", "sex_at_birth"},
             new String[]{"num_of_files", "num_of_files"},
+            new String[]{"num_of_study_files", "num_of_study_files"},
+            new String[]{"num_of_participant_files", "num_of_participant_files"},
+            new String[]{"num_of_sample_files", "num_of_sample_files"},
+            new String[]{"num_of_publications", "num_of_publications"},
         };
 
         String defaultSort = "dbgap_accession"; // Default sort order
@@ -1549,7 +1553,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("num_of_participants", "num_of_participants"),
             Map.entry("num_of_samples", "num_of_samples"),
             Map.entry("num_of_diagnoses", "num_of_diagnoses"),
-            Map.entry("num_of_files", "num_of_files")
+            Map.entry("num_of_files", "num_of_files"),
+            Map.entry("num_of_study_files", "num_of_study_files"),
+            Map.entry("num_of_participant_files", "num_of_participant_files"),
+            Map.entry("num_of_sample_files", "num_of_sample_files"),
+            Map.entry("num_of_publications", "num_of_publications")
         );
 
         return overview(STUDIES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "studies");
