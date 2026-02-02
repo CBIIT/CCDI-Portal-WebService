@@ -15,8 +15,9 @@ RUN yum install -y tar gzip shadow-utils && \
 ENV CATALINA_HOME=/usr/local/tomcat
 ENV PATH="${CATALINA_HOME}/bin:${PATH}"
 
-RUN curl -fsSL https://archive.apache.org/dist/tomcat/tomcat-11/v11.0.2/bin/apache-tomcat-11.0.2.tar.gz | tar -xz -C /usr/local && \
-    mv /usr/local/apache-tomcat-11.0.2 ${CATALINA_HOME} && \
+# Tomcat 11.0.11 fixes CVE-2025-55754, CVE-2025-31651, CVE-2025-24813, CVE-2025-55752, and other critical/high CVEs
+RUN curl -fsSL https://archive.apache.org/dist/tomcat/tomcat-11/v11.0.11/bin/apache-tomcat-11.0.11.tar.gz | tar -xz -C /usr/local && \
+    mv /usr/local/apache-tomcat-11.0.11 ${CATALINA_HOME} && \
     rm -rf ${CATALINA_HOME}/webapps.dist ${CATALINA_HOME}/webapps/ROOT
 
 # Security hardening - hide server info in error pages
