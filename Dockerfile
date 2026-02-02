@@ -1,65 +1,31 @@
 # Build stage - Amazon Corretto JDK 17
-FROM ubuntu:24.04 AS build
-
-# Download and install Amazon Corretto JDK 17 (latest with security patches)
-RUN apt-get update && \
-    apt-get install -y wget ca-certificates && \
-    wget -q https://corretto.aws/downloads/latest/amazon-corretto-17-x64-linux-jdk.tar.gz -O /tmp/jdk.tar.gz && \
-    mkdir -p /opt/java && \
-    tar -xzf /tmp/jdk.tar.gz -C /opt/java --strip-components=1 && \
-    rm /tmp/jdk.tar.gz && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-ENV JAVA_HOME=/opt/java
-ENV PATH="${JAVA_HOME}/bin:${PATH}"
-
-# Install Maven
-RUN apt-get update && \
-    apt-get install -y wget && \
-    wget -q https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz -O /tmp/maven.tar.gz && \
-    mkdir -p /opt/maven && \
-    tar -xzf /tmp/maven.tar.gz -C /opt/maven --strip-components=1 && \
-    rm /tmp/maven.tar.gz && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-ENV MAVEN_HOME=/opt/maven
-ENV PATH="${MAVEN_HOME}/bin:${PATH}"
-
-RUN java -version && mvn -version
+FROM maven:3.9.9-amazoncorretto-17 AS build
 
 WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
 
 # Production stage - Amazon Corretto JDK 17
-FROM tomcat:11.0-jdk17-temurin-noble AS final
+FROM amazoncorretto:17 AS final
 
-# Replace Temurin JDK with Amazon Corretto JDK 17 (latest with security patches)
-RUN apt-get update && \
-    apt-get install -y wget ca-certificates && \
-    wget -q https://corretto.aws/downloads/latest/amazon-corretto-17-x64-linux-jdk.tar.gz -O /tmp/jdk.tar.gz && \
-    rm -rf /opt/java/openjdk && \
-    mkdir -p /opt/java/openjdk && \
-    tar -xzf /tmp/jdk.tar.gz -C /opt/java/openjdk --strip-components=1 && \
-    rm /tmp/jdk.tar.gz && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Install Tomcat 11
+RUN yum install -y tar gzip shadow-utils && \
+    yum clean all
 
-RUN java -version
+ENV CATALINA_HOME=/usr/local/tomcat
+ENV PATH="${CATALINA_HOME}/bin:${PATH}"
 
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y unzip && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://archive.apache.org/dist/tomcat/tomcat-11/v11.0.2/bin/apache-tomcat-11.0.2.tar.gz | tar -xz -C /usr/local && \
+    mv /usr/local/apache-tomcat-11.0.2 ${CATALINA_HOME} && \
+    rm -rf ${CATALINA_HOME}/webapps.dist ${CATALINA_HOME}/webapps/ROOT
 
-RUN rm -rf /usr/local/tomcat/webapps.dist \
-           /usr/local/tomcat/webapps/ROOT
+# Security hardening - hide server info in error pages
+RUN sed -i 's|</Host>|  <Valve className="org.apache.catalina.valves.ErrorReportValve"\n               showReport="false"\n               showServerInfo="false" />\n\n      </Host>|' ${CATALINA_HOME}/conf/server.xml
 
-RUN sed -i 's|</Host>|  <Valve className="org.apache.catalina.valves.ErrorReportValve"\n               showReport="false"\n               showServerInfo="false" />\n\n      </Host>|' conf/server.xml
+WORKDIR ${CATALINA_HOME}
 
 EXPOSE 8080
 
-COPY --from=build /usr/src/app/target/Bento-0.0.1.war /usr/local/tomcat/webapps/ROOT.war
+COPY --from=build /usr/src/app/target/Bento-0.0.1.war ${CATALINA_HOME}/webapps/ROOT.war
+
+CMD ["catalina.sh", "run"]
