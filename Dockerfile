@@ -1,12 +1,45 @@
-# Build stage - reverted to Java 17
-FROM maven:3.9.9-eclipse-temurin-17 AS build
+# Build stage - Java 17.0.18
+FROM ubuntu:24.04 AS build
+
+# Copy and install JDK 17.0.18 from local file
+COPY jdk-17.0.18_linux-x64_bin.tar.gz /tmp/jdk.tar.gz
+RUN mkdir -p /opt/java && \
+    tar -xzf /tmp/jdk.tar.gz -C /opt/java --strip-components=1 && \
+    rm /tmp/jdk.tar.gz
+
+ENV JAVA_HOME=/opt/java
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Install Maven
+RUN apt-get update && \
+    apt-get install -y wget && \
+    wget -q https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz -O /tmp/maven.tar.gz && \
+    mkdir -p /opt/maven && \
+    tar -xzf /tmp/maven.tar.gz -C /opt/maven --strip-components=1 && \
+    rm /tmp/maven.tar.gz && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV MAVEN_HOME=/opt/maven
+ENV PATH="${MAVEN_HOME}/bin:${PATH}"
+
+RUN java -version && mvn -version
 
 WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
 
-# Production stage - Java 17
-FROM tomcat:11.0.12-jdk17-temurin-noble AS final
+# Production stage - Java 17.0.18
+FROM tomcat:11.0-jdk17-temurin-noble AS final
+
+# Replace JDK with 17.0.18 from local file
+COPY jdk-17.0.18_linux-x64_bin.tar.gz /tmp/jdk.tar.gz
+RUN rm -rf /opt/java/openjdk && \
+    mkdir -p /opt/java/openjdk && \
+    tar -xzf /tmp/jdk.tar.gz -C /opt/java/openjdk --strip-components=1 && \
+    rm /tmp/jdk.tar.gz
+
+RUN java -version
 
 RUN apt-get update && \
     apt-get upgrade -y && \
