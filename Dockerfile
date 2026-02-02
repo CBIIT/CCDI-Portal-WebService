@@ -1,11 +1,15 @@
-# Build stage - Java 17.0.18
+# Build stage - Oracle JDK 17.0.18
 FROM ubuntu:24.04 AS build
 
-# Copy and install JDK 17.0.18 from local file
-COPY jdk-17.0.18_linux-x64_bin.tar.gz /tmp/jdk.tar.gz
-RUN mkdir -p /opt/java && \
+# Download and install Oracle JDK 17.0.18
+RUN apt-get update && \
+    apt-get install -y wget ca-certificates && \
+    wget -q https://download.oracle.com/java/17/archive/jdk-17.0.18_linux-x64_bin.tar.gz -O /tmp/jdk.tar.gz && \
+    mkdir -p /opt/java && \
     tar -xzf /tmp/jdk.tar.gz -C /opt/java --strip-components=1 && \
-    rm /tmp/jdk.tar.gz
+    rm /tmp/jdk.tar.gz && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV JAVA_HOME=/opt/java
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
@@ -29,15 +33,19 @@ WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
 
-# Production stage - Java 17.0.18
+# Production stage - Oracle JDK 17.0.18
 FROM tomcat:11.0-jdk17-temurin-noble AS final
 
-# Replace JDK with 17.0.18 from local file
-COPY jdk-17.0.18_linux-x64_bin.tar.gz /tmp/jdk.tar.gz
-RUN rm -rf /opt/java/openjdk && \
+# Replace Temurin JDK with Oracle JDK 17.0.18
+RUN apt-get update && \
+    apt-get install -y wget ca-certificates && \
+    wget -q https://download.oracle.com/java/17/archive/jdk-17.0.18_linux-x64_bin.tar.gz -O /tmp/jdk.tar.gz && \
+    rm -rf /opt/java/openjdk && \
     mkdir -p /opt/java/openjdk && \
     tar -xzf /tmp/jdk.tar.gz -C /opt/java/openjdk --strip-components=1 && \
-    rm /tmp/jdk.tar.gz
+    rm /tmp/jdk.tar.gz && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN java -version
 
