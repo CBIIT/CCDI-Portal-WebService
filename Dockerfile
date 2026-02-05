@@ -13,7 +13,7 @@ ENV PATH=$CATALINA_HOME/bin:$PATH
 ENV TOMCAT_VERSION=11.0.12
 
 RUN dnf update -y && \
-    dnf install -y unzip tar gzip shadow-utils && \
+    dnf install -y unzip tar gzip shadow-utils wget && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
