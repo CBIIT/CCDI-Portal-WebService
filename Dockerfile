@@ -10,6 +10,7 @@ FROM tomcat:11.0.12-jdk17-temurin-noble AS final
 
 RUN apt-get update && \
     apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends unzip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
