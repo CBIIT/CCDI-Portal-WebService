@@ -1,18 +1,17 @@
 # Build stage
-FROM maven:3.9.9-eclipse-temurin-17 AS build
+FROM maven:3.9.9-amazoncorretto-17 AS build
 
 WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
 
-# Production stage - uses official Tomcat image (includes catalina.sh)
-FROM tomcat:11.0.12-jdk17-temurin-noble AS final
+# Production stage - uses official Tomcat image with Amazon Corretto
+FROM tomcat:11.0.12-jdk17-corretto AS final
 
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends unzip && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN yum update -y && \
+    yum install -y unzip && \
+    yum clean all && \
+    rm -rf /var/cache/yum
 
 RUN rm -rf /usr/local/tomcat/webapps.dist \
            /usr/local/tomcat/webapps/ROOT
