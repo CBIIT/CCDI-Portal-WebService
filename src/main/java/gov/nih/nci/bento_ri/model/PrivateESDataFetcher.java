@@ -736,6 +736,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "diagnosis",
                     WIDGET_QUERY, "participantCountByDiagnosis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosis",
+                    ADDITIONAL_UPDATE, Map.of("Precursor cell lymphoblastic lymphoma, NOS", 2000, "see diagnosis_comment", 2000),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -836,7 +837,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "last_known_survival_status",
                 FILTER_COUNT_QUERY, "filterParticipantCountBySurvivalStatus",
-                ADDITIONAL_UPDATE, Map.of("Alive", 3500, "Unknown", 5000),
+                ADDITIONAL_UPDATE, Map.of("Alive", 3500, "Dead", 1500, "Unknown", 5000),
                 AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -855,6 +856,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "sample_anatomic_site",
                     FILTER_COUNT_QUERY, "filterParticipantCountBySampleAnatomicSite",
+                    ADDITIONAL_UPDATE, Map.of("C42.0 : Blood", 2000),
                     AGG_ENDPOINT, SAMPLES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -895,7 +897,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "data_category",
                     WIDGET_QUERY, "participantCountByDataCategory",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDataCategory",
-                    ADDITIONAL_UPDATE, Map.of("Genomics", 1000, "Pathology Imaging", 1000, "Sequencing", 2000, "Clinical", 1500, "Copy Number Variation", 1000),
+                    ADDITIONAL_UPDATE, Map.of("Genomics", 1000, "Pathology Imaging", 1000, "Sequencing", 2000, "Clinical", 1500, "Copy Number Variation", 1000, "Methylation Analysis", 1, "Tumor Normal Clinical Data", 1500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
