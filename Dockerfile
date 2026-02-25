@@ -13,6 +13,7 @@ ENV PATH=$CATALINA_HOME/bin:$PATH
 ENV TOMCAT_VERSION=11.0.12
 
 RUN dnf update -y && \
+    dnf upgrade -y openssl-libs openssl-fips-provider curl-minimal libcurl-minimal gnupg2-minimal alsa-lib && \
     dnf install -y unzip tar gzip shadow-utils wget && \
     dnf clean all && \
     rm -rf /var/cache/dnf
