@@ -5,6 +5,16 @@ WORKDIR /usr/src/app
 COPY . .
 RUN mvn package -DskipTests
 
+FROM maven:3.9.9-amazoncorretto-17-al2023 AS tomcat
+
+ENV CATALINA_HOME=/usr/local/tomcat
+ENV TOMCAT_VERSION=11.0.15
+
+RUN curl -fsSL https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -o /tmp/tomcat.tar.gz && \
+    mkdir -p ${CATALINA_HOME} && \
+    tar -xzf /tmp/tomcat.tar.gz -C ${CATALINA_HOME} --strip-components=1 && \
+    rm /tmp/tomcat.tar.gz
+
 # Production stage - Amazon Linux 2023 with Corretto 17 and Tomcat 11
 FROM amazoncorretto:17-al2023-headless AS final
 
@@ -15,20 +25,17 @@ ENV TOMCAT_VERSION=11.0.15
 # Cache bust ARG - update this date to force fresh package pulls
 ARG CACHE_BUST=2026-03-02
 
-# Force refresh repo metadata and upgrade all packages to latest security-fixed builds
+# Force refresh repo metadata, upgrade, and remove non-essential vulnerable packages
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf clean all && \
     dnf makecache --refresh && \
     dnf upgrade -y --refresh --best --allowerasing && \
-    dnf install -y --setopt=install_weak_deps=False unzip tar gzip shadow-utils wget && \
+    dnf remove -y gnupg2-minimal curl-minimal libcurl-minimal alsa-lib libpng expat || true && \
+    dnf install -y --setopt=install_weak_deps=False wget && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
-# Download and install Tomcat 11
-RUN curl -fsSL https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -o /tmp/tomcat.tar.gz && \
-    mkdir -p ${CATALINA_HOME} && \
-    tar -xzf /tmp/tomcat.tar.gz -C ${CATALINA_HOME} --strip-components=1 && \
-    rm /tmp/tomcat.tar.gz
+COPY --from=tomcat /usr/local/tomcat ${CATALINA_HOME}
 
 RUN rm -rf ${CATALINA_HOME}/webapps.dist \
            ${CATALINA_HOME}/webapps/ROOT \
