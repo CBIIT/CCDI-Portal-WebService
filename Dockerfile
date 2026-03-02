@@ -8,7 +8,7 @@ RUN mvn package -DskipTests
 FROM maven:3.9.9-amazoncorretto-17-al2023 AS tomcat
 
 ENV CATALINA_HOME=/usr/local/tomcat
-ENV TOMCAT_VERSION=11.0.15
+ENV TOMCAT_VERSION=11.0.18
 
 RUN curl -fsSL https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -o /tmp/tomcat.tar.gz && \
     mkdir -p ${CATALINA_HOME} && \
@@ -20,7 +20,7 @@ FROM amazoncorretto:17-al2023-headless AS final
 
 ENV CATALINA_HOME=/usr/local/tomcat
 ENV PATH=$CATALINA_HOME/bin:$PATH
-ENV TOMCAT_VERSION=11.0.15
+ENV TOMCAT_VERSION=11.0.18
 
 # Cache bust ARG - update this date to force fresh package pulls
 ARG CACHE_BUST=2026-03-02
@@ -30,8 +30,11 @@ RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf clean all && \
     dnf makecache --refresh && \
     dnf upgrade -y --refresh --best --allowerasing && \
+    dnf update -y --refresh openssl-libs openssl-fips-provider-latest && \
     dnf remove -y gnupg2-minimal curl-minimal libcurl-minimal alsa-lib libpng expat || true && \
     dnf install -y --setopt=install_weak_deps=False wget && \
+    rpm -q openssl-libs openssl-fips-provider-latest && \
+    (rpm -q gnupg2-minimal curl-minimal libcurl-minimal alsa-lib libpng expat >/dev/null 2>&1 && echo "Vulnerable packages still installed" && exit 1 || true) && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
