@@ -10,7 +10,7 @@ FROM amazoncorretto:17-al2023 AS final
 
 ENV CATALINA_HOME=/usr/local/tomcat
 ENV PATH=$CATALINA_HOME/bin:$PATH
-ENV TOMCAT_VERSION=11.0.12
+ENV TOMCAT_VERSION=11.0.15
 
 # Cache bust ARG - update this date to force fresh package pulls
 ARG CACHE_BUST=2026-03-02
@@ -18,6 +18,7 @@ ARG CACHE_BUST=2026-03-02
 # Force refresh repo metadata and upgrade all vulnerable packages
 RUN dnf clean all && \
     dnf makecache --refresh && \
+    dnf distro-sync -y --refresh && \
     dnf upgrade -y --refresh \
         openssl-libs \
         openssl-fips-provider \
