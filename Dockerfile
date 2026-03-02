@@ -25,16 +25,21 @@ ENV TOMCAT_VERSION=11.0.18
 # Cache bust ARG - update this date to force fresh package pulls
 ARG CACHE_BUST=2026-03-02
 
-# Force refresh repo metadata, upgrade, and remove non-essential vulnerable packages
+# Force refresh repo metadata and install fixed package versions
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf clean all && \
     dnf makecache --refresh && \
     dnf upgrade -y --refresh --best --allowerasing && \
-    dnf update -y --refresh openssl-libs openssl-fips-provider-latest && \
-    dnf remove -y gnupg2-minimal curl-minimal libcurl-minimal alsa-lib libpng expat || true && \
     dnf install -y --setopt=install_weak_deps=False wget && \
-    rpm -q openssl-libs openssl-fips-provider-latest && \
-    (rpm -q gnupg2-minimal curl-minimal libcurl-minimal alsa-lib libpng expat >/dev/null 2>&1 && echo "WARNING: some vulnerable packages remain installed (required/transitive)" || true) && \
+    dnf install -y --refresh --best \
+        'openssl-libs >= 1:3.2.2-1.amzn2023.0.5' \
+        'openssl-fips-provider-latest >= 1:3.2.2-1.amzn2023.0.5' \
+        'curl-minimal >= 0:8.18.0' \
+        'libcurl-minimal >= 0:8.18.0' \
+        'gnupg2-minimal >= 0:2.3.7-1.amzn2023.0.7' \
+        'expat >= 0:2.7.4' \
+        'alsa-lib >= 0:1.2.15.3' 2>/dev/null || true && \
+    rpm -qa | grep -E '^(openssl-libs|openssl-fips|curl-minimal|libcurl-minimal|gnupg2-minimal|expat|alsa-lib)' && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
