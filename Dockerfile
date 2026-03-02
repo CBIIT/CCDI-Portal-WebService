@@ -6,7 +6,7 @@ COPY . .
 RUN mvn package -DskipTests
 
 # Production stage - Amazon Linux 2023 with Corretto 17 and Tomcat 11
-FROM amazoncorretto:17-al2023 AS final
+FROM amazoncorretto:17-al2023-headless AS final
 
 ENV CATALINA_HOME=/usr/local/tomcat
 ENV PATH=$CATALINA_HOME/bin:$PATH
@@ -15,24 +15,12 @@ ENV TOMCAT_VERSION=11.0.15
 # Cache bust ARG - update this date to force fresh package pulls
 ARG CACHE_BUST=2026-03-02
 
-# Force refresh repo metadata and upgrade all vulnerable packages
+# Force refresh repo metadata and upgrade all packages to latest security-fixed builds
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf clean all && \
     dnf makecache --refresh && \
-    dnf distro-sync -y --refresh && \
-    dnf update -y --refresh openssl\* gnupg2\* curl\* libcurl\* libpng\* && \
-    dnf upgrade -y --refresh \
-        openssl-libs \
-        openssl-fips-provider \
-        openssl-fips-provider-latest \
-        curl-minimal \
-        libcurl-minimal \
-        gnupg2-minimal \
-        alsa-lib \
-        libpng \
-        expat && \
-    dnf update -y && \
-    dnf install -y unzip tar gzip shadow-utils wget && \
+    dnf upgrade -y --refresh --best --allowerasing && \
+    dnf install -y --setopt=install_weak_deps=False unzip tar gzip shadow-utils wget && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
