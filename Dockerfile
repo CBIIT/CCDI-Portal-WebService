@@ -16,9 +16,11 @@ ENV TOMCAT_VERSION=11.0.15
 ARG CACHE_BUST=2026-03-02
 
 # Force refresh repo metadata and upgrade all vulnerable packages
-RUN dnf clean all && \
+RUN echo "CACHE_BUST=${CACHE_BUST}" && \
+    dnf clean all && \
     dnf makecache --refresh && \
     dnf distro-sync -y --refresh && \
+    dnf update -y --refresh openssl\* gnupg2\* curl\* libcurl\* libpng\* && \
     dnf upgrade -y --refresh \
         openssl-libs \
         openssl-fips-provider \
