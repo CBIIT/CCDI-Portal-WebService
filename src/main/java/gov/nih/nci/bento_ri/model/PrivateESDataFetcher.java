@@ -759,15 +759,19 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "dbgap_accession",
+                    ADDITIONAL_UPDATE, Map.of("phs001327", 2000),
                     FILTER_COUNT_QUERY, "filterParticipantCountByDBGAPAccession",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "study_acronym",
+                    ADDITIONAL_UPDATE, Map.of("CCSS_SMN", 2000),
                     WIDGET_QUERY, "participantCountByStudy",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAcronym",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
@@ -925,7 +929,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     // AGG_NAME, "study_name",
                     // FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
-                    // ADDITIONAL_UPDATE, Map.of("Childhood Cancer Survivor Study (CCSS)", 2000, "Molecular Characterization Initiative", 1000),
+                    ADDITIONAL_UPDATE, Map.of("Childhood Cancer Survivor Study (CCSS)", 2000),
                     AGG_ENDPOINT, STUDIES_FACET_END_POINT,
                     AGG_NAME, "study_name",
                     FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle"
@@ -935,7 +939,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     // AGG_NAME, "study_status",
                     // FILTER_COUNT_QUERY, "filterParticipantCountByStudyStatus",
-                    // ADDITIONAL_UPDATE, Map.of("Active", 2000,"Completed", 3000),
+                    ADDITIONAL_UPDATE, Map.of("Active", 2000,"Completed", 3000),
                     AGG_ENDPOINT, STUDIES_FACET_END_POINT,
                     AGG_NAME, "study_status",
                     FILTER_COUNT_QUERY, "filterParticipantCountByStudyStatus"
@@ -1093,8 +1097,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             nestedProperty = "treatment_filters";
                         } else if (indexType.equals("treatment_responses")) {
                             nestedProperty = "treatment_response_filters";
-                        } else {
+                        } else if (indexType.equals("samples")) {
                             nestedProperty = "sample_diagnosis_file_filters";
+                        } else if (indexType.equals("diagnosis")) {
+                            nestedProperty = "sample_diagnosis_file_filters";
+                        } else if (indexType.equals("files")) {
+                            nestedProperty = "sample_diagnosis_file_filters";
+                        }  else {
+                            // study_participants or participants
+                            nestedProperty = "";
                         }
                         query_4_update = inventoryESService.addCustomAggregations(query_4_update, "facetAgg", prop, nestedProperty);
                         Request request = new Request("GET", PARTICIPANTS_END_POINT);
