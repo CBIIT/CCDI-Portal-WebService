@@ -30,7 +30,7 @@ RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf clean all && \
     dnf makecache --refresh && \
     dnf upgrade -y --refresh --best --allowerasing && \
-    dnf install -y --setopt=install_weak_deps=False wget && \
+    dnf install -y --setopt=install_weak_deps=False wget unzip && \
     dnf install -y --refresh --best \
         'openssl-libs >= 1:3.2.2-1.amzn2023.0.5' \
         'openssl-fips-provider-latest >= 1:3.2.2-1.amzn2023.0.5' \
