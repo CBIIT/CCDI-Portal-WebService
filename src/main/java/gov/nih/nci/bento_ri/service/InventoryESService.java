@@ -1102,31 +1102,24 @@ public class InventoryESService extends ESService {
     }
 
     public Map<String, Object> addCustomAggregations(Map<String, Object> query, String aggName, String field, String nestedProperty) {
-        // "aggs": {
-        //     "customAgg": {
-            //     "nested": {
-            //         "path": "sample_diagnosis_file_filters"
-            //     },
-            //     "aggs": {
-            //         "min_price": {
-            //         "terms": {
-            //             "field": "sample_diagnosis_file_filters.diagnosis_classification_system"
-            //         },
-            //         "aggs": {
-            //             "top_reverse_nested": {
-            //             "reverse_nested": {}
-            //             }
-            //         }
-            //         }
-            //     }
-        //     }
-        // }
+        // When nestedProperty is empty: root-level terms aggregation (no nested path).
+        // When nestedProperty is set: nested aggregation with reverse_nested for doc_count at root.
         Map<String, Object> newQuery = new HashMap<>(query);
         newQuery.put("size", 0);
         Map<String, Object> aggSection = new HashMap<String, Object>();
-        Map<String, Object> aggSubSection = new HashMap<String, Object>();
-        aggSubSection.put("agg_buckets", Map.of("terms", Map.of("field", nestedProperty + "." + field, "size", 1000), "aggs", Map.of("top_reverse_nested", Map.of("reverse_nested", Map.of()))));
-        aggSection.put(aggName, Map.of("nested", Map.of("path", nestedProperty), "aggs", aggSubSection));
+
+        if (nestedProperty == null || nestedProperty.isEmpty()) {
+            // Root-level aggregation: terms on field only, no nested/reverse_nested
+            Map<String, Object> aggSubSection = new HashMap<String, Object>();
+            aggSubSection.put("terms", Map.of("field", field, "size", 1000));
+            aggSection.put(aggName, aggSubSection);
+        } else {
+            // Nested aggregation: nested path + terms on nestedProperty.field + reverse_nested
+            Map<String, Object> aggSubSection = new HashMap<String, Object>();
+            aggSubSection.put("agg_buckets", Map.of("terms", Map.of("field", nestedProperty + "." + field, "size", 1000), "aggs", Map.of("top_reverse_nested", Map.of("reverse_nested", Map.of()))));
+            aggSection.put(aggName, Map.of("nested", Map.of("path", nestedProperty), "aggs", aggSubSection));
+        }
+
         newQuery.put("aggs", aggSection);
         return newQuery;
     }
@@ -1183,11 +1176,48 @@ public class InventoryESService extends ESService {
     }
 
     public Map<String, Integer> collectCustomTerms(JsonObject jsonObject, String aggName) {
+            // "facetAgg": {
+            //     "doc_count_error_upper_bound": 0,
+            //     "sum_other_doc_count": 0,
+            //     "buckets": [
+            //         {
+            //         "key": "Active",
+            //         "doc_count": 40919
+            //         },
+            //         {
+            //         "key": "Completed",
+            //         "doc_count": 19703
+            //         }
+            //     ]
+            //     }
+            // or in the case of nested aggregation:
+            //     "facetAgg": {
+            //     "doc_count": 822822,
+            //     "agg_buckets": {
+            //         "doc_count_error_upper_bound": 0,
+            //         "sum_other_doc_count": 0,
+            //         "buckets": [
+            //         {
+            //             "key": "see diagnosis_comment",
+            //             "doc_count": 125542,
+            //             "top_reverse_nested": {
+            //             "doc_count": 6374
+            //             }
+            //         }
+
         Map<String, Integer> data = new HashMap<>();
         JsonObject aggs = jsonObject.getAsJsonObject("aggregations").getAsJsonObject(aggName);
-        JsonArray buckets = aggs.getAsJsonObject("agg_buckets").getAsJsonArray("buckets");
-        for (var bucket: buckets) {
-            data.put(bucket.getAsJsonObject().get("key").getAsString(), bucket.getAsJsonObject().getAsJsonObject("top_reverse_nested").get("doc_count").getAsInt());
+        JsonArray buckets = aggs.getAsJsonObject("agg_buckets") != null ? aggs.getAsJsonObject("agg_buckets").getAsJsonArray("buckets") : aggs.getAsJsonArray("buckets");
+        for (var bucket : buckets) {
+            JsonObject bucketObj = bucket.getAsJsonObject();
+            String key = bucketObj.get("key").getAsString();
+            int docCount;
+            if (bucketObj.has("top_reverse_nested")) {
+                docCount = bucketObj.getAsJsonObject("top_reverse_nested").get("doc_count").getAsInt();
+            } else {
+                docCount = bucketObj.get("doc_count").getAsInt();
+            }
+            data.put(key, docCount);
         }
         return data;
     }

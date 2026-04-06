@@ -736,6 +736,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "diagnosis",
                     WIDGET_QUERY, "participantCountByDiagnosis",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosis",
+                    ADDITIONAL_UPDATE, Map.of("Precursor cell lymphoblastic lymphoma, NOS", 2000, "see diagnosis_comment", 2000),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -758,15 +759,19 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "dbgap_accession",
+                    ADDITIONAL_UPDATE, Map.of("phs001327", 2000),
                     FILTER_COUNT_QUERY, "filterParticipantCountByDBGAPAccession",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
+                    CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "study_acronym",
+                    ADDITIONAL_UPDATE, Map.of("CCSS_SMN", 2000),
                     WIDGET_QUERY, "participantCountByStudy",
                     FILTER_COUNT_QUERY, "filterParticipantCountByAcronym",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
@@ -836,7 +841,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                 CARDINALITY_AGG_NAME, "pid",
                 AGG_NAME, "last_known_survival_status",
                 FILTER_COUNT_QUERY, "filterParticipantCountBySurvivalStatus",
-                ADDITIONAL_UPDATE, Map.of("Alive", 3500, "Unknown", 5000),
+                ADDITIONAL_UPDATE, Map.of("Alive", 3500, "Dead", 1500, "Unknown", 5000),
                 AGG_ENDPOINT, SURVIVALS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -855,6 +860,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "sample_anatomic_site",
                     FILTER_COUNT_QUERY, "filterParticipantCountBySampleAnatomicSite",
+                    ADDITIONAL_UPDATE, Map.of("C42.0 : Blood", 2000),
                     AGG_ENDPOINT, SAMPLES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -895,7 +901,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_NAME, "data_category",
                     WIDGET_QUERY, "participantCountByDataCategory",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDataCategory",
-                    ADDITIONAL_UPDATE, Map.of("Genomics", 1000, "Pathology Imaging", 1000, "Sequencing", 2000, "Clinical", 1500, "Copy Number Variation", 1000),
+                    ADDITIONAL_UPDATE, Map.of("Genomics", 1000, "Pathology Imaging", 1000, "Sequencing", 2000, "Clinical", 1500, "Copy Number Variation", 1000, "Methylation Analysis", 1, "Tumor Normal Clinical Data", 1500),
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -920,24 +926,24 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     AGG_ENDPOINT, FILES_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    // CARDINALITY_AGG_NAME, "pid",
+                    CARDINALITY_AGG_NAME, "pid",
                     // AGG_NAME, "study_name",
                     // FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
-                    // ADDITIONAL_UPDATE, Map.of("Childhood Cancer Survivor Study (CCSS)", 2000, "Molecular Characterization Initiative", 1000),
-                    // AGG_ENDPOINT, STUDIES_FACET_END_POINT
+                    ADDITIONAL_UPDATE, Map.of("Childhood Cancer Survivor Study (CCSS)", 2000),
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT,
                     AGG_NAME, "study_name",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyTitle"
+                    // AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
-                    // CARDINALITY_AGG_NAME, "pid",
+                    CARDINALITY_AGG_NAME, "pid",
                     // AGG_NAME, "study_status",
                     // FILTER_COUNT_QUERY, "filterParticipantCountByStudyStatus",
-                    // ADDITIONAL_UPDATE, Map.of("Active", 2000,"Completed", 3000),
-                    // AGG_ENDPOINT, STUDIES_FACET_END_POINT
+                    ADDITIONAL_UPDATE, Map.of("Active", 2000,"Completed", 3000),
+                    AGG_ENDPOINT, STUDIES_FACET_END_POINT,
                     AGG_NAME, "study_status",
-                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyStatus",
-                    AGG_ENDPOINT, PARTICIPANTS_END_POINT
+                    FILTER_COUNT_QUERY, "filterParticipantCountByStudyStatus"
+                    //AGG_ENDPOINT, PARTICIPANTS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
@@ -1091,8 +1097,15 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                             nestedProperty = "treatment_filters";
                         } else if (indexType.equals("treatment_responses")) {
                             nestedProperty = "treatment_response_filters";
-                        } else {
+                        } else if (indexType.equals("samples")) {
                             nestedProperty = "sample_diagnosis_file_filters";
+                        } else if (indexType.equals("diagnosis")) {
+                            nestedProperty = "sample_diagnosis_file_filters";
+                        } else if (indexType.equals("files")) {
+                            nestedProperty = "sample_diagnosis_file_filters";
+                        }  else {
+                            // study_participants or participants
+                            nestedProperty = "";
                         }
                         query_4_update = inventoryESService.addCustomAggregations(query_4_update, "facetAgg", prop, nestedProperty);
                         Request request = new Request("GET", PARTICIPANTS_END_POINT);
@@ -1539,6 +1552,10 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"num_of_diagnoses", "num_of_diagnoses"},
             new String[]{"sex_at_birth", "sex_at_birth"},
             new String[]{"num_of_files", "num_of_files"},
+            new String[]{"num_of_study_files", "num_of_study_files"},
+            new String[]{"num_of_participant_files", "num_of_participant_files"},
+            new String[]{"num_of_sample_files", "num_of_sample_files"},
+            new String[]{"num_of_publications", "num_of_publications"},
         };
 
         String defaultSort = "dbgap_accession"; // Default sort order
@@ -1549,7 +1566,11 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("num_of_participants", "num_of_participants"),
             Map.entry("num_of_samples", "num_of_samples"),
             Map.entry("num_of_diagnoses", "num_of_diagnoses"),
-            Map.entry("num_of_files", "num_of_files")
+            Map.entry("num_of_files", "num_of_files"),
+            Map.entry("num_of_study_files", "num_of_study_files"),
+            Map.entry("num_of_participant_files", "num_of_participant_files"),
+            Map.entry("num_of_sample_files", "num_of_sample_files"),
+            Map.entry("num_of_publications", "num_of_publications")
         );
 
         return overview(STUDIES_END_POINT, params, PROPERTIES, defaultSort, mapping, REGULAR_PARAMS, "nested_filters", "studies");
