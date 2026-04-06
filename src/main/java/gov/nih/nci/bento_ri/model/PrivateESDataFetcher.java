@@ -309,7 +309,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         new String[]{"study_id", "study_id"},
                         new String[]{"race_str", "race_str"},
                         new String[]{"sex_at_birth", "sex_at_birth"},
-                        new String[]{"last_known_survival_status_str", "last_known_survival_status_str"}
+                        new String[]{"last_known_survival_status_str", "last_known_survival_status_str"},
+                        new String[]{"consent_codes", "consent_codes"}
                 },
                 GS_CATEGORY_TYPE, "subject"
         ));
@@ -326,7 +327,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         new String[]{"study_status", "study_status"},
                         new String[]{"num_of_participants", "num_of_participants"},
                         new String[]{"num_of_samples", "num_of_samples"},
-                        new String[]{"num_of_files", "num_of_files"}
+                        new String[]{"num_of_files", "num_of_files"},
+                        new String[]{"consent_codes", "consent_codes"}
                 },
                 GS_CATEGORY_TYPE, "study"
         ));

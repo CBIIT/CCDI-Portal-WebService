@@ -31,6 +31,7 @@ type GS_participant {
     race_str: String
     sex_at_birth: String
     last_known_survival_status_str: String
+    consent_codes: String
 }
 
 type GS_Studies {
@@ -40,6 +41,7 @@ type GS_Studies {
     num_of_participants: Int
     num_of_samples: Int
     num_of_files: Float
+    consent_codes: String
 }
 
 type GS_Samples {
