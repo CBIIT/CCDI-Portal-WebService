@@ -1413,6 +1413,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"num_of_participants", "num_of_participants"},
             new String[]{"num_of_samples", "num_of_samples"},
             new String[]{"num_of_files", "num_of_files"},
+            new String[]{"consent_codes", "consent_codes"},
         };
 
         String defaultSort = "dbgap_accession"; // Default sort order
@@ -1424,7 +1425,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("pubmed_ids", "pubmed_ids"),
             Map.entry("num_of_participants", "num_of_participants"),
             Map.entry("num_of_samples", "num_of_samples"),
-            Map.entry("num_of_files", "num_of_files")
+            Map.entry("num_of_files", "num_of_files"),
+            Map.entry("consent_codes", "consent_codes")
         );
 
         Map<String, Object> study_params = Map.ofEntries(
