@@ -95,6 +95,9 @@ jobs:
           echo "OpenSearch Status:"
           curl -f http://localhost:9200/_cluster/health?pretty
 
+      - name: Create CCDI model indices (integration)
+        run: OPENSEARCH_URL=http://localhost:9200 sh scripts/init-integration-opensearch.sh
+
       - name: List integration test files
         run: |
           echo "Looking for integration test files..."

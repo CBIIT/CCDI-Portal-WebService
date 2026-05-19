@@ -1,0 +1,15 @@
+{
+  "mappings": {
+    "properties": {
+      "timestamp": {
+        "type": "date"
+      },
+      "repository": {
+        "type": "keyword"
+      },
+      "data": {
+        "type": "object"
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "mappings": {
+    "properties": {
+      "node": {
+        "type": "search_as_you_type"
+      },
+      "node_kw": {
+        "type": "keyword"
+      }
+    }
+  }
+}
