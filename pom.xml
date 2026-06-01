@@ -14,11 +14,11 @@
         The Bento Backend is meant to be used in conjunction with the Bento Frontend Framework and a Neo4j database.
     </description>
 
-    <!-- Spring Boot parent aligned to Spring Framework 6.2.11 -->
+    <!-- Spring Boot parent: upgraded to 3.5.14 for CVE-2026-40973 fix -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.10</version>
+        <version>3.5.14</version>
     </parent>
 
     <properties>
