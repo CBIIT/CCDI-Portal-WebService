@@ -8,7 +8,7 @@ RUN mvn package -DskipTests
 FROM maven:3.9.9-amazoncorretto-17-al2023 AS tomcat
 
 ENV CATALINA_HOME=/usr/local/tomcat
-ENV TOMCAT_VERSION=11.0.18
+ENV TOMCAT_VERSION=11.0.22
 
 RUN curl -fsSL https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -o /tmp/tomcat.tar.gz && \
     mkdir -p ${CATALINA_HOME} && \
@@ -20,10 +20,10 @@ FROM amazoncorretto:17-al2023-headless AS final
 
 ENV CATALINA_HOME=/usr/local/tomcat
 ENV PATH=$CATALINA_HOME/bin:$PATH
-ENV TOMCAT_VERSION=11.0.18
+ENV TOMCAT_VERSION=11.0.22
 
 # Cache bust ARG - update this date to force fresh package pulls
-ARG CACHE_BUST=2026-03-02
+ARG CACHE_BUST=2026-05-29
 
 # Force refresh repo metadata and install fixed package versions
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
@@ -32,14 +32,9 @@ RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf upgrade -y --refresh --best --allowerasing && \
     dnf install -y --setopt=install_weak_deps=False wget unzip && \
     dnf install -y --refresh --best \
-        'openssl-libs >= 1:3.2.2-1.amzn2023.0.5' \
-        'openssl-fips-provider-latest >= 1:3.2.2-1.amzn2023.0.5' \
-        'curl-minimal >= 0:8.18.0' \
-        'libcurl-minimal >= 0:8.18.0' \
-        'gnupg2-minimal >= 0:2.3.7-1.amzn2023.0.7' \
-        'expat >= 0:2.7.4' \
-        'alsa-lib >= 0:1.2.15.3' 2>/dev/null || true && \
-    rpm -qa | grep -E '^(openssl-libs|openssl-fips|curl-minimal|libcurl-minimal|gnupg2-minimal|expat|alsa-lib)' && \
+        'libcap >= 0:2.73-1.amzn2023.0.7' \
+        'gnutls >= 0:3.8.3-8.amzn2023.0.3' && \
+    rpm -q --qf '%{NAME} %{VERSION}-%{RELEASE}\n' libcap gnutls openssl-libs openssl-fips-provider-latest gnupg2-minimal && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
