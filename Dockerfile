@@ -8,7 +8,7 @@ RUN mvn package -DskipTests
 FROM maven:3.9.9-amazoncorretto-17-al2023 AS tomcat
 
 ENV CATALINA_HOME=/usr/local/tomcat
-ENV TOMCAT_VERSION=11.0.18
+ENV TOMCAT_VERSION=11.0.22
 
 RUN curl -fsSL https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -o /tmp/tomcat.tar.gz && \
     mkdir -p ${CATALINA_HOME} && \
@@ -20,7 +20,7 @@ FROM amazoncorretto:17-al2023-headless AS final
 
 ENV CATALINA_HOME=/usr/local/tomcat
 ENV PATH=$CATALINA_HOME/bin:$PATH
-ENV TOMCAT_VERSION=11.0.18
+ENV TOMCAT_VERSION=11.0.22
 
 # Cache bust ARG - update this date to force fresh package pulls
 ARG CACHE_BUST=2026-05-29
