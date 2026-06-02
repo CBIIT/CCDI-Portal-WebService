@@ -779,12 +779,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_anatomic_site",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAnatomicSite",
+                    ADDITIONAL_UPDATE, Map.of("Not Reported", 1500, "C42.1 : Bone marrow", 1000),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_category",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisCategory",
+                    ADDITIONAL_UPDATE, Map.of("Leukemias, NOS", 2000, "Not Reported", 1500),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
