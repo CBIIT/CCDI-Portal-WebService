@@ -1,0 +1,10 @@
+{
+  "aggregations": {
+    "study_status": {
+      "buckets": [
+        {"key": "active", "doc_count": 12},
+        {"key": "completed", "doc_count": 8}
+      ]
+    }
+  }
+}

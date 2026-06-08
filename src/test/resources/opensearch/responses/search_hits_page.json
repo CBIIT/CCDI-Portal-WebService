@@ -1,0 +1,22 @@
+{
+  "hits": {
+    "hits": [
+      {
+        "_source": {
+          "participant_id": "ccdi-int-p001",
+          "race": "Asian",
+          "study": {
+            "study_id": "ccdi-int-study-1",
+            "study_name": "CCDI Integration Fixture Study"
+          }
+        }
+      },
+      {
+        "_source": {
+          "participant_id": "ccdi-int-p002",
+          "race": "White"
+        }
+      }
+    ]
+  }
+}
