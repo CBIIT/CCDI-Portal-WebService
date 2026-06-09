@@ -2,6 +2,7 @@ package gov.nih.nci.bento.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import gov.nih.nci.bento.model.ConfigurationDAO;
@@ -85,5 +86,33 @@ final class ESServiceTestSupport {
     static Response mockResponseFromFixture(int statusCode, String fixtureFileName) {
         JsonObject body = loadResponseFixture(fixtureFileName);
         return mockJsonResponse(statusCode, GSON.toJson(body));
+    }
+
+    static JsonObject scrollHitsResponse(String scrollId, int hitCount, String fieldName, int idStart) {
+        JsonObject root = new JsonObject();
+        root.addProperty("_scroll_id", scrollId);
+        JsonObject hitsWrapper = new JsonObject();
+        JsonArray hits = new JsonArray();
+        for (int i = 0; i < hitCount; i++) {
+            JsonObject hit = new JsonObject();
+            JsonObject source = new JsonObject();
+            source.addProperty(fieldName, fieldName + "-" + (idStart + i));
+            hit.add("_source", source);
+            hits.add(hit);
+        }
+        hitsWrapper.add("hits", hits);
+        root.add("hits", hitsWrapper);
+        return root;
+    }
+
+    static JsonObject emptyScrollResponse(String scrollId) {
+        return scrollHitsResponse(scrollId, 0, "participant_id", 0);
+    }
+
+    static void setRestHighLevelClientForTest(ESService service, org.opensearch.client.RestHighLevelClient client)
+            throws Exception {
+        Field clientField = ESService.class.getDeclaredField("restHighLevelClient");
+        clientField.setAccessible(true);
+        clientField.set(service, client);
     }
 }

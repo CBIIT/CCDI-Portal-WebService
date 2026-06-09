@@ -2,6 +2,7 @@ package gov.nih.nci.bento_ri.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -78,6 +79,27 @@ final class InventoryESServiceTestSupport {
     static Response mockResponseFromFixture(int statusCode, String fixtureFileName) {
         JsonObject body = loadResponseFixture(fixtureFileName);
         return mockJsonResponse(statusCode, GSON.toJson(body));
+    }
+
+    static JsonObject scrollHitsResponse(String scrollId, int hitCount, String fieldName, int idStart) {
+        JsonObject root = new JsonObject();
+        root.addProperty("_scroll_id", scrollId);
+        JsonObject hitsWrapper = new JsonObject();
+        JsonArray hits = new JsonArray();
+        for (int i = 0; i < hitCount; i++) {
+            JsonObject hit = new JsonObject();
+            JsonObject source = new JsonObject();
+            source.addProperty(fieldName, fieldName + "-" + (idStart + i));
+            hit.add("_source", source);
+            hits.add(hit);
+        }
+        hitsWrapper.add("hits", hits);
+        root.add("hits", hitsWrapper);
+        return root;
+    }
+
+    static JsonObject emptyScrollResponse(String scrollId) {
+        return scrollHitsResponse(scrollId, 0, "participant_id", 0);
     }
 
     static void assertJsonRoundTrip(Map<String, Object> body) {

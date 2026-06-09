@@ -1,0 +1,23 @@
+{
+  "aggregations": {
+    "race": {
+      "buckets": [
+        {
+          "key": "Asian",
+          "doc_count": 10,
+          "cardinality_count": {"value": 8}
+        },
+        {
+          "key": "White",
+          "doc_count": 5,
+          "cardinality_count": {"value": 4}
+        },
+        {
+          "key": "",
+          "doc_count": 1,
+          "cardinality_count": {"value": 0}
+        }
+      ]
+    }
+  }
+}
