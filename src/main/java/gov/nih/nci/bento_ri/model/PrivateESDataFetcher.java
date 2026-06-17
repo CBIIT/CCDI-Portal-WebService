@@ -309,7 +309,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         new String[]{"study_id", "study_id"},
                         new String[]{"race_str", "race_str"},
                         new String[]{"sex_at_birth", "sex_at_birth"},
-                        new String[]{"last_known_survival_status_str", "last_known_survival_status_str"}
+                        new String[]{"last_known_survival_status_str", "last_known_survival_status_str"},
+                        new String[]{"consent_codes", "consent_codes"}
                 },
                 GS_CATEGORY_TYPE, "subject"
         ));
@@ -326,7 +327,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                         new String[]{"study_status", "study_status"},
                         new String[]{"num_of_participants", "num_of_participants"},
                         new String[]{"num_of_samples", "num_of_samples"},
-                        new String[]{"num_of_files", "num_of_files"}
+                        new String[]{"num_of_files", "num_of_files"},
+                        new String[]{"consent_codes", "consent_codes"}
                 },
                 GS_CATEGORY_TYPE, "study"
         ));
@@ -777,12 +779,14 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_anatomic_site",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisAnatomicSite",
+                    ADDITIONAL_UPDATE, Map.of("Not Reported", 1500, "C42.1 : Bone marrow", 1000),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
                     CARDINALITY_AGG_NAME, "pid",
                     AGG_NAME, "diagnosis_category",
                     FILTER_COUNT_QUERY, "filterParticipantCountByDiagnosisCategory",
+                    ADDITIONAL_UPDATE, Map.of("Leukemias, NOS", 2000, "Not Reported", 1500),
                     AGG_ENDPOINT, DIAGNOSIS_END_POINT
             ));
             PARTICIPANT_TERM_AGGS.add(Map.of(
@@ -1411,6 +1415,7 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             new String[]{"num_of_participants", "num_of_participants"},
             new String[]{"num_of_samples", "num_of_samples"},
             new String[]{"num_of_files", "num_of_files"},
+            new String[]{"consent_codes", "consent_codes"},
         };
 
         String defaultSort = "dbgap_accession"; // Default sort order
@@ -1422,7 +1427,8 @@ public class PrivateESDataFetcher extends AbstractPrivateESDataFetcher {
             Map.entry("pubmed_ids", "pubmed_ids"),
             Map.entry("num_of_participants", "num_of_participants"),
             Map.entry("num_of_samples", "num_of_samples"),
-            Map.entry("num_of_files", "num_of_files")
+            Map.entry("num_of_files", "num_of_files"),
+            Map.entry("consent_codes", "consent_codes")
         );
 
         Map<String, Object> study_params = Map.ofEntries(
