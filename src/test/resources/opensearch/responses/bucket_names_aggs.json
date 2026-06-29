@@ -1,0 +1,10 @@
+{
+  "aggregations": {
+    "treatment_type": {
+      "buckets": [
+        {"key": "Chemotherapy", "doc_count": 15},
+        {"key": "Radiation", "doc_count": 7}
+      ]
+    }
+  }
+}

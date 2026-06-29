@@ -32,28 +32,13 @@ check_docker() {
 
 # Function to start services
 start_services() {
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     echo ""
     echo -e "${YELLOW}Starting test services...${NC}"
     docker-compose -f $COMPOSE_FILE up -d
     
     echo ""
-    echo -e "${YELLOW}Waiting for services to be healthy...${NC}"
-    
-    # Wait for Neo4j
-    echo -n "  Neo4j: "
-    for i in $(seq 1 $MAX_WAIT); do
-        if curl -s http://localhost:7474 > /dev/null 2>&1; then
-            echo -e "${GREEN}✓ Ready${NC}"
-            break
-        fi
-        if [ $i -eq $MAX_WAIT ]; then
-            echo -e "${RED}✗ Timeout${NC}"
-            exit 1
-        fi
-        sleep 1
-    done
-    
-    # Wait for OpenSearch
+    echo -e "${YELLOW}Waiting for OpenSearch...${NC}"
     echo -n "  OpenSearch: "
     for i in $(seq 1 $MAX_WAIT); do
         if curl -s http://localhost:9200/_cluster/health > /dev/null 2>&1; then
@@ -66,20 +51,11 @@ start_services() {
         fi
         sleep 1
     done
-    
-    # Wait for Redis
-    echo -n "  Redis: "
-    for i in $(seq 1 $MAX_WAIT); do
-        if redis-cli -h localhost ping > /dev/null 2>&1; then
-            echo -e "${GREEN}✓ Ready${NC}"
-            break
-        fi
-        if [ $i -eq $MAX_WAIT ]; then
-            echo -e "${RED}✗ Timeout${NC}"
-            exit 1
-        fi
-        sleep 1
-    done
+
+    echo ""
+    echo -e "${YELLOW}Creating CCDI model indices (empty, mappings only)...${NC}"
+    OPENSEARCH_URL="${OPENSEARCH_URL:-http://localhost:9200}" \
+        sh "${SCRIPT_DIR}/scripts/init-integration-opensearch.sh"
 }
 
 # Function to stop services
@@ -96,14 +72,9 @@ run_tests() {
     echo -e "${YELLOW}Running integration tests...${NC}"
     echo ""
     
-    export NEO4J_URL=bolt://localhost:7687
-    export NEO4J_USER=neo4j
-    export NEO4J_PASSWORD=testpassword
     export ES_HOST=localhost
     export ES_PORT=9200
     export ES_SCHEME=http
-    export REDIS_HOST=localhost
-    export REDIS_PORT=6379
     
     if mvn verify -Dspring.profiles.active=integration; then
         echo ""
@@ -124,14 +95,11 @@ show_status() {
     echo ""
     echo -e "${YELLOW}Service Status:${NC}"
     echo ""
-    echo "Neo4j:"
-    curl -s http://localhost:7474 > /dev/null 2>&1 && echo -e "  ${GREEN}✓ Running${NC}" || echo -e "  ${RED}✗ Not running${NC}"
-    echo ""
     echo "OpenSearch:"
     curl -s http://localhost:9200/_cluster/health?pretty 2>/dev/null || echo -e "  ${RED}✗ Not running${NC}"
     echo ""
-    echo "Redis:"
-    redis-cli -h localhost ping 2>/dev/null || echo -e "  ${RED}✗ Not running${NC}"
+    echo "Indices (CCDI model):"
+    curl -s "http://localhost:9200/_cat/indices?h=index,docs.count&s=index" 2>/dev/null || true
 }
 
 # Function to show logs

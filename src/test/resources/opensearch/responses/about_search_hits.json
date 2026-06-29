@@ -1,0 +1,15 @@
+{
+  "hits": {
+    "hits": [
+      {
+        "_source": {
+          "page": "about",
+          "title": "About CCDI"
+        },
+        "highlight": {
+          "content.paragraph": ["The Childhood Cancer Data Initiative $search term$ provides data."]
+        }
+      }
+    ]
+  }
+}

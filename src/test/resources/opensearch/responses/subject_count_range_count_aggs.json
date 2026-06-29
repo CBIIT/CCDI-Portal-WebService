@@ -1,0 +1,18 @@
+{
+  "aggregations": {
+    "age_at_treatment_start": {
+      "buckets": [
+        {
+          "key": "0 - 4",
+          "doc_count": 3,
+          "cardinality_count": {"value": 2}
+        },
+        {
+          "key": "5 - 9",
+          "doc_count": 7,
+          "cardinality_count": {"value": 5}
+        }
+      ]
+    }
+  }
+}

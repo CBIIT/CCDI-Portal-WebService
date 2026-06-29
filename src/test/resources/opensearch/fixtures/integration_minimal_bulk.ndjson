@@ -1,0 +1,28 @@
+{"index":{"_index":"studies","_id":"ccdi-int-study-1"}}
+{"id":"ccdi-int-study-1","study_id":"ccdi-int-study-1","study_name":"CCDI Integration Fixture Study","study_acronym":"INTFIX","study_status":"active","dbgap_accession":"phs-int-fixture","study_description":"Minimal study row for integration tests.","grant_id":"CA-INT-001","num_of_participants":1,"num_of_diagnoses":1}
+{"index":{"_index":"participants","_id":"ccdi-int-p001"}}
+{"id":"ccdi-int-p001","participant_id":"ccdi-int-p001","study_id":"ccdi-int-study-1","race":"Asian","sex_at_birth":"Female","dbgap_accession":"phs-int-fixture","study_name":"CCDI Integration Fixture Study","study_acronym":"INTFIX","study_status":"active"}
+{"index":{"_index":"cohorts","_id":"ccdi-int-cohort-1"}}
+{"id":"ccdi-int-cohort-1","participant_id":"ccdi-int-p001","race":"Asian","sex_at_birth":"Female","dbgap_accession":"phs-int-fixture","study_status":"active"}
+{"index":{"_index":"diagnosis","_id":"ccdi-int-d001"}}
+{"id":"ccdi-int-d001","pid":"ccdi-int-p001","diagnosis_id":"ccdi-int-d001","participant_id":"ccdi-int-p001","study_id":"ccdi-int-study-1","diagnosis":"Acute lymphoblastic leukemia","diagnosis_category":"Cancer","age_at_diagnosis":7,"dbgap_accession":"phs-int-fixture","study_name":"CCDI Integration Fixture Study"}
+{"index":{"_index":"samples","_id":"ccdi-int-s001"}}
+{"id":"ccdi-int-s001","pid":"ccdi-int-p001","sample_id":"ccdi-int-s001","participant_id":"ccdi-int-p001","study_id":"ccdi-int-study-1","sample_anatomic_site":"Bone marrow","participant_age_at_collection":7,"sample_tumor_status":"Tumor","study_name":"CCDI Integration Fixture Study"}
+{"index":{"_index":"files","_id":"ccdi-int-f001"}}
+{"id":"ccdi-int-f001","pid":"ccdi-int-p001","file_id":"ccdi-int-f001","guid":"ccdi-int-guid-f001","file_name":"fixture.bam","data_category":"Sequencing Reads","file_type":"BAM","participant_id":"ccdi-int-p001","study_id":"ccdi-int-study-1","study_name":"CCDI Integration Fixture Study","file_size":1024}
+{"index":{"_index":"study_participants","_id":"ccdi-int-sp001"}}
+{"id":"ccdi-int-sp001","pid":"ccdi-int-p001","participant_id":"ccdi-int-p001","study_id":"ccdi-int-study-1","race":"Asian","sex_at_birth":"Female","study_name":"CCDI Integration Fixture Study","dbgap_accession":"phs-int-fixture"}
+{"index":{"_index":"treatments","_id":"ccdi-int-t001"}}
+{"id":"ccdi-int-t001","pid":"ccdi-int-p001","participant_id":"ccdi-int-p001","treatment_type":"Chemotherapy","treatment_agent":"FixtureAgent","age_at_treatment_start":8,"study_id":"ccdi-int-study-1","race":"Asian","sex_at_birth":"Female","study_name":"CCDI Integration Fixture Study"}
+{"index":{"_index":"treatment_responses","_id":"ccdi-int-tr001"}}
+{"id":"ccdi-int-tr001","pid":"ccdi-int-p001","participant_id":"ccdi-int-p001","response_category":"Complete Response","age_at_response":9,"study_id":"ccdi-int-study-1","race":"Asian","sex_at_birth":"Female","study_name":"CCDI Integration Fixture Study"}
+{"index":{"_index":"survivals","_id":"ccdi-int-surv001"}}
+{"id":"ccdi-int-surv001","pid":"ccdi-int-p001","participant_id":"ccdi-int-p001","last_known_survival_status":"Alive","age_at_last_known_survival_status":10,"event_free_survival_status":"Event Free","first_event":"None","study_id":"ccdi-int-study-1","race":"Asian","sex_at_birth":"Female","study_name":"CCDI Integration Fixture Study"}
+{"index":{"_index":"model_nodes","_id":"ccdi-int-node-1"}}
+{"node":"Participant","node_kw":"participant"}
+{"index":{"_index":"model_properties","_id":"ccdi-int-prop-1"}}
+{"node":"Participant","property":"participant_id","property_kw":"participant_id","property_description":"Unique participant identifier","property_required":"Yes","property_type":"string"}
+{"index":{"_index":"model_values","_id":"ccdi-int-val-1"}}
+{"node":"Participant","property":"race","property_description":"Race","property_required":"Preferred","property_type":"enum","value":"Asian","value_kw":"Asian"}
+{"index":{"_index":"idc_tcia","_id":"ccdi-int-idc-1"}}
+{"timestamp":"2020-01-15T12:00:00Z","repository":"fixture_repo","data":{"note":"integration fixture","collection_id":"ccdi-int-coll-1"}}

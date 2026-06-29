@@ -1,0 +1,104 @@
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "study_id": {
+        "type": "keyword"
+      },
+      "grant_id": {
+        "type": "keyword"
+      },
+      "pubmed_ids": {
+        "type": "keyword"
+      },
+      "dbgap_accession": {
+        "type": "keyword"
+      },
+      "study_status": {
+        "type": "keyword"
+      },
+      "study_name": {
+        "type": "keyword"
+      },
+      "study_description": {
+        "type": "keyword"
+      },
+      "study_acronym": {
+        "type": "keyword"
+      },
+      "PIs": {
+        "type": "keyword"
+      },
+      "consent_codes": {
+        "type": "keyword"
+      },
+      "study_id_gs": {
+        "type": "search_as_you_type"
+      },
+      "study_name_gs": {
+        "type": "search_as_you_type"
+      },
+      "study_status_gs": {
+        "type": "search_as_you_type"
+      },
+      "num_of_participants": {
+        "type": "integer"
+      },
+      "num_of_diagnoses": {
+        "type": "integer"
+      },
+      "diagnosis_cancer": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      },
+      "diagnosis_anatomic_site": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      },
+      "file_types": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      },
+      "num_of_samples": {
+        "type": "integer"
+      },
+      "num_of_files": {
+        "type": "integer"
+      },
+      "files": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      },
+      "num_of_study_files": {
+        "type": "integer"
+      },
+      "num_of_participant_files": {
+        "type": "integer"
+      },
+      "num_of_sample_files": {
+        "type": "integer"
+      },
+      "num_of_publications": {
+        "type": "integer"
+      }
+    }
+  }
+}

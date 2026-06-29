@@ -1,0 +1,14 @@
+{
+  "aggregations": {
+    "inner": {
+      "doc_count": 100,
+      "range_stats": {
+        "count": 100,
+        "min": 5.0,
+        "max": 65.0,
+        "avg": 32.5,
+        "sum": 3250.0
+      }
+    }
+  }
+}

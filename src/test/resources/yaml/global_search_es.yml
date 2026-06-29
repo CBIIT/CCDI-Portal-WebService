@@ -1,0 +1,23 @@
+queries:
+  - name: globalSearch
+    returnFields:
+      - name: programsResult
+        index:
+          - subjects
+        filter:
+          type: global
+          defaultSortField: title
+          searches:
+            - field: title
+              type: match
+        result:
+          type: global
+      - name: programs_count
+        index:
+          - subjects
+        filter:
+          type: aggregation
+          selectedField: programs
+        result:
+          type: int
+          method: count_bucket_keys

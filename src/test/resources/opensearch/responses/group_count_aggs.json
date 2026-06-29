@@ -1,0 +1,10 @@
+{
+  "aggregations": {
+    "diagnoses": {
+      "buckets": [
+        {"key": "Leukemia", "doc_count": 10},
+        {"key": "Lymphoma", "doc_count": 7}
+      ]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "hits": {
+    "total": {
+      "value": 3,
+      "relation": "eq"
+    },
+    "hits": []
+  }
+}

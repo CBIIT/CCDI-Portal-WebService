@@ -1,0 +1,12 @@
+{
+  "aggregations": {
+    "facetAgg": {
+      "doc_count_error_upper_bound": 0,
+      "sum_other_doc_count": 0,
+      "buckets": [
+        {"key": "Active", "doc_count": 40919},
+        {"key": "Completed", "doc_count": 19703}
+      ]
+    }
+  }
+}
