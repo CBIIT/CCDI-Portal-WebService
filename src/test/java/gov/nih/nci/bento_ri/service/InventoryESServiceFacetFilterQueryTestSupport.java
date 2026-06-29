@@ -118,4 +118,19 @@ final class InventoryESServiceFacetFilterQueryTestSupport {
     static List<Object> combinedFiltersInnerFilters(Map<String, Object> nestedCombinedFilters) {
         return nestedInnerFilters(nestedCombinedFilters);
     }
+
+    @SuppressWarnings("unchecked")
+    static List<Object> nestedInnerFiltersForFilesCombinedPath(Map<String, Object> query, String nestedPath) {
+        var combined = findNestedInFilesCombinedFilters(filesIndexFilters(query)).orElseThrow();
+        for (Object clause : combinedFiltersInnerFilters(combined)) {
+            Map<String, Object> map = (Map<String, Object>) clause;
+            if (map.containsKey("nested")) {
+                Map<String, Object> nested = (Map<String, Object>) map.get("nested");
+                if (nestedPath.equals(nested.get("path"))) {
+                    return nestedInnerFilters(nested);
+                }
+            }
+        }
+        throw new AssertionError("Nested path not found in files combined filters: " + nestedPath);
+    }
 }

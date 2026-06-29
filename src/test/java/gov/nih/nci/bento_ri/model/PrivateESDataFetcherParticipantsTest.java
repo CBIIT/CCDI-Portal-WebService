@@ -1,5 +1,6 @@
 package gov.nih.nci.bento_ri.model;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import gov.nih.nci.bento_ri.service.InventoryESService;
 import org.junit.jupiter.api.Test;
@@ -7,13 +8,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.client.Request;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -86,5 +91,60 @@ class PrivateESDataFetcherParticipantsTest {
         assertEquals(99, result.get("numberOfParticipants"));
         assertEquals(3, result.get("numberOfStudies"));
         verify(inventoryESService, never()).send(any());
+    }
+
+    @Test
+    void searchParticipants_cacheMiss_returnsAggregatedCounts() throws Exception {
+        InventoryESService inventoryESService = mock(InventoryESService.class);
+        when(inventoryESService.buildFacetFilterQuery(
+                        any(), anySet(), anySet(), anySet(), any(), anyString()))
+                .thenReturn(PrivateESDataFetcherTestSupport.mutableQuery());
+        JsonObject aggResponse =
+                PrivateESDataFetcherTestSupport.loadFixture("search_participants_agg_response.json");
+        JsonObject countResponse = PrivateESDataFetcherTestSupport.countResponse(10);
+        when(inventoryESService.send(any(Request.class))).thenAnswer(invocation -> {
+            Request request = invocation.getArgument(0);
+            if (request.getEndpoint().contains("_count")) {
+                return countResponse;
+            }
+            return aggResponse;
+        });
+        when(inventoryESService.addAggregations(any(), any(String[].class), any(), anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryESService.addRangeAggregations(any(), anyString(), anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryESService.addRangeCountAggregations(any(), anyString(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryESService.addNodeCountAggregations(any(), anyString()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        JsonArray buckets = PrivateESDataFetcherTestSupport.termBuckets("subject_count_term_aggs.json", "race");
+        when(inventoryESService.collectTermAggs(any(JsonObject.class), any(String[].class)))
+                .thenAnswer(invocation -> Map.of(((String[]) invocation.getArgument(1))[0], buckets));
+        when(inventoryESService.collectRangAggs(any(JsonObject.class), anyString()))
+                .thenAnswer(invocation -> {
+                    JsonObject ranges = new JsonObject();
+                    ranges.addProperty("count", 10);
+                    ranges.addProperty("min", 0);
+                    ranges.addProperty("max", 18);
+                    Map<String, JsonObject> result = new HashMap<>();
+                    result.put(invocation.getArgument(1), ranges);
+                    return result;
+                });
+        when(inventoryESService.collectRangCountAggs(any(JsonObject.class), anyString()))
+                .thenReturn(Map.of("age_at_diagnosis", buckets));
+        when(inventoryESService.collectNodeCountAggs(any(JsonObject.class), eq("study_id")))
+                .thenReturn(Map.of("study_id", buckets));
+
+        PrivateESDataFetcher fetcher = PrivateESDataFetcherTestSupport.newFetcher(inventoryESService);
+        Map<String, Object> params = Map.of("race", List.of(""));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) PrivateESDataFetcherTestSupport.invoke(
+                fetcher, "searchParticipants", new Class[] {Map.class}, params);
+
+        assertEquals(100, result.get("numberOfParticipants"));
+        assertEquals(100, result.get("numberOfSamples"));
+        assertEquals(10, result.get("numberOfFiles"));
+        assertTrue(result.containsKey("filterParticipantCountByRace"));
     }
 }

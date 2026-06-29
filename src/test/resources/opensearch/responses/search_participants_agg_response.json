@@ -1,0 +1,14 @@
+{
+  "hits": {
+    "total": {
+      "value": 100,
+      "relation": "eq"
+    },
+    "hits": []
+  },
+  "aggregations": {
+    "file_count": {
+      "value": 250
+    }
+  }
+}

@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +77,72 @@ final class PrivateESDataFetcherTestSupport {
 
     static Map<String, Object> mutableQuery() {
         return new HashMap<>(Map.of("query", Map.of("match_all", Map.of())));
+    }
+
+    static Map<String, Object> overviewParams(int pageSize, int offset, String orderBy, String direction) {
+        return Map.of(
+                "first", pageSize,
+                "offset", offset,
+                "order_by", orderBy,
+                "sort_direction", direction);
+    }
+
+    static Map<String, Object> emptyIdListParams() {
+        Map<String, Object> params = new HashMap<>();
+        params.put("participant_ids", List.of(""));
+        params.put("diagnosis_ids", List.of(""));
+        params.put("study_ids", List.of(""));
+        params.put("sample_ids", List.of(""));
+        params.put("file_ids", List.of(""));
+        return params;
+    }
+
+    static JsonObject countResponse(int count) {
+        JsonObject json = new JsonObject();
+        json.addProperty("count", count);
+        return json;
+    }
+
+    static JsonArray termBucket(String key, int subjects) {
+        JsonObject bucket = new JsonObject();
+        bucket.addProperty("key", key);
+        bucket.addProperty("doc_count", subjects);
+        JsonObject cardinality = new JsonObject();
+        cardinality.addProperty("value", subjects);
+        bucket.add("cardinality_count", cardinality);
+        JsonArray buckets = new JsonArray();
+        buckets.add(bucket);
+        return buckets;
+    }
+
+    /** Files index query shape when facet filters are present ({@code bool.should[0].bool.filter}). */
+    @SuppressWarnings("unchecked")
+    static Map<String, Object> filesQueryWithShouldFilter() {
+        List<Object> filter = new ArrayList<>();
+        Map<String, Object> innerBool = new HashMap<>();
+        innerBool.put("must", Map.of("exists", Map.of("field", "file_id")));
+        innerBool.put("filter", filter);
+        Map<String, Object> shouldEntry = Map.of("bool", innerBool);
+        Map<String, Object> rootBool = new HashMap<>();
+        rootBool.put("should", List.of(shouldEntry));
+        return new HashMap<>(Map.of("query", Map.of("bool", rootBool)));
+    }
+
+    /** Files index query shape with no facet filters ({@code bool.must.exists}). */
+    static Map<String, Object> filesQueryWithMustOnly() {
+        return new HashMap<>(Map.of(
+                "query",
+                Map.of("bool", Map.of("must", Map.of("exists", Map.of("field", "file_id"))))));
+    }
+
+    static JsonObject filenamesTotalHits(int total) {
+        JsonObject json = new JsonObject();
+        JsonObject hits = new JsonObject();
+        JsonObject totalObj = new JsonObject();
+        totalObj.addProperty("value", total);
+        hits.add("total", totalObj);
+        json.add("hits", hits);
+        return json;
     }
 
     static void putCacheEntry(PrivateESDataFetcher fetcher, String key, Map<String, Object> value) throws Exception {

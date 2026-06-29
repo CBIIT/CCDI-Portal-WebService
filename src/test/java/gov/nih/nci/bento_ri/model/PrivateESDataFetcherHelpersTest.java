@@ -3,7 +3,9 @@ package gov.nih.nci.bento_ri.model;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import gov.nih.nci.bento_ri.model.FormattedCPIResponse.CPIDataItem;
+import gov.nih.nci.bento_ri.service.InventoryESService;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +16,11 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Phase 4: unit tests for pure helper methods on {@link PrivateESDataFetcher}.
@@ -237,5 +243,79 @@ class PrivateESDataFetcherHelpersTest {
 
         assertEquals(2, shouldClauses.size());
         assertEquals(10000, query.get("size"));
+    }
+
+    @Test
+    void getPropertyConfig_knownProperties_returnIndexConfiguration() throws Exception {
+        PrivateESDataFetcher fetcher = PrivateESDataFetcherTestSupport.newFetcher(null);
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> raceConfig = (Map<String, String>) PrivateESDataFetcherTestSupport.invoke(
+                fetcher, "getPropertyConfig", new Class[] {String.class}, "race");
+
+        assertEquals("participants", raceConfig.get("index"));
+        assertEquals("/participants/_search", raceConfig.get("endpoint"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> treatmentConfig = (Map<String, String>) PrivateESDataFetcherTestSupport.invoke(
+                fetcher, "getPropertyConfig", new Class[] {String.class}, "treatment_type");
+
+        assertEquals("treatments", treatmentConfig.get("index"));
+        assertEquals("pid", treatmentConfig.get("cardinalityAggName"));
+    }
+
+    @Test
+    void getPropertyConfig_unknownProperty_returnsNull() throws Exception {
+        PrivateESDataFetcher fetcher = PrivateESDataFetcherTestSupport.newFetcher(null);
+
+        assertEquals(
+                null,
+                PrivateESDataFetcherTestSupport.invoke(
+                        fetcher, "getPropertyConfig", new Class[] {String.class}, "unknown_field"));
+    }
+
+    @Test
+    void getBooleanGroupCountHelper_skipsZeroCounts() throws Exception {
+        PrivateESDataFetcher fetcher = PrivateESDataFetcherTestSupport.newFetcher(null);
+        JsonObject filters = new JsonObject();
+        JsonObject active = new JsonObject();
+        active.add("parent", new com.google.gson.JsonObject());
+        active.getAsJsonObject("parent").addProperty("doc_count", 5);
+        JsonObject empty = new JsonObject();
+        empty.add("parent", new com.google.gson.JsonObject());
+        empty.getAsJsonObject("parent").addProperty("doc_count", 0);
+        filters.add("Active", active);
+        filters.add("Inactive", empty);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> groups = (List<Map<String, Object>>) PrivateESDataFetcherTestSupport.invoke(
+                fetcher, "getBooleanGroupCountHelper", new Class[] {JsonObject.class}, filters);
+
+        assertEquals(1, groups.size());
+        assertEquals("Active", groups.get(0).get("group"));
+        assertEquals(5, groups.get(0).get("subjects"));
+    }
+
+    @Test
+    void getNodeCount_returnsAggregationBuckets() throws Exception {
+        InventoryESService inventoryESService = mock(InventoryESService.class);
+        when(inventoryESService.addNodeCountAggregations(any(), eq("study_id")))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryESService.send(any(org.opensearch.client.Request.class)))
+                .thenReturn(PrivateESDataFetcherTestSupport.loadFixture("node_count_aggs.json"));
+        when(inventoryESService.collectNodeCountAggs(any(JsonObject.class), eq("study_id")))
+                .thenReturn(Map.of("study_id", PrivateESDataFetcherTestSupport.termBuckets("node_count_aggs.json", "race")));
+
+        PrivateESDataFetcher fetcher = PrivateESDataFetcherTestSupport.newFetcher(inventoryESService);
+
+        JsonArray buckets = (JsonArray) PrivateESDataFetcherTestSupport.invoke(
+                fetcher,
+                "getNodeCount",
+                new Class[] {String.class, Map.class, String.class},
+                "study_id",
+                PrivateESDataFetcherTestSupport.mutableQuery(),
+                "/files/_search");
+
+        assertEquals(2, buckets.size());
     }
 }
