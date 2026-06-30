@@ -23,18 +23,18 @@ ENV PATH=$CATALINA_HOME/bin:$PATH
 ENV TOMCAT_VERSION=11.0.22
 
 # Cache bust ARG - update this date to force fresh package pulls
-ARG CACHE_BUST=2026-05-29
+ARG CACHE_BUST=2026-06-30
 
 # Force refresh repo metadata and install fixed package versions
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf clean all && \
     dnf makecache --refresh && \
     dnf upgrade -y --refresh --best --allowerasing && \
-    dnf install -y --setopt=install_weak_deps=False wget unzip && \
+    dnf install -y --setopt=install_weak_deps=False wget unzip graphite2 python3-pip-wheel && \
     dnf install -y --refresh --best \
         'libcap >= 0:2.73-1.amzn2023.0.7' \
         'gnutls >= 0:3.8.3-8.amzn2023.0.3' && \
-    rpm -q --qf '%{NAME} %{VERSION}-%{RELEASE}\n' libcap gnutls openssl-libs openssl-fips-provider-latest gnupg2-minimal && \
+    rpm -q --qf '%{NAME} %{VERSION}-%{RELEASE}\n' libcap gnutls openssl-libs openssl-fips-provider-latest graphite2 python3-pip-wheel gnupg2-minimal && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
