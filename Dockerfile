@@ -23,7 +23,7 @@ ENV PATH=$CATALINA_HOME/bin:$PATH
 ENV TOMCAT_VERSION=11.0.22
 
 # Cache bust ARG - update this date to force fresh package pulls
-ARG CACHE_BUST=2026-05-29
+ARG CACHE_BUST=2026-06-30
 
 # Force refresh repo metadata and install fixed package versions
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
