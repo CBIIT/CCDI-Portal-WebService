@@ -35,6 +35,10 @@ on:
         description: 'Trigger manual-deploy.yml in ccdi-hub-deployments after a successful build'
         type: boolean
         default: false
+      aws_region:
+        description: 'AWS region for ECR and Secrets Manager (e.g. us-east-1). Falls back to vars.AWS_REGION then secrets.AWS_REGION.'
+        required: false
+        default: ''
 
 run-name: build-backend ${{ inputs.code_branch || github.ref_name }} → ${{ inputs.environment }}
 
@@ -75,14 +79,14 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ vars.AWS_REGION || secrets.AWS_REGION }}
+          aws-region: ${{ inputs.aws_region || vars.AWS_REGION || secrets.AWS_REGION }}
           role-session-name: gha-build-${{ env.SERVICE }}
 
       - name: Look up ECR account from bento/hub/<env>
         id: ecr-acct
         run: |
           ECR_ACCT=$(aws secretsmanager get-secret-value \
-            --region "${{ vars.AWS_REGION || secrets.AWS_REGION }}" \
+            --region "${{ inputs.aws_region || vars.AWS_REGION || secrets.AWS_REGION }}" \
             --secret-id "bento/hub/${{ inputs.environment }}" \
             --query SecretString --output text | jq -r '.ecr_account')
           if [ -z "$ECR_ACCT" ] || [ "$ECR_ACCT" = "null" ]; then
@@ -90,7 +94,7 @@ jobs:
             exit 1
           fi
           echo "ecr_account=$ECR_ACCT" >> "$GITHUB_OUTPUT"
-          echo "repo_url=$ECR_ACCT.dkr.ecr.${{ vars.AWS_REGION || secrets.AWS_REGION }}.amazonaws.com/$ECR_REPO" >> "$GITHUB_OUTPUT"
+          echo "repo_url=$ECR_ACCT.dkr.ecr.${{ inputs.aws_region || vars.AWS_REGION || secrets.AWS_REGION }}.amazonaws.com/$ECR_REPO" >> "$GITHUB_OUTPUT"
 
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
