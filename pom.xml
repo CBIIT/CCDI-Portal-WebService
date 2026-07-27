@@ -235,10 +235,11 @@
         </dependency>
 
         <!-- Apache Tomcat -->
+        <!-- Upgraded to 11.0.24: fixes CVE-2026-59084 (Critical) and CVE-2026-59083 (Critical) -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
-            <version>11.0.23</version>
+            <version>11.0.24</version>
         </dependency>
 
         <dependency>

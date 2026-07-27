@@ -8,7 +8,8 @@ RUN mvn package -DskipTests
 FROM maven:3.9.9-amazoncorretto-17-al2023 AS tomcat
 
 ENV CATALINA_HOME=/usr/local/tomcat
-ENV TOMCAT_VERSION=11.0.23
+# Upgraded to 11.0.24: fixes CVE-2026-59084 (Critical) and CVE-2026-59083 (Critical)
+ENV TOMCAT_VERSION=11.0.24
 
 RUN curl -fsSL https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -o /tmp/tomcat.tar.gz && \
     mkdir -p ${CATALINA_HOME} && \
@@ -20,10 +21,12 @@ FROM amazoncorretto:17-al2023-headless AS final
 
 ENV CATALINA_HOME=/usr/local/tomcat
 ENV PATH=$CATALINA_HOME/bin:$PATH
-ENV TOMCAT_VERSION=11.0.23
+ENV TOMCAT_VERSION=11.0.24
 
 # Cache bust ARG - update this date to force fresh package pulls
-ARG CACHE_BUST=2026-06-30
+# Updated to pull OS patches for CVE-2026-58016 (GLib), CVE-2026-11972/11940 (Python tarfile),
+# CVE-2026-54369 (acl), CVE-2026-15308 (Python html.parser)
+ARG CACHE_BUST=2026-07-27
 
 # Force refresh repo metadata and install fixed package versions
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
