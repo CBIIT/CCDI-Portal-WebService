@@ -29,7 +29,7 @@ ENV TOMCAT_VERSION=11.0.24
 # python3 removed entirely (CVE-2026-15308) - not needed in Java/Tomcat runtime
 ARG CACHE_BUST=2026-07-28
 
-# Force refresh repo metadata and install fixed package versions
+# Force refresh repo metadata and install latest security updates
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf clean all && \
     dnf makecache --refresh && \
