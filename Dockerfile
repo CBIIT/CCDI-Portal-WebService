@@ -24,9 +24,9 @@ ENV PATH=$CATALINA_HOME/bin:$PATH
 ENV TOMCAT_VERSION=11.0.24
 
 # Cache bust ARG - update this date to force fresh package pulls
-# Updated to pull OS patches for CVE-2026-58016 (GLib), CVE-2026-11972/11940 (Python tarfile),
-# CVE-2026-54369 (acl), CVE-2026-15308 (Python html.parser)
-ARG CACHE_BUST=2026-07-27
+# Updated to pull OS patches for CVE-2026-58016, CVE-2026-58013 (GLib),
+# CVE-2026-11972/11940 (Python tarfile), CVE-2026-54369 (acl), CVE-2026-15308 (Python html.parser)
+ARG CACHE_BUST=2026-07-28
 
 # Force refresh repo metadata and install fixed package versions
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
@@ -36,7 +36,8 @@ RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf install -y --setopt=install_weak_deps=False wget unzip graphite2 python3-pip-wheel && \
     dnf install -y --refresh --best \
         'libcap >= 0:2.73-1.amzn2023.0.7' \
-        'gnutls >= 0:3.8.3-8.amzn2023.0.3' && \
+        'gnutls >= 0:3.8.3-8.amzn2023.0.3' \
+        'glib2 >= 2.88.1' && \
     rpm -q --qf '%{NAME} %{VERSION}-%{RELEASE}\n' libcap gnutls openssl-libs openssl-fips-provider-latest graphite2 python3-pip-wheel gnupg2-minimal && \
     dnf clean all && \
     rm -rf /var/cache/dnf
