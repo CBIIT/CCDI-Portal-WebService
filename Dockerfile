@@ -39,9 +39,9 @@ RUN echo "CACHE_BUST=${CACHE_BUST}" && \
         glib2 && \
     dnf clean all && \
     rm -rf /var/cache/dnf && \
-    rpm -e --nodeps python3 python3-libs python3-setuptools-wheel python3-pip-wheel \
+    (rpm -e --nodeps python3 python3-libs python3-setuptools-wheel python3-pip-wheel \
         python3-dnf python3-libdnf python3-hawkey python3-rpm python3-gpg \
-        python3-libcomps 2>/dev/null || true && \
+        python3-libcomps 2>/dev/null || true) && \
     rpm -q --qf '%{NAME} %{VERSION}-%{RELEASE}\n' libcap gnutls openssl-libs openssl-fips-provider-latest graphite2 gnupg2-minimal
 
 COPY --from=tomcat /usr/local/tomcat ${CATALINA_HOME}
