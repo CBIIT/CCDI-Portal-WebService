@@ -25,7 +25,8 @@ ENV TOMCAT_VERSION=11.0.24
 
 # Cache bust ARG - update this date to force fresh package pulls
 # Updated to pull OS patches for CVE-2026-58016, CVE-2026-58013 (GLib),
-# CVE-2026-11972/11940 (Python tarfile), CVE-2026-54369 (acl), CVE-2026-15308 (Python html.parser)
+# CVE-2026-11972/11940 (Python tarfile), CVE-2026-54369 (acl);
+# python3 removed entirely (CVE-2026-15308) - not needed in Java/Tomcat runtime
 ARG CACHE_BUST=2026-07-28
 
 # Force refresh repo metadata and install fixed package versions
@@ -33,12 +34,15 @@ RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf clean all && \
     dnf makecache --refresh && \
     dnf upgrade -y --refresh --best --allowerasing && \
-    dnf install -y --setopt=install_weak_deps=False wget unzip graphite2 python3-pip-wheel && \
+    dnf install -y --setopt=install_weak_deps=False wget unzip graphite2 && \
     dnf install -y --refresh --best \
         glib2 && \
-    rpm -q --qf '%{NAME} %{VERSION}-%{RELEASE}\n' libcap gnutls openssl-libs openssl-fips-provider-latest graphite2 python3-pip-wheel gnupg2-minimal && \
     dnf clean all && \
-    rm -rf /var/cache/dnf
+    rm -rf /var/cache/dnf && \
+    rpm -e --nodeps python3 python3-libs python3-setuptools-wheel python3-pip-wheel \
+        python3-dnf python3-libdnf python3-hawkey python3-rpm python3-gpg \
+        python3-libcomps 2>/dev/null || true && \
+    rpm -q --qf '%{NAME} %{VERSION}-%{RELEASE}\n' libcap gnutls openssl-libs openssl-fips-provider-latest graphite2 gnupg2-minimal
 
 COPY --from=tomcat /usr/local/tomcat ${CATALINA_HOME}
 
