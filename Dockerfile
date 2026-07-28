@@ -35,9 +35,7 @@ RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf upgrade -y --refresh --best --allowerasing && \
     dnf install -y --setopt=install_weak_deps=False wget unzip graphite2 python3-pip-wheel && \
     dnf install -y --refresh --best \
-        'libcap >= 0:2.73-1.amzn2023.0.7' \
-        'gnutls >= 0:3.8.3-8.amzn2023.0.3' \
-        'glib2 >= 2.88.1' && \
+        glib2 && \
     rpm -q --qf '%{NAME} %{VERSION}-%{RELEASE}\n' libcap gnutls openssl-libs openssl-fips-provider-latest graphite2 python3-pip-wheel gnupg2-minimal && \
     dnf clean all && \
     rm -rf /var/cache/dnf
