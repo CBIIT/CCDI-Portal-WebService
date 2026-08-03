@@ -1,0 +1,13 @@
+{
+  "hits": {
+    "hits": [
+      {
+        "_source": {
+          "id": "internal-pid-1",
+          "participant_id": "assoc-p001",
+          "study_id": "CCDI-STUDY"
+        }
+      }
+    ]
+  }
+}

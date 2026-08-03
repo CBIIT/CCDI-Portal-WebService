@@ -1,0 +1,16 @@
+{
+  "participant_ids": [
+    {
+      "participant_id": "ccdi-int-p001",
+      "domain_name": "CCDI-STUDY",
+      "associated_ids": [
+        {
+          "participant_id": "assoc-p001",
+          "domain_name": "ccdi-study",
+          "domain_category": "Research"
+        }
+      ]
+    }
+  ],
+  "supplementary_domains": ["removed-by-filter"]
+}

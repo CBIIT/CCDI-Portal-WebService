@@ -1,0 +1,10 @@
+{
+  "aggregations": {
+    "race": {
+      "buckets": [
+        {"key": "Asian", "doc_count": 10},
+        {"key": "White", "doc_count": 5}
+      ]
+    }
+  }
+}

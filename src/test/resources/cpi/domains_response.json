@@ -1,0 +1,9 @@
+[
+  {
+    "domain_name": "CCDI-STUDY",
+    "domain_description": "CCDI Study Domain",
+    "domain_category": "Research",
+    "data_location": "s3://bucket/path",
+    "status": "active"
+  }
+]

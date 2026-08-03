@@ -1,0 +1,139 @@
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "pid": {
+        "type": "keyword"
+      },
+      "participant_id": {
+        "type": "keyword",
+        "normalizer": "lowercase"
+      },
+      "race": {
+        "type": "keyword"
+      },
+      "sex_at_birth": {
+        "type": "keyword"
+      },
+      "survival_filters": {
+        "type": "nested",
+        "properties": {
+          "last_known_survival_status": {
+            "type": "keyword"
+          },
+          "age_at_last_known_survival_status": {
+            "type": "integer"
+          },
+          "event_free_survival_status": {
+            "type": "keyword"
+          },
+          "first_event": {
+            "type": "keyword"
+          }
+        }
+      },
+      "treatment_type": {
+        "type": "keyword"
+      },
+      "treatment_agent": {
+        "type": "keyword"
+      },
+      "age_at_treatment_start": {
+        "type": "integer"
+      },
+      "treatment_response_filters": {
+        "type": "nested",
+        "properties": {
+          "response_category": {
+            "type": "keyword"
+          },
+          "age_at_response": {
+            "type": "integer"
+          }
+        }
+      },
+      "sample_diagnosis_file_filters": {
+        "type": "nested",
+        "properties": {
+          "sample_anatomic_site": {
+            "type": "keyword"
+          },
+          "participant_age_at_collection": {
+            "type": "integer"
+          },
+          "sample_tumor_status": {
+            "type": "keyword"
+          },
+          "tumor_classification": {
+            "type": "keyword"
+          },
+          "age_at_diagnosis": {
+            "type": "integer"
+          },
+          "diagnosis_anatomic_site": {
+            "type": "keyword"
+          },
+          "disease_phase": {
+            "type": "keyword"
+          },
+          "diagnosis_classification_system": {
+            "type": "keyword"
+          },
+          "diagnosis_basis": {
+            "type": "keyword"
+          },
+          "tumor_grade_source": {
+            "type": "keyword"
+          },
+          "tumor_stage_source": {
+            "type": "keyword"
+          },
+          "diagnosis": {
+            "type": "keyword"
+          },
+          "diagnosis_category": {
+            "type": "keyword"
+          },
+          "data_category": {
+            "type": "keyword"
+          },
+          "file_type": {
+            "type": "keyword"
+          },
+          "file_mapping_level": {
+            "type": "keyword"
+          },
+          "library_selection": {
+            "type": "keyword"
+          },
+          "library_source_material": {
+            "type": "keyword"
+          },
+          "library_source_molecule": {
+            "type": "keyword"
+          },
+          "library_strategy": {
+            "type": "keyword"
+          }
+        }
+      },
+      "study_id": {
+        "type": "keyword"
+      },
+      "dbgap_accession": {
+        "type": "keyword"
+      },
+      "study_status": {
+        "type": "keyword"
+      },
+      "study_acronym": {
+        "type": "keyword"
+      },
+      "study_name": {
+        "type": "keyword"
+      }
+    }
+  }
+}

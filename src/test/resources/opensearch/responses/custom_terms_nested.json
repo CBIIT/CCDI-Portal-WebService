@@ -1,0 +1,23 @@
+{
+  "aggregations": {
+    "facetAgg": {
+      "doc_count": 822822,
+      "agg_buckets": {
+        "doc_count_error_upper_bound": 0,
+        "sum_other_doc_count": 0,
+        "buckets": [
+          {
+            "key": "Asian",
+            "doc_count": 125542,
+            "top_reverse_nested": {"doc_count": 6374}
+          },
+          {
+            "key": "White",
+            "doc_count": 98000,
+            "top_reverse_nested": {"doc_count": 4100}
+          }
+        ]
+      }
+    }
+  }
+}
