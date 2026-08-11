@@ -8,7 +8,7 @@ RUN mvn package -DskipTests
 FROM maven:3.9.9-amazoncorretto-17-al2023 AS tomcat
 
 ENV CATALINA_HOME=/usr/local/tomcat
-# Upgraded to 11.0.24: fixes CVE-2026-59084 (Critical) and CVE-2026-59083 (Critical)
+# Pinned to latest currently published 11.x archive.
 ENV TOMCAT_VERSION=11.0.24
 
 RUN curl -fsSL https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -o /tmp/tomcat.tar.gz && \
@@ -27,13 +27,14 @@ ENV TOMCAT_VERSION=11.0.24
 # Updated to pull OS patches for CVE-2026-58016, CVE-2026-58013 (GLib),
 # CVE-2026-11972/11940 (Python tarfile), CVE-2026-54369 (acl);
 # python3 removed entirely (CVE-2026-15308) - not needed in Java/Tomcat runtime
-ARG CACHE_BUST=2026-07-28
+ARG CACHE_BUST=2026-08-11
 
 # Force refresh repo metadata and install latest security updates
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf clean all && \
     dnf makecache --refresh && \
     dnf upgrade -y --refresh --best --allowerasing && \
+    dnf upgrade -y --refresh --best --allowerasing rpm gawk glib2 && \
     dnf install -y --setopt=install_weak_deps=False wget unzip graphite2 && \
     dnf install -y --refresh --best \
         glib2 && \
