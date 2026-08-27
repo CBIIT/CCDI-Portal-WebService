@@ -63,10 +63,12 @@ EXPOSE 8080
 
 COPY --from=build /usr/src/app/target/Bento-0.0.1.war ${CATALINA_HOME}/webapps/ROOT.war
 
-# CIS Docker Benchmark 4.1 - run container as a non-root user
-RUN groupadd -r tomcat && \
-    useradd -r -g tomcat -d ${CATALINA_HOME} -s /sbin/nologin tomcat && \
-    chown -R tomcat:tomcat ${CATALINA_HOME}
+# CIS Docker Benchmark 4.1 - run container as a non-root user.
+# shadow-utils / dnf are unavailable in this layer (python3 was removed above),
+# so provision the account by writing /etc/passwd and /etc/group directly.
+RUN echo 'tomcat:x:10001:10001::/usr/local/tomcat:/sbin/nologin' >> /etc/passwd && \
+    echo 'tomcat:x:10001:' >> /etc/group && \
+    chown -R 10001:10001 ${CATALINA_HOME}
 
 USER tomcat
 
