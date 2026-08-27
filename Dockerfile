@@ -63,4 +63,11 @@ EXPOSE 8080
 
 COPY --from=build /usr/src/app/target/Bento-0.0.1.war ${CATALINA_HOME}/webapps/ROOT.war
 
+# CIS Docker Benchmark 4.1 - run container as a non-root user
+RUN groupadd -r tomcat && \
+    useradd -r -g tomcat -d ${CATALINA_HOME} -s /sbin/nologin tomcat && \
+    chown -R tomcat:tomcat ${CATALINA_HOME}
+
+USER tomcat
+
 CMD ["catalina.sh", "run"]
