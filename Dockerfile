@@ -28,7 +28,7 @@ ENV TOMCAT_VERSION=11.0.25
 # CVE-2026-40553/40467/40468 (gawk >= 5.1.0-3.amzn2023.0.4),
 # CVE-2026-16118 (glib2 >= 2.82.2-771.amzn2023);
 # python3 removed entirely (CVE-2026-15308) - not needed in Java/Tomcat runtime
-ARG CACHE_BUST=2026-08-13
+ARG CACHE_BUST=2026-08-27
 
 # Force refresh repo metadata and install latest security updates
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
