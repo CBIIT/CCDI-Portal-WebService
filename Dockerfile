@@ -26,9 +26,10 @@ ENV TOMCAT_VERSION=11.0.25
 # Cache bust ARG - update this date to force fresh package pulls
 # Updated to pull OS patches for CVE-2026-44605 (rpm >= 4.16.1.3-29.amzn2023.0.7),
 # CVE-2026-40553/40467/40468 (gawk >= 5.1.0-3.amzn2023.0.4),
-# CVE-2026-16118 (glib2 >= 2.82.2-771.amzn2023);
+# CVE-2026-16118 (glib2 >= 2.82.2-771.amzn2023),
+# CVE-2026-14456 (openssl >= 3.5.7-2.amzn2023.0.2);
 # python3 removed entirely (CVE-2026-15308) - not needed in Java/Tomcat runtime
-ARG CACHE_BUST=2026-08-27
+ARG CACHE_BUST=2026-09-08
 
 # Force refresh repo metadata and install latest security updates
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
@@ -36,8 +37,8 @@ RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf makecache --refresh && \
     dnf upgrade -y --refresh --best --allowerasing && \
     dnf install -y --setopt=install_weak_deps=False wget unzip graphite2 && \
-    dnf upgrade -y --refresh --best --allowerasing rpm gawk glib2 && \
-    rpm -q rpm gawk glib2 && \
+    dnf upgrade -y --refresh --best --allowerasing rpm gawk glib2 openssl-libs && \
+    rpm -q rpm gawk glib2 openssl-libs && \
     dnf clean all && \
     rm -rf /var/cache/dnf && \
     (rpm -e --nodeps python3 python3-libs python3-setuptools-wheel python3-pip-wheel \
