@@ -27,18 +27,21 @@ ENV TOMCAT_VERSION=11.0.25
 # Updated to pull OS patches for CVE-2026-44605 (rpm >= 4.16.1.3-29.amzn2023.0.7),
 # CVE-2026-40553/40467/40468 (gawk >= 5.1.0-3.amzn2023.0.4),
 # CVE-2026-16118 (glib2 >= 2.82.2-771.amzn2023),
-# CVE-2026-14456 (openssl >= 3.5.7-2.amzn2023.0.2);
+# CVE-2026-14456/14457/18798/63072/63074/63076 (openssl >= 3.5.8-1.amzn2023.0.1),
+# CVE-2026-66046 (expat >= 2.8.3-1.amzn2023.0.1);
 # python3 removed entirely (CVE-2026-15308) - not needed in Java/Tomcat runtime
-ARG CACHE_BUST=2026-09-08
+ARG CACHE_BUST=2026-09-21b
 
-# Force refresh repo metadata and install latest security updates
+# AL2023 pins each base image to a specific repo snapshot; --releasever=latest
+# jumps dnf to the newest snapshot so security-only patches (expat/openssl/etc.)
+# published after the base image tag are actually available.
 RUN echo "CACHE_BUST=${CACHE_BUST}" && \
     dnf clean all && \
-    dnf makecache --refresh && \
-    dnf upgrade -y --refresh --best --allowerasing && \
-    dnf install -y --setopt=install_weak_deps=False wget unzip graphite2 && \
-    dnf upgrade -y --refresh --best --allowerasing rpm gawk glib2 openssl-libs && \
-    rpm -q rpm gawk glib2 openssl-libs && \
+    dnf --releasever=latest makecache --refresh && \
+    dnf --releasever=latest upgrade -y --refresh --best --allowerasing && \
+    dnf --releasever=latest install -y --setopt=install_weak_deps=False wget unzip graphite2 && \
+    dnf --releasever=latest upgrade -y --refresh --best --allowerasing rpm gawk glib2 openssl-libs expat && \
+    rpm -q rpm gawk glib2 openssl-libs expat && \
     dnf clean all && \
     rm -rf /var/cache/dnf && \
     (rpm -e --nodeps python3 python3-libs python3-setuptools-wheel python3-pip-wheel \
